@@ -1,0 +1,17 @@
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+
+=== STAGE-1 GATE FIX — 16 seeds × 2 arms, 23 sim-days each (mean ± SD) ===
+(metric: %% of non-fighting-favorite heroes who are fighting = the monoculture symptom)
+
+BEFORE (gate over ALL inv — the bug)
+    fight head-count:        33.3 ± 1.5
+    % non-fav-favs fighting:  68% ± 6   (THE metric)
+    following-favorite:      49% ± 8
+    per-capita gold:         881 ± 333
+
+AFTER  (gate over CARGO only — the fix)
+    fight head-count:        21.4 ± 1.5
+    % non-fav-favs fighting:  32% ± 5   (THE metric)
+    following-favorite:      68% ± 5
+    per-capita gold:         623 ± 17
+

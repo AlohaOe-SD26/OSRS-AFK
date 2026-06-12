@@ -1,0 +1,70 @@
+[
+  {
+    "id": "iron_ore", "name": "Iron ore", "slot": "", "baseValue": 17, "stackable": false,
+    "levelReqs": {"mining": 15},
+    "acquisition": {"type": "Gathered", "gatherSkill": "mining", "gatherLevel": 15},
+    "iconId": "iron_ore"
+  },
+  {
+    "id": "logs", "name": "Logs", "slot": "", "baseValue": 12, "stackable": false,
+    "levelReqs": {"woodcutting": 1},
+    "acquisition": {"type": "Gathered", "gatherSkill": "woodcutting", "gatherLevel": 1},
+    "iconId": "logs"
+  },
+  {
+    "id": "raw_trout", "name": "Raw trout", "slot": "", "baseValue": 7, "stackable": false,
+    "levelReqs": {"fishing": 20},
+    "acquisition": {"type": "Gathered", "gatherSkill": "fishing", "gatherLevel": 20},
+    "iconId": "raw_trout"
+  },
+  {
+    "id": "trout", "name": "Trout", "slot": "", "baseValue": 9, "stackable": false,
+    "isFood": true, "heals": 7,
+    "levelReqs": {"cooking": 15},
+    "acquisition": {"type": "Craftable", "craftSkill": "cooking", "craftLevel": 15, "recipe": ["raw_trout"]},
+    "iconId": "trout"
+  },
+  {
+    "id": "bronze_pickaxe", "name": "Bronze pickaxe", "slot": "weapon", "baseValue": 1, "stackable": false,
+    "levelReqs": {"mining": 1},
+    "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 1},
+    "iconId": "bronze_pickaxe"
+  },
+  {
+    "id": "bronze_axe", "name": "Bronze axe", "slot": "weapon", "baseValue": 1, "stackable": false,
+    "levelReqs": {"woodcutting": 1},
+    "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 1},
+    "iconId": "bronze_axe"
+  },
+  {
+    "id": "bronze_sword", "name": "Bronze sword", "slot": "weapon", "baseValue": 26, "stackable": false,
+    "baseStats": {"att_stab": 4, "att_slash": 3, "str": 5},
+    "levelReqs": {"attack": 1},
+    "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 4},
+    "iconId": "bronze_sword"
+  },
+  {
+    "id": "iron_scimitar", "name": "Iron scimitar", "slot": "weapon", "baseValue": 112, "stackable": false,
+    "baseStats": {"att_slash": 10, "str": 9},
+    "levelReqs": {"attack": 1},
+    "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 20},
+    "iconId": "iron_scimitar"
+  },
+  {
+    "id": "leather_body", "name": "Leather body", "slot": "body", "baseValue": 21, "stackable": false,
+    "baseStats": {"def_stab": 4, "def_slash": 5, "def_crush": 3},
+    "levelReqs": {"defence": 1},
+    "acquisition": {"type": "Craftable", "craftSkill": "crafting", "craftLevel": 14, "recipe": ["leather"]},
+    "iconId": "leather_body"
+  },
+  {
+    "id": "cowhide", "name": "Cowhide", "slot": "", "baseValue": 8, "stackable": false,
+    "acquisition": {"type": "DropOnly", "dropSources": [{"monsterId": "cow", "rate": 1.0}]},
+    "iconId": "cowhide"
+  },
+  {
+    "id": "bones", "name": "Bones", "slot": "", "baseValue": 1, "stackable": false,
+    "acquisition": {"type": "DropOnly", "dropSources": [{"monsterId": "rat", "rate": 1.0}]},
+    "iconId": "bones"
+  }
+]

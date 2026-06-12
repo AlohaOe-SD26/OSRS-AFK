@@ -1,0 +1,250 @@
+[
+ {
+  "id": "chicken",
+  "name": "Chicken",
+  "combatLevel": 1,
+  "hitpoints": 3,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 0,
+  "weaknessStyle": "any",
+  "attackSpeed": 4,
+  "aggressive": false,
+  "undeadFlag": false,
+  "region": "varrock",
+  "isBoss": false,
+  "coinDropRange": [
+   0,
+   0
+  ],
+  "dropTable": [
+   {
+    "itemTypeId": "bones",
+    "rate": 1.0
+   }
+  ]
+ },
+ {
+  "id": "rat",
+  "name": "Rat",
+  "combatLevel": 1,
+  "hitpoints": 15,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 1,
+  "weaknessStyle": "any",
+  "attackSpeed": 4,
+  "aggressive": false,
+  "undeadFlag": false,
+  "region": "varrock",
+  "isBoss": false,
+  "coinDropRange": [
+   6,
+   16
+  ],
+  "dropTable": [
+   {
+    "itemTypeId": "bones",
+    "rate": 1.0
+   }
+  ]
+ },
+ {
+  "id": "giant_rat",
+  "name": "Giant rat",
+  "combatLevel": 3,
+  "hitpoints": 20,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 2,
+  "weaknessStyle": "any",
+  "attackSpeed": 4,
+  "aggressive": false,
+  "undeadFlag": false,
+  "region": "varrock",
+  "isBoss": false,
+  "coinDropRange": [
+   6,
+   18
+  ],
+  "dropTable": [
+   {
+    "itemTypeId": "bones",
+    "rate": 1.0
+   }
+  ]
+ },
+ {
+  "id": "cow",
+  "name": "Cow",
+  "combatLevel": 2,
+  "hitpoints": 8,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 1,
+  "weaknessStyle": "any",
+  "attackSpeed": 4,
+  "aggressive": false,
+  "undeadFlag": false,
+  "region": "varrock",
+  "isBoss": false,
+  "coinDropRange": [
+   0,
+   0
+  ],
+  "dropTable": [
+   {
+    "itemTypeId": "cowhide",
+    "rate": 1.0
+   }
+  ]
+ },
+ {
+  "id": "goblin",
+  "name": "Goblin",
+  "combatLevel": 5,
+  "hitpoints": 12,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 1,
+  "weaknessStyle": "any",
+  "attackSpeed": 4,
+  "aggressive": true,
+  "undeadFlag": false,
+  "region": "varrock",
+  "isBoss": false,
+  "coinDropRange": [
+   1,
+   18
+  ],
+  "dropTable": []
+ },
+ {
+  "id": "dark_wizard",
+  "name": "Dark wizard",
+  "combatLevel": 7,
+  "hitpoints": 15,
+  "attackStyles": [
+   "magic"
+  ],
+  "maxHit": 3,
+  "weaknessStyle": "ranged",
+  "attackSpeed": 5,
+  "aggressive": true,
+  "undeadFlag": false,
+  "region": "varrock_stone_circle",
+  "isBoss": false,
+  "coinDropRange": [
+   1,
+   28
+  ],
+  "dropTable": []
+ },
+ {
+  "id": "guard",
+  "name": "Guard",
+  "combatLevel": 21,
+  "hitpoints": 22,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 4,
+  "weaknessStyle": "melee",
+  "attackSpeed": 5,
+  "aggressive": false,
+  "undeadFlag": false,
+  "region": "varrock_palace",
+  "isBoss": false,
+  "coinDropRange": [
+   1,
+   40
+  ],
+  "dropTable": []
+ },
+ {
+  "id": "zombie",
+  "name": "Zombie",
+  "combatLevel": 13,
+  "hitpoints": 22,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 3,
+  "weaknessStyle": "fire",
+  "attackSpeed": 5,
+  "aggressive": true,
+  "undeadFlag": true,
+  "region": "varrock_sewers",
+  "isBoss": false,
+  "coinDropRange": [
+   1,
+   12
+  ],
+  "dropTable": [
+   {
+    "itemTypeId": "bones",
+    "rate": 1.0
+   }
+  ]
+ },
+ {
+  "id": "scurrius",
+  "name": "Scurrius",
+  "combatLevel": 80,
+  "hitpoints": 500,
+  "attackStyles": [
+   "melee",
+   "ranged",
+   "magic"
+  ],
+  "maxHit": 11,
+  "weaknessStyle": "any",
+  "attackSpeed": 4,
+  "aggressive": true,
+  "undeadFlag": false,
+  "region": "varrock_sewers",
+  "isBoss": true,
+  "slayerLevelReq": 0,
+  "coinDropRange": [
+   3000,
+   8000
+  ],
+  "dropTable": [
+   {
+    "itemTypeId": "scurrius_spine",
+    "rate": 0.0667
+   }
+  ]
+ },
+ {
+  "id": "barbarian",
+  "name": "Barbarian",
+  "combatLevel": 10,
+  "hitpoints": 25,
+  "attackStyles": [
+   "melee"
+  ],
+  "maxHit": 2,
+  "weaknessStyle": "magic",
+  "attackSpeed": 4,
+  "aggressive": false,
+  "undeadFlag": false,
+  "region": "varrock",
+  "isBoss": false,
+  "coinDropRange": [
+   5,
+   25
+  ],
+  "dropTable": [
+   {
+    "itemTypeId": "bones",
+    "rate": 1.0
+   }
+  ]
+ }
+]

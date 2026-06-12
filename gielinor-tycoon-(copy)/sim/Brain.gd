@@ -1,0 +1,162 @@
+class_name Brain
+extends RefCounted
+## The Hero AI utility brain (GDD §18 / EQUATIONS §4). Scores every feasible candidate
+## activity and returns the argmax. Phase 0 exercises the gathering activities so the core
+## levers are live: favorite-skill bias, congestion self-balancing, travel cost, expected
+## wealth, and anti-thrash stickiness. Combat/quest activities extend this same scoring in
+## later build-order steps.
+##
+## Validated in the prototype (§23): heroes choose believably, commit to a trip (no
+## thrashing), and congestion spreads labor across nodes with no scripting.
+##
+## Each candidate carries a "terms" breakdown (ordered [name, value] pairs) and the score is
+## EXACTLY their sum — so decision-level instrumentation (tools/diag_decision.gd) reports the same
+## math the brain actually uses; the instrument cannot diverge from the score.
+
+## Returns the chosen activity as { "intent", "loc", "skill", "res", "score", "terms" } or an
+## empty Dictionary if nothing is feasible.
+static func choose(hero: Hero, world) -> Dictionary:
+	var candidates := candidates_with_terms(hero, world)
+	if candidates.is_empty():
+		return {}
+	candidates.sort_custom(func(a, b): return a["score"] > b["score"])
+	return candidates[0]
+
+## All feasible scored candidates (same gating as choose) — used by choose() and by the decision
+## instrument so both see identical math.
+##
+## INVARIANT (Stage-1 fix): the gather "room?" check is a soft eligibility test over CARGO only, so
+## carried food can never delete the gather menu; and if the candidate set is ever empty we append a
+## guaranteed productive fallback (regroup→sell at town) so no agent can be left with a starved menu.
+static func candidates_with_terms(hero: Hero, world) -> Array:
+	var candidates: Array = []
+	var used := hero.cargo_count() if Config.GATHER_GATE_CARGO_ONLY else hero.inv_count()
+	var space_left := (28 - used) > 4
+	if space_left:
+		for intent in Activities.CATALOG:
+			candidates.append(_score(hero, world, intent))
+	var fight := _score_fight(hero, world)
+	if not fight.is_empty():
+		candidates.append(fight)
+	if candidates.is_empty():
+		candidates.append(_fallback(hero))   # never-empty-menu invariant
+	return candidates
+
+## Always-eligible productive default — head to town and sell whatever's carried (which frees cargo
+## and unlocks gather next decision). The safety net that makes a starved menu impossible.
+static func _fallback(hero: Hero) -> Dictionary:
+	return _finish({"intent": "REGROUP", "loc": "shop", "skill": "", "res": ""}, [["fallback", 0.0]])
+
+## skillNeed (concept-ported, the §18 saturation): distance-from-99 scaled by ambition — 0 at 99,
+## so EVERY activity's appeal fades as mastery approaches; no activity can be a permanent refuge.
+static func _skill_need(hero: Hero, skill: String) -> float:
+	var l := hero.skill_level(skill)
+	if l >= 99:
+		return 0.0
+	return (1.0 + (99.0 - l) / 99.0) * (float(hero.traits.get("ambition", 0.5)) * 0.5 + 0.75)
+
+static func _finish(d: Dictionary, terms: Array) -> Dictionary:
+	var s := 0.0
+	for t in terms:
+		s += float(t[1])
+	d["terms"] = terms
+	d["score"] = s
+	return d
+
+## FIGHT candidate (§18). Feasible if the hero has food or can afford it; cautious heroes
+## (low risk trait) avoid it; fighting-favorite heroes strongly prefer it.
+## NOTE the asymmetry vs gathering: combat has NO economic-reward term — its appeal is a flat base
+## + Strength scaling, neither of which responds to prices/yield. Gathering's reward term saturates
+## with price; combat's congestion is its ONLY negative feedback.
+static func _score_fight(hero: Hero, world) -> Dictionary:
+	# combat requires a MAIN-HAND weapon equipped; without one, the option is to BUY one (if affordable)
+	if not hero.equipped.has("main"):
+		if hero.gold >= Config.WEAPON_COST + 10:
+			return _finish({"intent": "BUY_WEAPON", "loc": "shop", "skill": "strength", "res": ""},
+				[["base", 11.0], ["goal", Config.GOAL_BIAS if String(hero.goal.get("skill", "")) == "strength" else 0.0]])
+		return {}
+	var food := int(hero.inv.get("cooked_fish", 0))
+	var food_price := int(world.economy.food_price())
+	var can_fight := food >= 1 or hero.gold >= food_price * 2
+	if not can_fight:
+		return {}
+	var terms: Array = []
+	if Config.BRAIN_V2:
+		# §18 SYMMETRY FIX: combat's base uses the SAME skillNeed-saturating form as gather — its appeal
+		# falls as Strength approaches 99 and is no longer a flat, price-independent refuge.
+		var fav_m := Config.FAVORITE_MULT if hero.favorite == "fighting" else 1.0
+		terms.append(["base", 8.0 + _skill_need(hero, "strength") * 13.0 * fav_m])
+		terms.append(["favorite", 0.0])
+	else:
+		terms.append(["base", 14.0 + hero.skill_level("strength") * 0.4])
+		terms.append(["favorite", Config.FAVORITE_MULT * 10.0 if hero.favorite == "fighting" else 0.0])
+	terms.append(["reward", 0.0])   # <-- combat has no economic-reward term (the structural asymmetry)
+	terms.append(["congestion", -world.congestion("combat") * Config.CONGESTION_K * Config.COMBAT_CONGESTION_MULT])
+	terms.append(["risk", -(1.0 - float(hero.traits.get("risk", 0.4))) * 8.0])
+	terms.append(["food_pen", -6.0 if food < 1 else 0.0])
+	terms.append(["sticky", Config.STICKY_BONUS if hero.act.get("intent", "") == "FIGHT" else 0.0])
+	terms.append(["incentive", _incentive(world, "FIGHT")])   # Tier-1 player lever (§18.4); 0 if unset
+	terms.append(["goal", Config.GOAL_BIAS if String(hero.goal.get("skill", "")) == "strength" else 0.0])
+	return _finish({"intent": "FIGHT", "loc": "combat", "skill": "strength", "res": ""}, terms)
+
+static func _score(hero: Hero, world, intent: String) -> Dictionary:
+	var skill := Activities.skill_of(intent)
+	var loc_key := Activities.location_of(intent)
+	# TOOL GATE: no tool in inventory → the candidate becomes "go BUY the tool" (same desire, −2 — the
+	# acquisition step a real player takes; prevents tool-gating from locking heroes to their favorite)
+	if Config.TOOL_FOR.has(skill) and int(hero.inv.get(Config.TOOL_FOR[skill], 0)) <= 0:
+		if hero.gold < Config.TOOL_COST + 5:
+			return _finish({"intent": intent, "loc": loc_key, "skill": skill, "res": ""}, [["unaffordable", -999.0]])
+		var bt := _score_inner(hero, world, intent, skill, loc_key)
+		bt["intent"] = "BUY_TOOL"
+		bt["loc"] = "shop"
+		bt["score"] = float(bt["score"]) - 2.0
+		bt["terms"].append(["needs_tool", -2.0])
+		return bt
+	return _score_inner(hero, world, intent, skill, loc_key)
+
+static func _score_inner(hero: Hero, world, intent: String, skill: String, loc_key: String) -> Dictionary:
+	var terms: Array = []
+	if Config.BRAIN_V2:
+		# skillNeed-saturating base (same form as combat — symmetric), favorite folded in multiplicatively
+		var fav_m := Config.FAVORITE_MULT if hero.favorite == skill else (Config.SECONDARY_MULT if hero.secondary == skill else 1.0)
+		terms.append(["base", 8.0 + _skill_need(hero, skill) * 13.0 * fav_m])
+		terms.append(["favorite", 0.0])
+		# DEMAND-RESPONSIVE labor (the concept's economy→brain feedback): town food running low pulls fishers
+		if intent == "PROVISION":
+			var stock: int = world.economy.total_stock("cooked_fish")
+			if stock < 12:
+				terms.append(["demand", minf(20.0, (12.0 - stock) * 2.0) * (0.4 + float(hero.traits.get("greed", 0.4)))])
+	else:
+		terms.append(["base", 10.0 + hero.skill_level(skill) * 0.5])
+		var fav := 0.0
+		if hero.favorite == skill:
+			fav = Config.FAVORITE_MULT * 10.0
+		elif hero.secondary == skill:
+			fav = Config.SECONDARY_MULT * 10.0
+		terms.append(["favorite", fav])
+	# expected wealth from this activity (greed-weighted) — the term that SATURATES with price
+	var wealth_w := 0.6 + float(hero.traits.get("greed", 0.4))
+	var price := int(world.economy.sell_price(Activities.sells_as(intent)))
+	terms.append(["reward", price * 0.25 * wealth_w])
+	# self-balancing: crowded nodes are less attractive (§6 / §18.6)
+	terms.append(["congestion", -world.congestion(loc_key) * Config.CONGESTION_K])
+	# travel cost
+	terms.append(["travel", -world.distance_to(hero, loc_key) * 0.4])
+	# anti-thrash hysteresis
+	terms.append(["sticky", Config.STICKY_BONUS if hero.act.get("intent", "") == intent else 0.0])
+	# Tier-1 Incentivize (§18.4): a posted bounty / standing priority raises this activity's utility
+	# so the brain responds organically. 0 when the player hasn't set one → no behavior change.
+	terms.append(["incentive", _incentive(world, intent)])
+	# goal bias (§18.3): the active "train X to N" goal pulls toward its skill (cooking rides fishing)
+	var gskill := String(hero.goal.get("skill", ""))
+	terms.append(["goal", Config.GOAL_BIAS if (gskill == skill or (gskill == "cooking" and skill == "fishing")) else 0.0])
+	return _finish({"intent": intent, "loc": loc_key, "skill": skill, "res": Activities.resource_of(intent)}, terms)
+
+## The player's Tier-1 incentive weight for an intent (0 if none / no control layer). Read defensively
+## so the brain still works in bare-bones test rigs that don't set up the incentives dict.
+static func _incentive(world, intent: String) -> float:
+	var inc = world.get("incentives")
+	if inc is Dictionary:
+		return float(inc.get(intent, 0.0))
+	return 0.0

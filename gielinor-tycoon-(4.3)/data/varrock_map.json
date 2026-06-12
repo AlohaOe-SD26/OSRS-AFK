@@ -1,0 +1,20 @@
+{
+  "name": "Varrock (home region — Phase 0)",
+  "gridSize": 18,
+  "comment": "Tile coordinates for the iso home map. Relative layout from WORLD_AND_CHARACTERS.md §2 (4 gates, W/E banks, central plaza, palace N, Aubury/Museum SE, sewers, Stone Circle S). Keys mine/forest/fishing/shop/range/combat are the live Phase-0 gather loop nodes; the rest are render landmarks.",
+  "locations": {
+    "bank":        {"x": 3,  "y": 3,  "kind": "build",  "label": "West Bank"},
+    "bank_east":   {"x": 15, "y": 8,  "kind": "build",  "label": "East Bank"},
+    "shop":        {"x": 3,  "y": 14, "kind": "build",  "label": "Market"},
+    "range":       {"x": 6,  "y": 9,  "kind": "build",  "label": "Range"},
+    "palace":      {"x": 8,  "y": 2,  "kind": "build",  "label": "Varrock Palace"},
+    "mine":        {"x": 14, "y": 4,  "kind": "rocks",  "label": "Mine"},
+    "forest":      {"x": 14, "y": 14, "kind": "trees",  "label": "Forest"},
+    "fishing":     {"x": 9,  "y": 1,  "kind": "water",  "label": "River Lum"},
+    "combat":      {"x": 11, "y": 9,  "kind": "dirt",   "label": "Rat Pit"},
+    "stone_circle":{"x": 8,  "y": 16, "kind": "circle", "label": "Stone Circle"},
+    "sewers":      {"x": 11, "y": 12, "kind": "manhole","label": "Sewers"}
+  },
+  "water_tiles": {"x_from": 7, "x_to": 11, "y_from": 0, "y_to": 1},
+  "gates": ["N", "E", "S", "W"]
+}

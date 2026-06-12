@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gielinor Tycoon — Phase 0 Vertical Slice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Spectral:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2b2117; --parch:#e8dcc0; --parch2:#d8c8a4; --slate:#1b1a17; --slate2:#262420;
+    --gold:#c9a24b; --gold2:#e6c87a; --blood:#8c2f2a; --moss:#5a7d4f; --sky:#6f93b0; --line:#4a4338;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:radial-gradient(1200px 700px at 30% -10%, #2c2a25, #131210 70%); color:var(--parch);
+    font-family:'Spectral',serif; overflow:hidden;}
+  #app{display:grid; grid-template-columns:1fr 366px; grid-template-rows:auto 1fr; height:100vh; gap:0;}
+  header{grid-column:1/3; display:flex; align-items:center; gap:18px; padding:10px 18px;
+    background:linear-gradient(180deg,#221f1a,#191712); border-bottom:1px solid var(--line);}
+  header h1{font-family:'Cinzel',serif; font-weight:700; font-size:20px; letter-spacing:.06em; color:var(--gold2);
+    text-shadow:0 1px 0 #000;}
+  header .sub{font-style:italic; color:#9c8f78; font-size:13px;}
+  .controls{margin-left:auto; display:flex; align-items:center; gap:6px;}
+  .controls button{font-family:'Cinzel',serif; font-size:12px; letter-spacing:.05em; cursor:pointer;
+    background:#2c2822; color:var(--parch); border:1px solid var(--line); padding:6px 11px; border-radius:4px;}
+  .controls button.active{background:var(--gold); color:#1b1611; border-color:var(--gold2); font-weight:700;}
+  .controls button:hover{border-color:var(--gold2)}
+  #stage{position:relative; background:
+     repeating-linear-gradient(45deg,#15140f,#15140f 2px,#17160f 2px,#17160f 4px); overflow:hidden;}
+  canvas{display:block; width:100%; height:100%;}
+  #side{background:linear-gradient(180deg,#211e19,#1a1814); border-left:1px solid var(--line);
+    display:flex; flex-direction:column; min-height:0;}
+  .panel{padding:12px 14px; border-bottom:1px solid var(--line);}
+  .panel h2{font-family:'Cinzel',serif; font-size:12px; letter-spacing:.14em; color:var(--gold);
+    text-transform:uppercase; margin-bottom:8px; border-bottom:1px dotted #4a4338; padding-bottom:4px;}
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; font-size:13px;}
+  .stat b{font-family:'JetBrains Mono',monospace; color:var(--gold2); font-weight:600;}
+  .stat span{color:#a99c84}
+  #spark{width:100%; height:38px; display:block; margin-top:8px; background:#141310; border:1px solid var(--line); border-radius:3px;}
+  #heroCard{font-size:13px; min-height:150px;}
+  #heroCard .empty{color:#7b7060; font-style:italic; padding-top:24px; text-align:center;}
+  .hname{font-family:'Cinzel',serif; font-size:16px; color:var(--gold2); font-weight:700;}
+  .hfav{font-style:italic; color:#a99c84; font-size:12px; margin-bottom:6px;}
+  .hpbar{height:10px; background:#3a1a18; border:1px solid #000; border-radius:6px; overflow:hidden; margin:6px 0;}
+  .hpbar i{display:block; height:100%; background:linear-gradient(90deg,#b34, #6c2);}
+  .thought{background:#15140f; border-left:3px solid var(--gold); padding:6px 9px; margin:8px 0; font-style:italic; color:#d8cba8; font-size:13px;}
+  .skills{display:grid; grid-template-columns:repeat(3,1fr); gap:3px 8px; font-size:11.5px; font-family:'JetBrains Mono',monospace;}
+  .skills div span{color:#8f8369}
+  .skills div b{color:var(--parch)}
+  .inv{font-size:11.5px; color:#bcae90; margin-top:6px; font-family:'JetBrains Mono',monospace;}
+  #log{flex:1; overflow-y:auto; padding:10px 14px; min-height:0;}
+  #log h2{font-family:'Cinzel',serif; font-size:12px; letter-spacing:.14em; color:var(--gold); text-transform:uppercase; margin-bottom:8px; position:sticky; top:-10px; background:#1a1814; padding:6px 0;}
+  .ev{font-size:12.5px; padding:3px 0; border-bottom:1px dotted #322d25; color:#cdbf9f;}
+  .ev .t{font-family:'JetBrains Mono',monospace; color:#6f6452; font-size:10.5px; margin-right:6px;}
+  .ev.lv{color:var(--gold2)} .ev.die{color:#d77} .ev.gold{color:#bda86a} .ev.boss{color:#e0954a; font-weight:600}
+  .hint{font-size:11px; color:#7b7060; font-style:italic; padding:6px 14px;}
+  ::-webkit-scrollbar{width:8px} ::-webkit-scrollbar-thumb{background:#3a352c;border-radius:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>GIELINOR TYCOON</h1>
+    <span class="sub">Phase 0 — a living Varrock (vertical slice)</span>
+    <div class="controls">
+      <button data-sp="0">❚❚ Pause</button>
+      <button data-sp="1">1×</button>
+      <button data-sp="2" class="active">2×</button>
+      <button data-sp="4">4×</button>
+    </div>
+  </header>
+
+  <div id="stage"><canvas id="cv"></canvas></div>
+
+  <div id="side">
+    <div class="panel">
+      <h2>The Colony</h2>
+      <div class="stats">
+        <div class="stat"><span>Day</span> <b id="s-day">1</b></div>
+        <div class="stat"><span>Heroes</span> <b id="s-pop">0</b></div>
+        <div class="stat"><span>Total gold</span> <b id="s-gold">0</b></div>
+        <div class="stat"><span>Ore price</span> <b id="s-ore">0</b></div>
+        <div class="stat"><span>Food in shop</span> <b id="s-food">0</b></div>
+        <div class="stat"><span>Rats slain</span> <b id="s-kills">0</b></div>
+      </div>
+      <canvas id="spark"></canvas>
+      <div style="font-size:10.5px;color:#6f6452;margin-top:4px;font-style:italic">total gold over time — watching for inflation/equilibrium (§6)</div>
+      <div id="dbg" style="font-size:10.5px;color:#9c8f78;margin-top:8px;font-family:'JetBrains Mono',monospace;line-height:1.6"></div>
+      <button id="exportBtn" style="margin-top:8px;width:100%;font-family:'Cinzel',serif;font-size:11px;letter-spacing:.06em;cursor:pointer;background:#2c2822;color:#e6c87a;border:1px solid #4a4338;padding:8px;border-radius:4px">⤓ Export Debug Log</button>
+    </div>
+    <div class="panel">
+      <h2>Hero Panel <span style="font-weight:400;color:#7b7060;font-size:10px">(click a hero)</span></h2>
+      <div id="heroCard"><div class="empty">Click any adventurer to read their stats &amp; thoughts.</div></div>
+    </div>
+    <div id="log"><h2>The Chronicle</h2><div id="evs"></div></div>
+  </div>
+</div>
+<div class="hint">Autonomous heroes run the utility-brain (§18) · canon combat math (§10) · Fisher→Cook→Warrior economy (§6/§9). XP compression is exaggerated (×40) so you can watch levels climb.</div>
+<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;align-items:center;justify-content:center">
+  <div style="background:#1f1d18;border:1px solid #c9a24b;border-radius:8px;width:min(700px,92vw);max-height:84vh;display:flex;flex-direction:column;padding:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <strong style="font-family:'Cinzel',serif;color:#e6c87a;letter-spacing:.06em">Debug Log</strong>
+      <span style="font-size:11px;color:#9c8f78;font-style:italic">copy this &amp; send it back for tuning</span>
+      <button id="copyBtn" style="margin-left:auto;cursor:pointer;background:#c9a24b;color:#1b1611;border:none;padding:6px 12px;border-radius:4px;font-family:'Cinzel',serif;font-size:11px">Copy</button>
+      <button id="closeBtn" style="cursor:pointer;background:#2c2822;color:#e8dcc0;border:1px solid #4a4338;padding:6px 12px;border-radius:4px;font-family:'Cinzel',serif;font-size:11px">Close</button>
+    </div>
+    <textarea id="logText" readonly style="flex:1;min-height:360px;width:100%;background:#141310;color:#cdbf9f;border:1px solid #4a4338;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:10px;resize:none;white-space:pre"></textarea>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   GIELINOR TYCOON — PHASE 0 PROTOTYPE
+   Validates: the Hero AI utility brain, canon combat resolution,
+   and the food economy loop. Maps to the design docs (§ refs inline).
+   ============================================================ */
+
+// ---------- CONFIG (mirrors EQUATIONS_AND_SCHEMAS.md CONFIG.*) ----------
+const CONFIG = {
+  xpRate: 40,            // §9 compression multiplier (exaggerated for the demo)
+  favoriteMult: 1.6,     // §18 favorite-skill utility multiplier
+  congestionK: 7,        // §18 self-balancing: crowded nodes less attractive
+  stickyBonus: 6,        // §18 anti-thrash hysteresis
+  workTick: 0.28,        // seconds per work tick at 1×
+  moveSpeed: 2.4,        // tiles/sec at 1×
+  eatThreshold: 0.45,    // eat at 45% HP
+  fleeThreshold: 0.28,   // flee if below 28% and no food
+  foodHeal: 6,
+  foodBuyQty: 4,
+  // ---- §6 economy sinks (tuned to a flat total-gold equilibrium, ~5.3k @ 8 heroes) ----
+  geTax: 0.03,           // §5 sales skim, applied to every shop sale (faucet throttle)
+  upkeepRate: 0.40,      // §5 facility/living upkeep, PROPORTIONAL to gold held per day
+                         //   → self-correcting attractor: total gold settles, never runs away
+  upkeepFlat: 6,         // small flat per-hero/day baseline upkeep
+  ratDropMin: 6,         // §5 drop-gold range for a rat kill (keeps the combat loop solvent)
+  ratDropRange: 10,
+  priceFloorFrac: 0.12,  // a saturated shop still pays this fraction of base (no demand ≈ near-0)
+};
+
+// ---------- XP TABLE (canon OSRS curve, §9) ----------
+const LVLXP=[0,0]; (function(){let p=0;for(let n=1;n<99;n++){p+=Math.floor(n+300*Math.pow(2,n/7));LVLXP[n+1]=Math.floor(p/4);}})();
+function xpToLevel(xp){let L=1;for(let i=2;i<=99;i++){if(xp>=LVLXP[i])L=i;else break;}return L;}
+
+// ---------- WORLD ----------
+const GRID=18, TW=46, TH=23;
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let ORIGIN={x:0,y:60};
+function iso(x,y){return {x:ORIGIN.x+(x-y)*TW/2, y:ORIGIN.y+(x+y)*TH/2};}
+
+const LOC = {
+  bank:   {x:3, y:3,  kind:'build', label:'Bank',  col:'#7a6a4a'},
+  shop:   {x:3, y:14, kind:'build', label:'Market', col:'#8a6a3a'},
+  range:  {x:6, y:9,  kind:'build', label:'Range', col:'#6a4a3a'},
+  mine:   {x:14,y:4,  kind:'rocks', label:'Mine'},
+  forest: {x:14,y:14, kind:'trees', label:'Forest'},
+  fishing:{x:9, y:1,  kind:'water', label:'Fishing'},
+  combat: {x:11,y:9,  kind:'dirt',  label:'Rat Pit'},
+};
+const waterTiles = new Set();
+for(let x=7;x<=11;x++){waterTiles.add(x+',0'); waterTiles.add(x+',1');}
+
+// ---------- ECONOMY (§6) ----------
+const shop = {
+  stock:{ore:20,logs:20,rawFish:10,cookedFish:14},
+  max:{ore:120,logs:120,rawFish:80,cookedFish:80},
+  base:{ore:16,logs:12,rawFish:7,cookedFish:9}, // shop BUYS raw at these (faucet)
+  foodBuyBase:22,                                // shop SELLS cooked fish to heroes (sink)
+  consume:{ore:350,logs:350,rawFish:0,cookedFish:260}, // §6 town demand: units/sim-day the NPC town absorbs
+};
+function sellPrice(item){ // shop pays hero; falls toward ~0 as stock saturates (anti-dump, §6)
+  const r=shop.stock[item]/shop.max[item];
+  const f=Math.max(CONFIG.priceFloorFrac, 1.2 - r*1.4); // saturated (r≈1) → priceFloorFrac; empty → 1.2×base
+  return Math.max(1, Math.round(shop.base[item]*f));
+}
+// §6 per-tick economy: town consumes shop stock (bounds the faucet) + heroes pay upkeep (the sink).
+// dd = fraction of a sim-day elapsed this tick. Upkeep is mostly proportional to gold held → stable equilibrium.
+function economyTick(dd){
+  for(const it in shop.consume){ shop.stock[it]=Math.max(0, shop.stock[it]-shop.consume[it]*dd); }
+  heroes.forEach(h=>{ const drain=(CONFIG.upkeepFlat + CONFIG.upkeepRate*h.gold)*dd; h.gold-=Math.min(h.gold,drain); });
+}
+function foodPrice(){ // shop sells cooked fish; rises as stock falls
+  const r=shop.stock.cookedFish/shop.max.cookedFish;
+  return Math.round(CONFIG_foodCeil*(1.4 - r*0.7));
+}
+const CONFIG_foodCeil = shop.foodBuyBase;
+
+// ---------- HEROES (§ schema in EQUATIONS_AND_SCHEMAS.md §12) ----------
+const SKIN=['#e7b58a','#c98d5e','#9c6b43','#e8c9a0','#7a5235'];
+const HAIR=['#3a2a1a','#6b4423','#c9a24b','#8a8a8a','#1c1c1c','#a33d23'];
+const SHIRT=['#5a7d4f','#6f93b0','#8c2f2a','#7a5ea0','#b0883a','#3d6b6b'];
+const FAVS=['mining','mining','woodcutting','fishing','fishing','fighting','fighting','allround'];
+const NAMES=['Bjorn','Saoirse','Magnus','Elara','Thorne','Rookwood','Vael','Mira'];
+let heroes=[], rats=[], events=[], simDay=1, simClock=0, simTotal=0, totalKills=0, goldHist=[];
+let dbgLog=[], deaths=0, runStart=Date.now(), thrash={}, tickN=0;
+
+function mkHero(i){
+  const fav=FAVS[i];
+  const sk={};['attack','strength','defence','hitpoints','mining','woodcutting','fishing','cooking'].forEach(s=>sk[s]={lvl:1,xp:0});
+  sk.hitpoints={lvl:10,xp:LVLXP[10]};
+  // give favorite-aligned heroes a small head start so roles read immediately
+  const boost=(s,n)=>{sk[s].lvl=n;sk[s].xp=LVLXP[n];};
+  if(fav==='fighting'){boost('attack',8);boost('strength',8);boost('defence',6);boost('hitpoints',12);}
+  if(fav==='mining')boost('mining',6); if(fav==='woodcutting')boost('woodcutting',6);
+  if(fav==='fishing'){boost('fishing',6);boost('cooking',5);}
+  return {
+    id:i, name:NAMES[i], fav,
+    skin:SKIN[i%SKIN.length], hair:HAIR[i%HAIR.length], shirt:SHIRT[i%SHIRT.length],
+    x:9+ (Math.random()-.5)*2, y:9+(Math.random()-.5)*2,
+    mt:null, // move target {x,y}
+    skills:sk, hp: sk.hitpoints.lvl, gold: 20,
+    inv:{ore:0,logs:0,rawFish:0,cookedFish:0},
+    traits:{risk: fav==='fighting'?0.7:0.3+Math.random()*0.3, greed:0.3+Math.random()*0.5},
+    act:null, thought:'Newly arrived in Varrock.',
+    flash:0,
+  };
+}
+function maxHp(h){return h.skills.hitpoints.lvl;}
+function invCount(h){return h.inv.ore+h.inv.logs+h.inv.rawFish+h.inv.cookedFish;}
+
+function gainXP(h,skill,amt){
+  const s=h.skills[skill]; const before=s.lvl; s.xp+=amt*CONFIG.xpRate; const nl=xpToLevel(s.xp);
+  if(nl>before){s.lvl=nl; if(skill==='hitpoints')h.hp=Math.min(maxHp(h)+ (nl-before), maxHp(h)); 
+    if(nl%5===0||nl>=20) logEvent(`${h.name} reached ${cap(skill)} ${nl}!`,'lv');}
+}
+function cap(s){return s[0].toUpperCase()+s.slice(1);}
+
+// ---------- RATS (combat targets, §10) ----------
+function spawnRats(n){for(let i=0;i<n;i++)rats.push(mkRat());}
+function mkRat(){return {x:LOC.combat.x+(Math.random()-.5)*3.4, y:LOC.combat.y+(Math.random()-.5)*3.4,
+  hp:15, maxhp:15, atk:1, def:1, str:2, alive:true, respawn:0, wander:0, tx:0,ty:0};}
+
+// ---------- THE BRAIN: utility scoring (§18 / EQUATIONS §4) ----------
+function congestion(loc){let c=0;heroes.forEach(h=>{if(h.act&&h.act.locKey===loc)c++;});return c;}
+function chooseActivity(h){
+  const cand=[];
+  const spaceLeft = 28-invCount(h) > 4;
+  const wealthW = 0.6+h.traits.greed; // greed → values gold
+  // gather intents
+  if(spaceLeft){
+    cand.push(score('GATHER_ORE','mining','mine','ore'));
+    cand.push(score('GATHER_LOGS','woodcutting','forest','logs'));
+    cand.push(score('PROVISION','fishing','fishing','rawFish')); // fish→cook→sell food
+  }
+  // fight intent
+  const food=h.inv.cookedFish;
+  const canFight = food>=1 || h.gold>=foodPrice()*2;
+  if(canFight){
+    let s = 14 + (h.fav==='fighting'?CONFIG.favoriteMult*10:0) + (h.skills.strength.lvl*0.4);
+    s -= congestion('combat')*CONFIG.congestionK*0.5;
+    s -= (1-h.traits.risk)*8;                 // cautious heroes avoid combat
+    if(food<1) s -= 6;                          // must buy food first (still ok if gold)
+    cand.push({intent:'FIGHT', locKey:'combat', s});
+  }
+  if(h.act && h.act.intent) { // stickiness — but only relevant during eval gaps
+  }
+  cand.sort((a,b)=>b.s-a.s);
+  return cand[0];
+  function score(intent, skill, locKey, res){
+    const loc=LOC[locKey];
+    let s = 10 + h.skills[skill].lvl*0.5;
+    if(h.fav===skill || (intent==='PROVISION'&&h.fav==='fishing')) s+=CONFIG.favoriteMult*10;
+    s += sellPrice(res==='rawFish'?'cookedFish':res)*0.25*wealthW; // expected wealth
+    s -= congestion(locKey)*CONFIG.congestionK;
+    s -= dist(h,loc)*0.4;
+    return {intent, locKey, skill, res, s};
+  }
+}
+
+// ---------- ACTIVITY FSM ----------
+function startActivity(h){
+  const c=chooseActivity(h); if(!c){h.act=null;return;}
+  (thrash[h.id]=thrash[h.id]||[]).push(simTotal);
+  h.act={intent:c.intent, locKey:c.locKey, skill:c.skill, res:c.res, phase:'goto', target:c.locKey, t:0};
+  // pre-fight: buy food if needed
+  if(c.intent==='FIGHT' && h.inv.cookedFish<2 && h.gold>=foodPrice()){ h.act.phase='buyfood'; h.act.target='shop'; }
+  setMove(h, LOC[h.act.target]);
+  narrate(h);
+}
+function workTick(h){
+  if(!h.act){startActivity(h);return;}
+  const a=h.act;
+  // ---- reactive interrupts (§18) ----
+  if(a.intent==='FIGHT' && a.phase==='fight'){
+    if(h.hp < maxHp(h)*CONFIG.eatThreshold && h.inv.cookedFish>0){h.inv.cookedFish--; h.hp=Math.min(maxHp(h),h.hp+CONFIG.foodHeal); h.flash=0.4;}
+    else if(h.hp < maxHp(h)*CONFIG.fleeThreshold && h.inv.cookedFish<=0){ deaths++; logEvent(`${h.name} flees the Rat Pit — out of food!`,'die'); h.act=null; setMove(h,LOC.shop); narrate(h); return; }
+  }
+  if(!atTarget(h)) return; // travelling
+  // ---- phase logic ----
+  switch(a.phase){
+    case 'buyfood':{ const p=foodPrice(); let bought=0;
+      while(h.inv.cookedFish<CONFIG.foodBuyQty && h.gold>=p && shop.stock.cookedFish>0){h.gold-=p;shop.stock.cookedFish--;h.inv.cookedFish++;bought++;}
+      if(bought)logEvent(`${h.name} bought ${bought} food (${p}g ea).`,'gold');
+      a.phase='goto'; a.target=a.locKey; setMove(h,LOC[a.locKey]); narrate(h); break; }
+    case 'goto': a.phase = (a.intent==='FIGHT')?'fight':(a.intent==='PROVISION')?'fish':'gather'; narrate(h); break;
+    case 'gather':{ h.inv[a.res]++; gainXP(h,a.skill, 8);
+      if(h.inv[a.res]>=14 || invCount(h)>=27){a.phase='goto'; a.target='shop'; a.then='sell'; setMove(h,LOC.shop); narrate(h);} break; }
+    case 'fish':{ h.inv.rawFish++; gainXP(h,'fishing',8);
+      if(h.inv.rawFish>=8){a.phase='goto'; a.target='range'; a.then='cook'; setMove(h,LOC.range); narrate(h);} break; }
+    case 'fight':{ fightRound(h); break; }
+  }
+  // arrival-driven chained steps (sell/cook)
+  if(a.phase==='goto'&&a.then&&atTarget(h)){
+    if(a.then==='sell'){ doSell(h); a.then=null; h.act=null; }
+    if(a.then==='cook'){ while(h.inv.rawFish>0){h.inv.rawFish--; h.inv.cookedFish++; gainXP(h,'cooking',6);} a.phase='goto'; a.target='shop'; a.then='sellfood'; setMove(h,LOC.shop); narrate(h);}
+    if(a.then==='sellfood'){ sellFood(h); a.then=null; h.act=null; }
+  }
+}
+function doSell(h){ let g=0; ['ore','logs'].forEach(it=>{ if(h.inv[it]>0){
+    const room=Math.floor(Math.max(0, shop.max[it]-shop.stock[it])); // whole units of room left by town demand (§6)
+    const qty=Math.min(h.inv[it], room);                       // leftover stays in the bag → backpressure on over-gathering
+    if(qty>0){const p=sellPrice(it); g+=Math.round(qty*p*(1-CONFIG.geTax)); shop.stock[it]+=qty; h.inv[it]-=qty;}
+  }});
+  if(g>0){h.gold+=g; logEvent(`${h.name} sold goods for ${g}g.`,'gold');} }
+function sellFood(h){ // cooks supply the shop's food
+  if(h.inv.cookedFish>0){ const keep=h.fav==='fighting'?2:0; let qty=Math.max(0,h.inv.cookedFish-keep);
+    const room=Math.floor(Math.max(0, shop.max.cookedFish-shop.stock.cookedFish)); qty=Math.min(qty, room);
+    if(qty>0){const p=sellPrice('cookedFish'); const pay=Math.round(qty*p*(1-CONFIG.geTax)); h.gold+=pay; shop.stock.cookedFish+=qty; h.inv.cookedFish-=qty; logEvent(`${h.name} cooked &amp; sold ${qty} food (+${pay}g).`,'gold');} }
+}
+
+// ---------- COMBAT (canon formulas, §10) ----------
+function nearestRat(h){let best=null,bd=99;rats.forEach(r=>{if(r.alive){const d=dist(h,r);if(d<bd){bd=d;best=r;}}});return best;}
+function hitChance(att,def){return att>def?1-(def+2)/(2*(att+1)):att/(2*(def+1));}
+function fightRound(h){
+  const r=nearestRat(h); if(!r){h.thought='Waiting for a rat to appear…';return;}
+  if(dist(h,r)>0.8){setMove(h,r);return;}
+  // hero attacks (aggressive → strength)
+  const effAtt=h.skills.attack.lvl+8, effStr=h.skills.strength.lvl+8;
+  const att=effAtt*(10+64), def=(r.def+9)*(0+64);
+  const acc=hitChance(att,def), maxHit=Math.floor(0.5+effStr*(5+64)/640);
+  let dmg=0; if(Math.random()<acc){dmg=Math.floor(Math.random()*(maxHit+1)); r.hp-=dmg;}
+  if(dmg>0){gainXP(h,'strength',dmg*4/ CONFIG.xpRate *CONFIG.xpRate); gainXP(h,'hitpoints',dmg*1.33);}
+  // rat retaliates
+  if(Math.random()<0.55){const rd=Math.floor(Math.random()*(r.str+1)); h.hp-=rd;}
+  if(r.hp<=0){r.alive=false;r.respawn=8; totalKills++; const drop=CONFIG.ratDropMin+Math.floor(Math.random()*CONFIG.ratDropRange); h.gold+=drop;
+    h.skills._k=(h.skills._k||0)+1;
+    if(totalKills%15===0) logEvent(`${h.name} felled a giant rat — ${totalKills} slain in all.`,'boss');
+  }
+  if(h.hp<=0){ // "death" (prototype: respawn at shop, drop nothing big) — §14 live-only
+    deaths++; logEvent(`${h.name} was slain by a rat! Respawns shortly.`,'die'); h.hp=maxHp(h); h.gold=Math.floor(h.gold*0.9); h.act=null; setMove(h,LOC.shop); h.x=LOC.shop.x;h.y=LOC.shop.y; return; }
+  // disengage if low on food and healthy enough to bank gold / re-provision
+  if(h.inv.cookedFish<=0 && h.hp<maxHp(h)*0.6){h.act=null; setMove(h,LOC.shop); narrate(h);}
+}
+
+// ---------- thoughts (legibility test, §20 "Thoughts" tab) ----------
+function narrate(h){
+  const a=h.act; if(!a){h.thought='Deciding what to do next…';return;}
+  const m={GATHER_ORE:'ore',GATHER_LOGS:'logs',PROVISION:'fish',FIGHT:'a fight'}[a.intent];
+  if(a.phase==='buyfood')h.thought='Buying food before the Rat Pit.';
+  else if(a.phase==='goto'&&a.then==='sell')h.thought='Inventory full — off to the Market to sell.';
+  else if(a.phase==='goto'&&a.then==='cook')h.thought='Carrying fish to the Range to cook.';
+  else if(a.phase==='goto'&&a.then==='sellfood')h.thought='Taking fresh food to the Market.';
+  else if(a.phase==='goto')h.thought=`Heading out for ${m}.`;
+  else if(a.phase==='gather')h.thought=`${a.skill==='mining'?'Mining ore':'Chopping logs'} — ${h.inv[a.res]} so far.`;
+  else if(a.phase==='fish')h.thought=`Fishing — ${h.inv.rawFish} caught.`;
+  else if(a.phase==='fight')h.thought=`Fighting rats · ${h.inv.cookedFish} food left.`;
+}
+
+// ---------- movement ----------
+function setMove(h,loc){h.mt={x:loc.x,y:loc.y};}
+function atTarget(h){return !h.mt || dist(h,h.mt)<0.18;}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function moveStep(h,dt,sp){ if(!h.mt)return; const d=dist(h,h.mt); if(d<0.05){return;}
+  const step=CONFIG.moveSpeed*sp*dt; const k=Math.min(1,step/d); h.x+=(h.mt.x-h.x)*k; h.y+=(h.mt.y-h.y)*k; }
+
+// ---------- events / chronicle ----------
+function logEvent(text,cls){events.unshift({text,cls:cls||'',t:`D${simDay} ${String(Math.floor(simClock/60)%24).padStart(2,'0')}:${String(Math.floor(simClock)%60).padStart(2,'0')}`}); if(events.length>60)events.pop(); renderLog();}
+function renderLog(){document.getElementById('evs').innerHTML=events.map(e=>`<div class="ev ${e.cls}"><span class="t">${e.t}</span>${e.text}</div>`).join('');}
+
+// ---------- RENDER ----------
+function resize(){const s=document.getElementById('stage'); cv.width=s.clientWidth; cv.height=s.clientHeight; ORIGIN.x=cv.width/2; ORIGIN.y=70;}
+window.addEventListener('resize',resize);
+function drawTileDiamond(x,y,fill,stroke){const p=iso(x,y);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+TW/2,p.y+TH/2);ctx.lineTo(p.x,p.y+TH);ctx.lineTo(p.x-TW/2,p.y+TH/2);ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}}
+function drawBuilding(loc){const p=iso(loc.x,loc.y);const h=30;
+  ctx.fillStyle=shade(loc.col,-30);ctx.beginPath();ctx.moveTo(p.x-TW/2,p.y+TH/2);ctx.lineTo(p.x,p.y+TH);ctx.lineTo(p.x,p.y+TH-h);ctx.lineTo(p.x-TW/2,p.y+TH/2-h);ctx.closePath();ctx.fill();
+  ctx.fillStyle=shade(loc.col,10);ctx.beginPath();ctx.moveTo(p.x+TW/2,p.y+TH/2);ctx.lineTo(p.x,p.y+TH);ctx.lineTo(p.x,p.y+TH-h);ctx.lineTo(p.x+TW/2,p.y+TH/2-h);ctx.closePath();ctx.fill();
+  ctx.fillStyle=shade(loc.col,30);ctx.beginPath();ctx.moveTo(p.x,p.y-h);ctx.lineTo(p.x+TW/2,p.y+TH/2-h);ctx.lineTo(p.x,p.y+TH-h);ctx.lineTo(p.x-TW/2,p.y+TH/2-h);ctx.closePath();ctx.fill();
+  label(loc.label,p.x,p.y-h-4,'#e6c87a');}
+function drawRocks(loc){const p=iso(loc.x,loc.y);for(let i=0;i<4;i++){const ox=(i%2?14:-12),oy=(i<2?-2:8);ctx.fillStyle=i%2?'#6b6b72':'#54545c';ellipse(p.x+ox,p.y+TH/2+oy,9,6);} label('Mine',p.x,p.y-8,'#cfcad0');}
+function drawTrees(loc){const p=iso(loc.x,loc.y);for(let i=0;i<3;i++){const ox=(i-1)*15,oy=(i%2)*7;ctx.fillStyle='#5a3a22';ctx.fillRect(p.x+ox-2,p.y+TH/2-2+oy,4,10);ctx.fillStyle=i%2?'#3f6b39':'#4d7d44';ellipse(p.x+ox,p.y+TH/2-8+oy,11,12);} label('Forest',p.x,p.y-12,'#9fd08f');}
+function drawCombat(loc){drawTileDiamond(loc.x,loc.y,'#6b5a3a','#4a3e26');for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)drawTileDiamond(loc.x+dx,loc.y+dy,'#5e4f33',null);label('Rat Pit',iso(loc.x,loc.y).x,iso(loc.x,loc.y).y-6,'#d8b87a');}
+function ellipse(x,y,rx,ry){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();}
+function label(t,x,y,c){ctx.font="600 11px Cinzel, serif";ctx.textAlign='center';ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillText(t,x+1,y+1);ctx.fillStyle=c;ctx.fillText(t,x,y);}
+function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=(n>>16)+amt,g=((n>>8)&255)+amt,b=(n&255)+amt;r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));return`rgb(${r},${g},${b})`;}
+
+function drawHero(h){const p=iso(h.x,h.y);const cx=p.x,cy=p.y+TH/2;
+  ctx.fillStyle='rgba(0,0,0,.32)';ellipse(cx,cy+2,10,5);
+  if(selected===h){ctx.strokeStyle='#e6c87a';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy+2,13,7,0,0,7);ctx.stroke();}
+  // body
+  ctx.fillStyle=h.flash>0?'#fff':h.shirt; roundRect(cx-6,cy-16,12,15,4); ctx.fill();
+  // head + hair
+  ctx.fillStyle=h.skin; ctx.beginPath();ctx.arc(cx,cy-19,5.2,0,7);ctx.fill();
+  ctx.fillStyle=h.hair; ctx.beginPath();ctx.arc(cx,cy-21,5.4,Math.PI,0);ctx.fill();
+  // HP pip if hurt
+  if(h.hp<maxHp(h)){ctx.fillStyle='#000';ctx.fillRect(cx-8,cy-28,16,3);ctx.fillStyle='#6c2';ctx.fillRect(cx-8,cy-28,16*Math.max(0,h.hp/maxHp(h)),3);}
+  ctx.font="600 10px Spectral, serif";ctx.textAlign='center';ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillText(h.name,cx+1,cy-31);ctx.fillStyle='#efe3c4';ctx.fillText(h.name,cx,cy-32);
+  if(h.flash>0)h.flash-=0.05;
+}
+function drawRat(r){if(!r.alive)return;const p=iso(r.x,r.y);const cx=p.x,cy=p.y+TH/2;
+  ctx.fillStyle='rgba(0,0,0,.3)';ellipse(cx,cy+1,7,3);
+  ctx.fillStyle='#6e6258';ellipse(cx,cy-4,8,5);ctx.fillStyle='#7d7066';ctx.beginPath();ctx.arc(cx+6,cy-5,3.2,0,7);ctx.fill();
+  ctx.strokeStyle='#5a4f46';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(cx-7,cy-3);ctx.quadraticCurveTo(cx-14,cy-2,cx-12,cy+3);ctx.stroke();
+  if(r.hp<r.maxhp){ctx.fillStyle='#000';ctx.fillRect(cx-8,cy-14,16,3);ctx.fillStyle='#c33';ctx.fillRect(cx-8,cy-14,16*(r.hp/r.maxhp),3);}}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+function render(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // ground
+  for(let s=0;s<=GRID*2;s++)for(let x=0;x<GRID;x++){const y=s-x;if(y<0||y>=GRID)continue;
+    const key=x+','+y; let f='#3c4a2c'; if((x+y)%2)f='#41512f';
+    if(waterTiles.has(key))f='#3a5f78';
+    drawTileDiamond(x,y,f, 'rgba(0,0,0,.08)');}
+  // depth-sorted props + entities
+  const drawables=[];
+  for(const k in LOC){const l=LOC[k]; drawables.push({d:l.x+l.y, fn:()=>{
+    if(l.kind==='build')drawBuilding(l); else if(l.kind==='rocks')drawRocks(l);
+    else if(l.kind==='trees')drawTrees(l); else if(l.kind==='dirt')drawCombat(l);
+    else if(l.kind==='water')label('Fishing',iso(l.x,l.y).x,iso(l.x,l.y).y+6,'#bfe0ef');}});}
+  rats.forEach(r=>{if(r.alive)drawables.push({d:r.x+r.y+0.3, fn:()=>drawRat(r)});});
+  heroes.forEach(h=>drawables.push({d:h.x+h.y+0.4, fn:()=>drawHero(h)}));
+  drawables.sort((a,b)=>a.d-b.d).forEach(o=>o.fn());
+}
+
+// ---------- SIM LOOP ----------
+let speed=2, last=performance.now(), acc=0;
+function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(speed>0){
+    heroes.forEach(h=>moveStep(h,dt,speed));
+    rats.forEach(r=>{ if(!r.alive){r.respawn-=dt*speed; if(r.respawn<=0){Object.assign(r,mkRat());}} 
+      else { r.wander-=dt*speed; if(r.wander<=0){r.wander=1+Math.random()*2; r.mt={x:LOC.combat.x+(Math.random()-.5)*3.6,y:LOC.combat.y+(Math.random()-.5)*3.6};}
+        if(r.mt){const d=dist(r,r.mt);if(d>0.05){const st=0.7*speed*dt/d;r.x+=(r.mt.x-r.x)*Math.min(1,st);r.y+=(r.mt.y-r.y)*Math.min(1,st);}}}});
+    acc+=dt*speed; const wt=CONFIG.workTick;
+    while(acc>=wt){acc-=wt; simClock+=1.4; simTotal+=1.4; tickN++; if(simClock>=24*60){simClock-=24*60;simDay++;document.getElementById('s-day').textContent=simDay;} if(tickN%30===0)captureSnapshot();
+      heroes.forEach(workTick);
+      economyTick(1.4/1440); // §6 town consumption + hero upkeep (each work-tick = 1.4 sim-minutes of a 1440-min day)
+      // economy sample
+      goldHist.push(heroes.reduce((s,h)=>s+h.gold,0)); if(goldHist.length>140)goldHist.shift();
+    }
+  }
+  render(); updatePanels(); requestAnimationFrame(loop);
+}
+
+// ---------- PANELS ----------
+let selected=null;
+function updatePanels(){
+  document.getElementById('s-pop').textContent=heroes.length;
+  const tg=heroes.reduce((s,h)=>s+h.gold,0);
+  document.getElementById('s-gold').textContent=tg.toLocaleString();
+  document.getElementById('s-ore').textContent=sellPrice('ore')+'g';
+  document.getElementById('s-food').textContent=Math.floor(shop.stock.cookedFish);
+  document.getElementById('s-kills').textContent=totalKills;
+  drawSpark(); renderDbg();
+  if(selected)renderHeroCard(selected);
+}
+function renderHeroCard(h){
+  const sk=h.skills; const row=(s)=>`<div><span>${s.slice(0,3)}</span> <b>${sk[s].lvl}</b></div>`;
+  document.getElementById('heroCard').innerHTML=`
+    <div class="hname">${h.name}</div>
+    <div class="hfav">favours ${cap(h.fav)} · risk ${(h.traits.risk*100|0)}% · greed ${(h.traits.greed*100|0)}%</div>
+    <div class="hpbar"><i style="width:${Math.max(0,h.hp/maxHp(h)*100)}%"></i></div>
+    <div style="font-size:11px;color:#a99c84">HP ${Math.max(0,h.hp|0)}/${maxHp(h)} · ${h.gold}g</div>
+    <div class="thought">“${h.thought}”</div>
+    <div class="skills">${['attack','strength','defence','hitpoints','mining','woodcutting','fishing','cooking'].map(row).join('')}</div>
+    <div class="inv">bag: ${['ore','logs','rawFish','cookedFish'].filter(i=>h.inv[i]>0).map(i=>`${h.inv[i]} ${i}`).join(', ')||'empty'}</div>`;
+}
+function drawSpark(){const c=document.getElementById('spark');const g=c.getContext('2d');const W=c.width=c.clientWidth,H=c.height=38;
+  g.clearRect(0,0,W,H); if(goldHist.length<2)return; const mn=Math.min(...goldHist),mx=Math.max(...goldHist,mn+1);
+  g.strokeStyle='#c9a24b';g.lineWidth=1.5;g.beginPath();goldHist.forEach((v,i)=>{const x=i/(goldHist.length-1)*W;const y=H-4-(v-mn)/(mx-mn)*(H-8);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+  g.fillStyle='rgba(201,162,75,.12)';g.lineTo(W,H);g.lineTo(0,H);g.fill();}
+
+// click to select hero
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  let best=null,bd=26;heroes.forEach(h=>{const p=iso(h.x,h.y);const d=Math.hypot(p.x-mx,(p.y+TH/2-12)-my);if(d<bd){bd=d;best=h;}});
+  if(best){selected=best;renderHeroCard(best);}});
+
+document.querySelectorAll('.controls button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.controls button').forEach(x=>x.classList.remove('active'));b.classList.add('active');speed=+b.dataset.sp;}));
+
+// ---------- DEBUG / TELEMETRY ----------
+function actKey(h){return h.act?h.act.intent.replace('GATHER_','').replace('PROVISION','FISH'):'idle';}
+function captureSnapshot(){
+  const acts={}; heroes.forEach(h=>{const k=actKey(h); acts[k]=(acts[k]||0)+1;});
+  const gold=heroes.reduce((s,h)=>s+h.gold,0);
+  const cmb=Math.round(heroes.reduce((s,h)=>s+h.skills.attack.lvl+h.skills.strength.lvl+h.skills.defence.lvl,0)/heroes.length);
+  dbgLog.push({day:simDay,t:Math.round(simTotal),gold:Math.round(gold),ore:sellPrice('ore'),foodP:foodPrice(),food:Math.floor(shop.stock.cookedFish),acts,kills:totalKills,deaths,cmb});
+  if(dbgLog.length>500)dbgLog.shift();
+}
+function renderDbg(){
+  const acts={}; heroes.forEach(h=>{const k=actKey(h).toLowerCase(); acts[k]=(acts[k]||0)+1;});
+  document.getElementById('dbg').innerHTML='doing: '+Object.entries(acts).map(([k,v])=>k+' '+v).join(' · ')+
+    '<br>deaths/flees '+deaths+' · run '+Math.floor((Date.now()-runStart)/1000)+'s · snapshots '+dbgLog.length;
+}
+function exportLog(){
+  const n=dbgLog.length, first=dbgLog[0], last=dbgLog[n-1]||{gold:0};
+  const goldNow=heroes.reduce((s,h)=>s+h.gold,0);
+  const pct = first&&first.gold? Math.round((goldNow-first.gold)/first.gold*100):0;
+  // anomalies
+  const anom=[];
+  // Steady-state drift: ignore the initial ramp to equilibrium; compare the last third of the run to the
+  // middle third. A healthy economy is flat here; sustained climb/fall = faucet/sink imbalance (§6).
+  const mean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+  const mid=dbgLog.slice(Math.floor(n/3),Math.floor(2*n/3)).map(d=>d.gold);
+  const late=dbgLog.slice(Math.floor(2*n/3)).map(d=>d.gold);
+  const drift = mean(mid)? Math.round((mean(late)-mean(mid))/mean(mid)*100) : 0;
+  if(n>12 && drift>25) anom.push('GOLD INFLATING (steady-state +'+drift+'%) — faucets > sinks; raise CONFIG.upkeepRate / geTax or lower drop-gold (§6).');
+  if(n>12 && drift<-25) anom.push('GOLD STARVING (steady-state '+drift+'%) — sinks > faucets; lower CONFIG.upkeepRate or raise prices/drops (§6).');
+  const starving=heroes.filter(h=>h.gold<foodPrice() && h.inv.cookedFish<1 && h.fav==='fighting').length;
+  if(starving>0) anom.push(starving+' fighter(s) broke & foodless — economy may be choking the combat loop.');
+  let thrashers=[]; for(const id in thrash){const recent=thrash[id].filter(t=>t>simTotal-30).length; if(recent>6)thrashers.push(heroes[id]?heroes[id].name:id);}
+  if(thrashers.length) anom.push('possible THRASHING: '+thrashers.join(', ')+' (>6 activity switches/30min).');
+  const actsNow={}; heroes.forEach(h=>{const k=actKey(h).toLowerCase();actsNow[k]=(actsNow[k]||0)+1;});
+  // time series (last ~30, thinned)
+  const step=Math.max(1,Math.floor(n/30)); let rows=[];
+  for(let i=0;i<n;i+=step){const d=dbgLog[i]; rows.push(`d${d.day} t${d.t}  gold ${String(d.gold).padStart(5)}  ore ${d.ore}g  food ${String(d.food).padStart(3)}  kills ${d.kills}  deaths ${d.deaths}  cmb ${d.cmb}`);}
+  const txt=
+`=== GIELINOR TYCOON — PROTOTYPE DEBUG LOG ===
+run: ${Math.floor((Date.now()-runStart)/1000)}s real · sim day ${simDay} · speed ${speed}x · heroes ${heroes.length} · snapshots ${n}
+
+--- SUMMARY ---
+total gold: ${first?first.gold:goldNow} -> ${goldNow}  (${pct>=0?'+':''}${pct}% incl. warmup ramp · steady-state drift ${drift>=0?'+':''}${drift}%)
+rats slain: ${totalKills} · hero deaths/flees: ${deaths} · avg melee (atk+str+def): ${last.cmb||'-'}
+ore sell price: ${sellPrice('ore')}g · food price: ${foodPrice()}g · food in shop: ${Math.floor(shop.stock.cookedFish)}
+activity mix now: ${Object.entries(actsNow).map(([k,v])=>k+' '+v).join(' · ')}
+
+--- ANOMALIES (auto-flagged) ---
+${anom.length?anom.map(a=>'• '+a).join('\n'):'• none detected — loop looks healthy'}
+
+--- TIME SERIES (every ${step} snapshot) ---
+${rows.join('\n')}
+
+--- RECENT CHRONICLE ---
+${events.slice(0,15).map(e=>e.t+'  '+e.text.replace(/<[^>]+>/g,'')).join('\n')}
+=== END ===`;
+  const ta=document.getElementById('logText'); ta.value=txt; document.getElementById('modal').style.display='flex';
+}
+document.getElementById('exportBtn').addEventListener('click',exportLog);
+document.getElementById('closeBtn').addEventListener('click',()=>document.getElementById('modal').style.display='none');
+document.getElementById('copyBtn').addEventListener('click',()=>{const ta=document.getElementById('logText');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}document.getElementById('copyBtn').textContent='Copied!';setTimeout(()=>document.getElementById('copyBtn').textContent='Copy',1200);});
+
+// ---------- BOOT ----------
+resize();
+for(let i=0;i<8;i++)heroes.push(mkHero(i));
+spawnRats(4);
+logEvent('The colony of Varrock stirs to life. Eight adventurers arrive.','lv');
+heroes.forEach(narrate);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+config_version=5
+
+[application]
+
+config/name="Gielinor Tycoon (4.3)"
+config/description="An ant farm for Old School RuneScape — Phase 0 vertical slice."
+run/main_scene="res://render/Main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

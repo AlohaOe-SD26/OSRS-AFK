@@ -1,0 +1,33 @@
+# --- Claude Code Project Kit starter .gitignore (extend per stack) ---
+# Secrets - never commit these
+.env
+.env.*
+*.pem
+*.key
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor / tool noise
+.vscode/
+.idea/
+*.bak
+*.tmp
+
+# Common build/dependency output (delete lines that don't apply)
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+bin/
+obj/
+# Godot editor cache (regenerated; never version)
+.godot/
+*.translation
+
+# Local archives / one-off exports
+*.rar
+*.zip
