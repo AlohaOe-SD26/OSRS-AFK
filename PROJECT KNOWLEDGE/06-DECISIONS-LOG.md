@@ -39,3 +39,34 @@
   punch list preserved; report travels to a designer without code access).
 - **Alternatives rejected:** starting implementation alongside the report
   (violates the prompt's discussion-first contract).
+
+## 2026-06-11 — Design rulings R1–R12 adopted (DESIGN_RULINGS.md)
+- **Decision:** All twelve ANALYSIS_REPORT questions ruled by the design
+  partner; rulings preserved at `ANALYSIS REPORT/DESIGN_RULINGS.md` and
+  folded into the punch list. Headlines: treasury re-injection accepted with
+  **escrow-at-posting** for city buy orders (no flow cap); purchase→treasury
+  routing 40% (tune 30–50%); NPC demand floor KEPT (autonomy is the
+  product); shop roster greenlit (Horvik/Lowe/Zaff/Aubury/Swordshop —
+  combat-triangle supply-gating rationale); **Vannaka** (designed cast, not
+  parity) at west gate with documented divergence; **one funded incentive
+  doctrine** — bounty payout drives attraction through the greed-weighted
+  reward term, clamped utility FIGHT bounty retires same unit; on-task
+  bonus +20 open, mine to lock within gates, sweep instrumented for the §18
+  monoculture prediction; loot_policy = drop-filter; shop 3% tax locked,
+  GE 1% treasury-routed at open, city orders untaxed, tax on hero-side
+  proceeds uniformly; bank ships WITH the GE (refund deposit target);
+  save-migration scaffold pulled to Unit 0 (gate = migrated save loads +
+  continues deterministically); C1 popups = Control nodes (new popups only,
+  shared visual constants, render-layer, paradigm-split rule to be logged);
+  day-denominated specs = sim-days. Sequencing Units 0–5 endorsed as-is.
+- **Alternatives rejected (by ruling):** hard treasury outflow cap (escrow
+  is structural and simpler); invented Slayer-master stand-in (lore
+  invariant); separate flat utility knob for bounty attraction (one lever,
+  two effects); taxing city orders (ledger noise); bank deferral (reference
+  build's expiry-refund deadlock lesson).
+
+## 2026-06-11 — Process: initial commit + push (priority #0)
+- **Decision:** Committed the entire pre-rulings green state as the initial
+  commit (`5fd5d97`) and pushed to origin/main; added Godot-cache and
+  archive ignores first so `.godot/` never enters history. Per-item commit
+  discipline (Project Kit DoD) applies from here on.

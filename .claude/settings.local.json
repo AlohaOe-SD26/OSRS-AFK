@@ -64,7 +64,12 @@
       "Bash(cp game/tests/test_sim.gd \"ANALYSIS REPORT/SOURCE_COPIES/tests/\")",
       "Bash(cp game/tools/*.gd \"ANALYSIS REPORT/SOURCE_COPIES/tools/\")",
       "Bash(sed -n '120,145p' tests/test_sim.gd)",
-      "Bash(sed -n '1,30p' tools/gate_offline.gd)"
+      "Bash(sed -n '1,30p' tools/gate_offline.gd)",
+      "Bash(git commit -q -m 'chore: initial commit — MVP \"Living Varrock\" complete, 101/101 green, pre-rulings baseline *)",
+      "Bash(git push *)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'docs: adopt design rulings R1-R12; resolve KI-1 \\(punch-list #1 prep\\) *)"
     ]
   }
 }

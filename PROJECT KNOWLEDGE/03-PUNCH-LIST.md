@@ -5,45 +5,74 @@
 > Item format: `- [ ] #N — description` (N never reused; completed items move
 > to Done with the date).
 
-## Now (active focus)
-- [ ] #1 — **Zones slice 2:** Slayer tasks + AGGRESSIVE monsters (activates
-  deaths → gravestone/social negatives) + Scurrius boss gate (kill-count
-  unlock) + BRAIN_V2 4th test (activity breadth widened). NOTE: pending
-  design rulings, this item ABSORBS reference spec B2 (task gates incl.
-  wiring `Combat.fight_is_winnable`, task sizing, on-task bonus, knowledge-
-  gated pool, partnering as fast-follow, funded per-kill treasury bounty) —
-  see `ANALYSIS REPORT/ANALYSIS_REPORT.md`.
+## Now (active focus) — Unit 0, per DESIGN_RULINGS.md (2026-06-11)
+- [ ] #1 — **Unit 0: Slayer slice** (zones slice 2, absorbs B2; rulings
+  R4/R5/R6/R10 govern). Sub-items in build order:
+  - [ ] #1a — Save-migration scaffold FIRST (R10, absorbs old #11):
+    versioned upgrader chain v1→v2→…; gate = migrated save loads validly
+    and continues deterministically from the load point.
+  - [ ] #1b — Slayer core: **Vannaka** at the west-gate/Edgeville-road edge
+    (documented placement divergence, R4), Combat-40 gate, task assignment
+    with feasibility check (wire `Combat.fight_is_winnable`), task sizing,
+    knowledge-gated pool, on-task bonus (open +20, lock via sweep — R6),
+    Chronicle events (assign notability 0, completion > 0).
+  - [ ] #1c — Funded per-kill treasury bounty; RETIRE the clamped utility
+    FIGHT bounty same unit (R5). Bounty payout enters scoring through the
+    greed-weighted `reward` term; per-kill affordability check; player range
+    0–3× avg coin drop.
+  - [ ] #1d — AGGRESSIVE monsters (deaths → gravestone/social negatives)
+    + Scurrius boss gate (kill-count unlock).
+  - [ ] #1e — Unit-0 sweep instrumented with monoculture/rival-lean metrics
+    (R6 — verifies the banked §18 prediction); then BRAIN_V2 4th test
+    (activity breadth widened).
 
 ## Next
-- [ ] #2 — Catalog migration (M3a remainder, promoted to prerequisite):
+- [ ] #2 — Unit 1: catalog migration (prerequisite for all pricing work):
   ContentDB-driven goods/prices (replace `Economy.GOODS` hardcodes +
   `Config.GEAR_DROPS` tables), recipes-as-data, tradeable flags, shops trade
-  gear.
-- [ ] #3 — Shop economy v2 (pending rulings): per-good dynamic buy pricing,
-  player price-bias lever (swept clamp), ambient imports/restock-to-baseline
-  (C5), shop-level tier-up stock unlocks, possible Varrock shop-roster
-  expansion (Q3), possible purchase-gold→treasury routing (Q1).
-- [ ] #4 — C1 parameterized nudge popups (+ B4 disabled-with-tooltip
-  gating). Fight popup after #1; Skill popup can float earlier. UI-tech
-  ruling Q11 first.
+  gear. Resolves KI-8 first. Rename `GE_TAX`→`SHOP_TAX` while files are open
+  (R8, cosmetic).
+- [ ] #3 — Unit 2: shop economy v2 (rulings R1/R3): per-good dynamic buy
+  pricing, player price-bias lever (swept clamp, expect narrower than
+  50–150%), ambient imports/restock-to-baseline (C5), tier-up stock unlocks,
+  shop roster expansion — **Horvik, Lowe, Zaff, Aubury, Swordshop greenlit**
+  (Apothecary/Thessalia deferred; stagger openings optional),
+  **purchase→treasury routing at 40%** (tune 30–50% band; one ledger unit
+  with city-buy outflow — sweep once, re-center once; add treasury
+  inflow/outflow telemetry lines).
+- [ ] #4 — Unit 3: C1 parameterized nudge popups (+ B4 disabled-with-tooltip
+  gating). UI tech RULED (R11): Control nodes for new popups only, shared
+  visual constants, render-layer only, decisions-log entry on the paradigm
+  split. `loot_policy` = drop-filter semantics (R7). Fight popup after #1;
+  Skill popup can float earlier.
 
 ## Later / icebox
-- [ ] #5 — Bank + GE order book + City BUY orders + City Inventory
-  (roadmap wave (d) enlarged by C2/C3; the big gold-ledger unit — sweep g*
-  before/after; offline statistical fill model; tax decision Q8).
-- [ ] #6 — C4 shop sell-back reconciliation + C3 item-cost upgrade ladders +
-  C5 shop crafting queues (all consume #5's outputs; never ship C4 alone).
+- [ ] #5 — Unit 4: Bank + GE order book + City BUY orders + City Inventory
+  (the big gold-ledger unit — sweep g* before/after; offline statistical
+  fill model). RULED: bank ships WITH the order book (R9 — refunds need a
+  deposit target); **city buy orders escrow treasury gold at posting**,
+  cancel/expiry refunds remainder (R1); GE tax 1% at open, treasury-routed,
+  tunable 1–3%; city orders untaxed; tax on hero-side proceeds uniformly
+  (R8); shop 3% tax untouched. After this unit, gather incentives migrate
+  to funded mechanisms (buy orders + price-bias) and pure-utility incentives
+  retire (R5 end state).
+- [ ] #6 — Unit 5: C4 shop sell-back (ceiling `min(saturation, 0.30 × GE
+  reference)`, graceful degradation when GE illiquid — adopted as written,
+  R2) + C3 item-cost upgrade ladders + C5 shop crafting queues
+  (reservation-on-start FIFO). Never ship C4 alone; keep bug-class lens on
+  the C2→C3/C5 closed loop.
 - [ ] #7 — Content wave (e): death/graves/PK → canon social negatives
   (retire interim competition-friction).
 - [ ] #8 — Content wave (f): buildings expansion / reincarnation.
 - [ ] #9 — Content wave (g): Zezima endgame.
 - [ ] #10 — B3 topbar deltas (Save/Load/Log buttons, subtitle) — render-only,
   anytime.
-- [ ] #11 — Save-migration scaffold (versioned upgraders) — wants to land
-  before the #5/#6 schema churn (Q10).
-- [ ] #12 — Deferred planner calls: funded per-unit bounty for gather
-  intents · INCENTIVE_STEP finer notches · Stage-2 combat polish (premise
-  undercut, optional) · dead `_route*` heuristic cleanup in SimWorld.
+- [x] #11 — MERGED into #1a (R10 pulled the save-migration scaffold forward
+  to Unit 0). (2026-06-11)
+- [ ] #12 — Deferred planner calls: INCENTIVE_STEP finer notches · Stage-2
+  combat polish (premise undercut, optional) · dead `_route*` heuristic
+  cleanup in SimWorld · Apothecary + Thessalia shops (R3 deferred) ·
+  relocate Vannaka to Edgeville when zones expand westward (R4).
 
 ## Done
 - [x] #0 — MVP slice complete: build steps 0–6 ("A Living Varrock") all

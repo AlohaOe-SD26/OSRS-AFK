@@ -19,27 +19,25 @@ day-12 per-capita band ~1,065–1,211, drift +2–6%. Post-MVP merge plan in
 progress: M1 visual port ✅ · M2 brain-v2 measured (default-off) · M3
 content waves underway (gear/equipment/smithing/zones-slice-1 done).
 
-## What was just done (last session, 2026-06-11)
-- **Read-only probe + `ANALYSIS REPORT/`** answering an external design
-  partner's economy/incentives prompt (`readthis.md` in root): full Part-A
-  system probe with verbatim constants, fit assessment of reference-build
-  shop/Slayer/HUD mechanics (B1–B4) and new features (C1 parameterized
-  nudges, C2 GE order book + city buy orders, C3 city inventory + item-cost
-  upgrades, C4 shop sell-back, C5 crafting+imports), punch-list integration
-  proposal, and 12 design questions. **No code changed.**
-- Seeded this PROJECT KNOWLEDGE folder (was an empty bootstrap skeleton).
+## What was just done (this session, 2026-06-11)
+- **Design rulings received** (`ANALYSIS REPORT/DESIGN_RULINGS.md` — R1–R12,
+  all 12 report questions ruled; sequencing Units 0–5 endorsed as-is). The
+  hold is lifted; punch list updated with ruled scope/constants.
+- **Initial commit + push DONE** (`5fd5d97` → origin/main). KI-1 resolved.
+- Unit 0 build started (see In progress).
 
 ## In progress (and how far along)
-- Nothing mid-flight in code. **Holding for design rulings** on the
-  ANALYSIS_REPORT questions before B/C features become work items.
-- Punch-list #1 (zones slice 2: Slayer + aggressive monsters) is the queued
-  next build item and will absorb spec B2 once rulings arrive.
+- **Punch #1 — Unit 0: Slayer slice** (see `03-PUNCH-LIST.md` #1a–#1e for
+  exact ruled scope). Build order: #1a save-migration scaffold → #1b Slayer
+  core (Vannaka) → #1c funded bounty (retires utility FIGHT bounty) →
+  #1d aggressive monsters + Scurrius gate → #1e instrumented sweep +
+  BRAIN_V2 4th test.
 
 ## Next steps (in order)
-1. Receive design rulings → convert ANALYSIS_REPORT Parts B/C into concrete
-   punch-list scope (see `03-PUNCH-LIST.md` #1–#6 placeholders).
-2. Build punch #1 (Slayer slice) under the standard gates.
-3. **First commit + push** (see Gotchas — the repo has NO commits yet).
+1. Finish Unit 0 sub-items, gating + committing each.
+2. Unit 0 closing sweep with monoculture/rival-lean metrics (R6); record
+   whether the §18 prediction held in the decisions log.
+3. Unit 1 (catalog migration, punch #2) — resolves KI-8, renames GE_TAX.
 
 ## How to run / build / test
 ```
@@ -54,10 +52,7 @@ godot --headless --path game --script res://tools/headless_log.gd # telemetry
 Godot binary path & GDScript 4.6 gotchas: agent memory `godot-environment`.
 
 ## Gotchas / unpushed work
-- **⚠️ EVERYTHING IS UNPUSHED:** git has a remote but ZERO commits — the
-  whole project is staged-only (KI-1). First action of the next build
-  session should be an initial commit + push.
-- Save-version mismatch silently discards saves (no migrations — KI-3).
+- Save-version mismatch silently discards saves until #1a lands (KI-3).
 - Any new sim RNG draw perturbs the seed stream → re-baseline sweeps.
 - Don't chase the stale "600–900" gold band; the validated band moved
   (see `02-ARCHITECTURE.md`).

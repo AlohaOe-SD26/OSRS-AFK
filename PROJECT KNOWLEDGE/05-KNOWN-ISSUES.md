@@ -4,13 +4,6 @@
 > KI numbers never get reused. (Seeded 2026-06-11 from the probe; details in
 > `ANALYSIS REPORT/ANALYSIS_REPORT.md` §A11.)
 
-## KI-1 — No git history (opened 2026-06-11, severity: high, process)
-- **Symptom:** branch `main` has zero commits; entire project staged-only,
-  never pushed despite a configured GitHub remote.
-- **Workaround:** gate suite + status ledger have been the safety net.
-- **Fix path:** initial commit + push at the next build session (Project Kit
-  definition-of-done now mandates per-item commits).
-
 ## KI-2 — Stale snapshot dirs & docs (opened 2026-06-11, severity: low)
 - **Symptom:** `gielinor-tycoon-(4.3)/` and `(copy)/` are early-phase project
   snapshots containing the outdated `PROJECT_STATUS.md`; confusable with the
@@ -20,8 +13,8 @@
 - **Symptom:** `SaveLoad.load_from_file` returns null on any SAVE_VERSION
   mismatch → old saves silently discarded. Within v1, new hero fields rely
   on `.get(default)` fallbacks (informal forward-compat only).
-- **Fix path:** migration scaffold queued (punch #11) before the GE/city-
-  inventory schema churn.
+- **Fix path:** migration scaffold pulled forward to Unit 0 / punch #1a
+  (ruling R10) — lands before any schema churn.
 
 ## KI-4 — §18 combat-utility asymmetry (opened ~2026-06-09, severity: med,
   status: substantially mitigated, "leading-but-unconfirmed")
