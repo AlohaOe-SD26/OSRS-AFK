@@ -112,9 +112,19 @@ When the user says **"wrap up"**, end the session safely:
   confirm the push succeeded (commit hash + branch).
 
 ### 3. Command word — "pick up where you left off"
-Read `04-HANDOFF.md` and `03-PUNCH-LIST.md`, VERIFY the working tree
-actually matches the handoff's claimed state (run the suite if in doubt —
-trust but verify), then resume the handoff's "Next steps" in order.
+- **Step 0 — sync check (FIRST, before reading anything):** run
+  `git fetch`, then compare the local branch to `origin/main`.
+  - If the local repo is BEHIND: pull before doing anything else — the
+    remote is always the truth, because "wrap up" always ends with a
+    confirmed push.
+  - If the local repo is AHEAD or DIVERGED: **STOP and report it to the
+    user before touching anything** — that means a previous session ended
+    without completing wrap-up, and reconciling unpushed work is the
+    user's decision, not the agent's.
+- Then proceed: read `04-HANDOFF.md` and `03-PUNCH-LIST.md`, VERIFY the
+  working tree actually matches the handoff's claimed state (run the suite
+  if in doubt — trust but verify), then resume the handoff's "Next steps"
+  in order.
 
 ### 4. Standing discipline (all work, not just wrap-up)
 - **Per-item Definition of Done:** suite green + determinism/save-load/
