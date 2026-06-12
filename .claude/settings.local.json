@@ -94,7 +94,11 @@
       "Bash(\"/c/Users/Kinny/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path game --script res://tools/diag_unit0.gd)",
       "Bash(echo \"EXIT=$?\")",
       "PowerShell(\"---\")",
-      "Bash(\"/c/Users/Kinny/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path game --import)"
+      "Bash(\"/c/Users/Kinny/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path game --import)",
+      "Bash(\"/c/Users/Kinny/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path game --script res://tests/test_sim.gd)",
+      "Bash(break)",
+      "PowerShell(Get-Process | Where-Object {$_.ProcessName -match \"Godot\"} | Select-Object Id, ProcessName, CPU, StartTime)",
+      "Bash(echo \"SUITE_EXIT=$?\")"
     ]
   }
 }

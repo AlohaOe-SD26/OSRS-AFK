@@ -38,6 +38,10 @@ var treasury_in_routing: float = 0.0   # inflow: PURCHASE_TREASURY_ROUTE share o
 var treasury_out_bounty: float = 0.0   # outflow: funded per-kill bounty payouts
 var treasury_out_upgrade: float = 0.0  # outflow: shop level-ups
 var treasury_out_building: float = 0.0 # outflow: building costs + daily building upkeep
+var treasury_out_bias: float = 0.0     # outflow: price-bias overpay premiums (#3c, treasury-funded)
+# #3c — player price-bias lever (B1): good -> multiplier on what the shop PAYS heroes (clamped).
+# Overpay premiums are treasury-funded + affordability-gated; underpay just shrinks the faucet.
+var price_bias: Dictionary = {}
 var _content: ContentDB = null         # catalog reference (tradeable gate in sell_goods)
 
 func _init(content: ContentDB = null) -> void:
@@ -89,18 +93,52 @@ static func _bv(content: ContentDB, id: String, fallback: float) -> float:
 func shop_for(good: String) -> Shop:
 	return _by_good.get(good, null)
 
-## Price the shop PAYS a hero for a good (saturation-aware). Routes to the owning shop.
+## Price the shop PAYS a hero for a good (saturation-aware), INCLUDING any active price bias
+## (#3c) — the steering signal the brain reads must equal what the sale actually pays.
 func sell_price(item: String) -> int:
 	var s: Shop = _by_good.get(item, null)
-	return s.sell_price(item) if s != null else 1
+	if s == null:
+		return 1
+	var base_p := s.sell_price(item)
+	var b := bias_of(item)
+	if b > 1.0 and not _bias_affordable(item, base_p):
+		b = 1.0   # unfunded overpay never advertises (R1: an empty treasury means no lever, like bounties)
+	return maxi(1, int(round(base_p * b)))
+
+func bias_of(item: String) -> float:
+	return float(price_bias.get(item, 1.0))
+
+## Player API (#3c): set/clear the per-good price bias, clamped to the swept band. ~1.0 clears.
+func set_price_bias(good: String, mult: float) -> void:
+	if absf(mult - 1.0) < 0.01:
+		price_bias.erase(good)
+	else:
+		price_bias[good] = clampf(mult, Config.PRICE_BIAS_MIN, Config.PRICE_BIAS_MAX)
+
+## Can the treasury fund the overpay premium on one sale unit right now? (Per-unit check —
+## mirrors bounty_affordable's cadence-appropriate simplicity; _pay_for re-checks the batch.)
+func _bias_affordable(item: String, base_p: int) -> bool:
+	return treasury >= float(base_p) * (bias_of(item) - 1.0)
 
 ## Price the shop CHARGES a hero for cooked fish (rises as food stock falls).
 func food_price() -> int:
 	return _by_good["trout"].buy_price("trout", FOOD_BUY_BASE)
 
 ## Internal: pay a hero for `qty` units of `good`, skimming + banking SHOP_TAX. Returns gold paid.
+## #3c: the overpay premium (bias > 1) is TREASURY-FUNDED — drawn here, batch-affordability-checked,
+## degrading to the unbiased price when the treasury can't cover it (overdraw impossible). Underpay
+## (bias < 1) just pays less — no treasury flow (the "savings" were never minted).
 func _pay_for(hero: Hero, good: String, qty: int, s: Shop) -> int:
-	var gross := qty * s.sell_price(good)
+	var unit_base := s.sell_price(good)
+	var unit_paid := sell_price(good)   # bias-aware (and bias-affordability-aware)
+	var premium := maxf(0.0, float(qty) * float(unit_paid - unit_base))
+	if premium > 0.0 and treasury < premium:
+		unit_paid = unit_base   # batch premium unaffordable → whole batch at the unbiased price
+		premium = 0.0
+	if premium > 0.0:
+		treasury -= premium
+		treasury_out_bias += premium
+	var gross := qty * unit_paid
 	var tax := gross * Config.SHOP_TAX
 	tax_collected += tax
 	treasury += tax        # the skim becomes the player's spendable town fund (§19); see `treasury` note

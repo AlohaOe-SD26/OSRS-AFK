@@ -132,9 +132,10 @@ func export_log(world: SimWorld) -> String:
 	txt += "ore sell %dg · food price %dg · food in shop %d\n" % [world.economy.sell_price("iron_ore"), world.economy.food_price(), world.economy.total_stock("trout")]
 	# Unit 2 (R1): the treasury LEDGER — the heavy-shop throughput-ceiling watch number wants these
 	var eco: Economy = world.economy
-	txt += "treasury %d  ·  IN tax %d + routing %d  ·  OUT bounty %d + upgrades %d + buildings %d\n" % [
+	txt += "treasury %d  ·  IN tax %d + routing %d  ·  OUT bounty %d + upgrades %d + buildings %d + bias %d\n" % [
 		int(eco.treasury), int(eco.treasury_in_tax), int(eco.treasury_in_routing),
-		int(eco.treasury_out_bounty), int(eco.treasury_out_upgrade), int(eco.treasury_out_building)]
+		int(eco.treasury_out_bounty), int(eco.treasury_out_upgrade), int(eco.treasury_out_building),
+		int(eco.treasury_out_bias)]
 	txt += "activity mix now: %s\n\n" % mix.trim_suffix("· ")
 	txt += "--- ANOMALIES (auto-flagged) ---\n"
 	for a in anomalies:

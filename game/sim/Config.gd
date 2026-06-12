@@ -127,6 +127,14 @@ const SHOP_IMPORT_K: float = 0.5
 # (the player's bounty/buy-order pulse); the rest burns (the dominant §6 sink). Ruled 40%,
 # tunable 30–50% within sweep gates. static var so the #3b ledger sweep can arm it.
 static var PURCHASE_TREASURY_ROUTE: float = 0.40
+# #3c — player PRICE-BIAS lever (B1 soft gather steering): per-good multiplier on what the shop
+# PAYS heroes. Overpay (>1) mints extra gold → the premium is TREASURY-FUNDED and affordability-
+# gated per sale (R1 bounded re-injection — an empty treasury means no bias, like bounties);
+# underpay (<1) simply shrinks the faucet (no treasury flow — pocketing the "savings" would mint
+# treasury gold from nothing). Clamp: ±30% opening stance (ruled expectation "narrower than
+# 50–150%"); the #3c sweep locks the number. static var so the sweep can arm wider clamps.
+static var PRICE_BIAS_MIN: float = 0.70
+static var PRICE_BIAS_MAX: float = 1.30
 
 # town demand: whole units/sim-day the NPC town absorbs (bounds the gather faucet, §6).
 # cooked_fish is low because in the combat economy the real food sink is FIGHTERS buying food

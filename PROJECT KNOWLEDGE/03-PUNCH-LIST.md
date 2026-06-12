@@ -22,8 +22,15 @@
     band verified: drift −2%, kills 20.8k vs 21.8k pre-Unit-2, g/cap
     ~1,829 (band edge — formal re-baseline at #3d closing report).
     Suite 169/169; 3 gates PASS. (2026-06-12)
-  - [ ] #3c — Player price-bias lever (per-good sell-price multiplier),
-    swept clamp (expect narrower than 50–150%), Town-tab UI row.
+  - [ ] #3c — Player price-bias lever: **MECHANICS BUILT 2026-06-12**
+    (per-good multiplier on what shops pay; treasury-funded overpay,
+    affordability-gated, degrades to base when unfunded; underpay = smaller
+    faucet, no treasury flow; brain reads the biased price via sell_price;
+    Town-tab cycle row; `treasury_out_bias` ledger; save v5 + v4→v5
+    upgrader; 7 suite checks — 176/176). **REMAINS: the clamp sweep** —
+    `tools/diag_bias.gd` written/UNRUN (4 arms × 6 seeds; lock criterion
+    in its header); run it, lock PRICE_BIAS_MIN/MAX (opening stance
+    0.70–1.30), update Config comment + decisions log, then close.
   - [ ] #3d — KI-4 counter-force experiment (designed into this unit per
     #1e): sweep COMBAT_CONGESTION_MULT {0.5 current, 0.75, 1.0} ±
     gear-drop reward coupling through the now-real gear-board price;
@@ -34,6 +41,41 @@
   visual constants, render-layer only, decisions-log entry on the paradigm
   split. `loot_policy` = drop-filter semantics (R7). Fight popup after #1;
   Skill popup can float earlier.
+- [ ] #13 — **Founders fully randomly generated** (directive 2026-06-12).
+  On a fresh start every founder is ROLLED, not templated: random name,
+  random appearance colors (skin/hair/shirt), random skills/stats incl.
+  the favorite-activity spread, random starting gold in a band (opening
+  stance 20–100g; the BAND is the implementer's to recommend against the
+  attractor — the REQUIREMENT is random rolls), random spawn placement
+  within the city walls. Today: fixed favorites list (SimWorld ~146),
+  id-indexed SKIN/HAIR picks (~161), id-based names, `weapon = id % 3`
+  (~196) — all become seeded rolls. CONSTRAINTS: (a) all randomness on the
+  seeded sim RNG — same seed ⇒ same founders (determinism gate holds);
+  (b) keep a debug path to lock founders (fixed preset or pinned seed)
+  for testing/repro; (c) the favorite spread must not roll a structurally
+  unviable colony (e.g. zero fishers) — constrain the roll or PROVE the
+  brain recovers; (d) fighting-favorite founders ROLL their weapon/style
+  (sword/bow/staff) — the `id % 3` assignment retires (same rule for
+  immigrant fighters, #14). Engineering: wealth changes move the gold
+  attractor → re-run the band sweep + re-baseline; gates stay green;
+  SAVE_VERSION bump + upgrader on any save-shape change.
+- [ ] #14 — **Immigrant gold rolled in economy-fitted bands** (directive
+  2026-06-12). Replace the fixed per-tier gold (NEWCOMER_TIERS 20/45/130/
+  320, Config ~161) with ROLLED ranges per tier, scaled so higher-tier
+  joiners arrive meaningfully funded relative to their level — sized to
+  FIT THE ECONOMY, not preset numbers. Derive bands from the current
+  attractor (anchor each tier to a sensible fraction of the per-capita
+  band — e.g. Greenhorn a few % of g*, Elite a substantial-but-bounded
+  fraction), propose with sweep evidence, tune within gates. The SHAPE is
+  the requirement: random rolls; low tiers modest; high tiers wealthy but
+  not economy-breaking. Same engineering constraints as #13.
+- [ ] #15 — **Immigrant gear rolls** (directive 2026-06-12). Arrivals roll
+  random starting gear of random quality; higher stats/levels add a BONUS
+  to the roll (better heroes arrive better-equipped). Gear-as-data exists
+  since Unit 1 (items.json tiers/styles/slots) — roll against the catalog.
+  Style-matched main-hand for fighters per the #13(d) rolled style; armor
+  slots may roll for any tier-appropriate arrival. Same engineering
+  constraints as #13 (seeded RNG, gates, save migration if shape changes).
 
 ## Later / icebox
 - [ ] #5 — Unit 4: Bank + GE order book + City BUY orders + City Inventory
@@ -62,6 +104,27 @@
   combat polish (premise undercut, optional) · dead `_route*` heuristic
   cleanup in SimWorld · Apothecary + Thessalia shops (R3 deferred) ·
   relocate Vannaka to Edgeville when zones expand westward (R4).
+- [ ] #16 — **Legendary & Easter-Egg arrivals — achievement-gated**
+  (design reservation, directive 2026-06-12; sits AFTER Unit 4's GE and
+  pairs with #9 Zezima endgame). Each immigrant roll has a SMALL chance to
+  instead be a **Legendary** — a pre-generated character canon to the real
+  OSRS community (e.g. Lynx Titan, Woox, Noobtype, Port Khazard, B0aty,
+  Settled, Odablock) arriving with handcrafted stats/gear/gold and a build
+  matching their real-world reputation (Lynx Titan = maxed skiller-
+  grinder; Woox = elite PvM; B0aty/Odablock = combat/PvP personalities;
+  Settled = ironman-style restriction quirks). GATING: Legendaries can
+  spawn only once the GE has been unlocked **in the current run** — a
+  per-run requirement, NOT a permanent account unlock (after beating
+  Zezima and prestiging, each new run re-unlocks the GE first).
+  **Easter-Egg characters** are a second, significantly RARER class the
+  player designs by hand later; they carry an ADDITIONAL special unlock on
+  top of the GE requirement — exact condition TBD/implementer's call,
+  balanced and achievable (e.g. GE unlocked + ≥1 Zezima kill this run).
+  RECORDED NOW so the immigration, character-template, and achievement/
+  unlock systems stay compatible: immigration roll needs a template-
+  override hook; character gen needs a handcrafted-template path (vs #13's
+  random rolls); a per-run unlock/achievement record must exist and SURVIVE
+  prestige resets correctly (i.e. reset with the run).
 
 ## Done
 - [x] #1 — **Unit 0: Slayer slice COMPLETE** (2026-06-11 → 2026-06-12; zones

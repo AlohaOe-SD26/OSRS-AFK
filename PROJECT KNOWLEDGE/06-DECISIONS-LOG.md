@@ -187,3 +187,28 @@
   re-break Unit-1 drop vendoring (unsellable carried tier-2 gear).
 - **Shop leveling does NOT scale import baselines yet** (leveling buys
   breadth via unlocks, not import depth) — revisit with C5 crafting queues.
+
+## 2026-06-12 — LOCKED INVARIANT: the coinpurse (per-hero gold, never pooled)
+- **Every hero keeps a personal coinpurse — hero gold is NEVER pooled or
+  shared.** Already true in the build (Hero.gold is the only hero gold
+  store; transfers exist only as explicit one-off events, e.g. the §14
+  gravestone-loot grab); recorded now as a standing invariant per the
+  2026-06-12 directive so future systems (GE order matching, city buy
+  orders, banking, party/social features) are designed AGAINST it: the
+  bank (Unit 4) holds per-hero deposits, not a pool; the treasury is the
+  TOWN''s purse (fed only by gold already removed from hero circulation),
+  never a hero gold pool. Any future feature that would pool hero gold
+  needs an explicit ruling to override this.
+
+## 2026-06-12 — Directive batch: random character generation (#13–#15) + Legendary arrivals (#16)
+- Recorded as punch items with full specs (see 03-PUNCH-LIST). Shape:
+  founders fully rolled (name/appearance/skills/favorites/gold 20–100
+  opening stance/placement; seeded RNG, debug lock path, viability
+  constraint, rolled fighter styles); immigrant gold becomes rolled
+  economy-fitted bands anchored to the attractor (replacing fixed
+  20/45/130/320); immigrant gear rolls quality-scaled by stats; Legendary
+  (GE-unlocked-this-run gate) + rarer Easter-Egg arrivals (extra unlock,
+  TBD) as a design reservation so immigration/templates/achievements stay
+  compatible. Engineering constraints attached: wealth changes → band
+  re-sweep + re-baseline; gates stay green; SAVE_VERSION + upgrader on
+  save-shape changes.

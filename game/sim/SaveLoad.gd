@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 4   # v4: Unit-2 shop economy v2 (7-shop roster — gear on specialist shops; treasury ledger counters)
+const SAVE_VERSION := 5   # v5: #3c price-bias lever (per-good bias dict + bias-premium outflow counter)
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,15 @@ const SAVE_VERSION := 4   # v4: Unit-2 shop economy v2 (7-shop roster — gear o
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4}
+	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5}
+
+## v4 → v5 (#3c, price-bias lever): pre-lever worlds have no biases set and no premium spend.
+static func _migrate_4_to_5(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	nd["price_bias"] = {}
+	nd["treasury_out_bias"] = 0.0
+	nd["version"] = 5
+	return nd
 
 ## v1 → v2 (Unit 0, Slayer): pre-Slayer worlds know nothing and hold no tasks; heroes gain the
 ## slayer skill at 1 (matching _new_hero's init so v2 worlds hash-shape consistently).
@@ -206,10 +214,11 @@ static func save_world(w) -> Dictionary:
 		"heroes": heroes, "monsters": monsters,
 		# economy
 		"treasury": w.economy.treasury, "tax_collected": w.economy.tax_collected, "shops": shops,
-		# treasury ledger (Unit 2 / R1)
+		# treasury ledger (Unit 2 / R1) + price-bias lever (#3c)
 		"treasury_in_tax": w.economy.treasury_in_tax, "treasury_in_routing": w.economy.treasury_in_routing,
 		"treasury_out_bounty": w.economy.treasury_out_bounty, "treasury_out_upgrade": w.economy.treasury_out_upgrade,
 		"treasury_out_building": w.economy.treasury_out_building,
+		"treasury_out_bias": w.economy.treasury_out_bias, "price_bias": w.economy.price_bias.duplicate(true),
 		# population
 		"pop": {"enabled": p.enabled, "reputation": p.reputation, "recent_deaths": p.recent_deaths,
 			"recent_kicks": p.recent_kicks, "immig_accum": p._immig_accum, "arrivals": p.arrivals,
@@ -275,6 +284,8 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 	w.economy.treasury_out_bounty = float(d.get("treasury_out_bounty", 0.0))
 	w.economy.treasury_out_upgrade = float(d.get("treasury_out_upgrade", 0.0))
 	w.economy.treasury_out_building = float(d.get("treasury_out_building", 0.0))
+	w.economy.treasury_out_bias = float(d.get("treasury_out_bias", 0.0))
+	w.economy.price_bias = d.get("price_bias", {})
 	for sd in d["shops"]:
 		for s in w.economy.shops:
 			if s.npc_id == sd["npc_id"]:

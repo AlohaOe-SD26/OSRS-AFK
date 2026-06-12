@@ -312,6 +312,8 @@ func _dispatch_ui(u: Dictionary) -> void:
 			_cycle_incentive(String(u["arg"]))
 		"bounty":
 			_cycle_bounty(String(u["arg"]))
+		"price_bias":
+			_cycle_price_bias(String(u["arg"]))
 		"kick_vote":
 			if selected != null:
 				world.start_kick_vote(selected)
@@ -349,6 +351,16 @@ func _dispatch_ui(u: Dictionary) -> void:
 			_dock_right = not _dock_right
 		"top_tab":
 			_top_tab = int(u["arg"])
+
+## Cycle a per-good price bias: 100% → MAX (overpay) → MIN (underpay) → 100% (#3c / B1).
+func _cycle_price_bias(good: String) -> void:
+	var cur := world.economy.bias_of(good)
+	if absf(cur - 1.0) < 0.01:
+		world.economy.set_price_bias(good, Config.PRICE_BIAS_MAX)
+	elif cur > 1.0:
+		world.economy.set_price_bias(good, Config.PRICE_BIAS_MIN)
+	else:
+		world.economy.set_price_bias(good, 1.0)
 
 ## Cycle a funded per-kill bounty: off → 1× → 2× → 3× avg coin drop → off (Unit 0 / R5).
 func _cycle_bounty(mon_id: String) -> void:
@@ -1113,6 +1125,15 @@ func _draw_town(pad: float, y: float) -> float:
 		var b := float(world.bounties.get(mon.id, 0.0))
 		var lbl2 := "%s %dg" % [mon.name, int(round(b))] if b > 0.0 else mon.name
 		bx = _button(lbl2, bx, y, "bounty", mon.id, b > 0.0)
+	y += 19
+	# price-bias lever (#3c / B1): per-good pay multiplier; overpay is treasury-funded
+	_hud_line("Price bias — what shops pay (cycle %d%%/100%%/%d%%; overpay = treasury-funded):" % [
+		int(Config.PRICE_BIAS_MIN * 100.0), int(Config.PRICE_BIAS_MAX * 100.0)], pad, y, Color("#857a67"), 10); y += 14
+	bx = pad
+	for c in [["Ore", "iron_ore"], ["Logs", "logs"], ["Fish", "trout"]]:
+		var pb := world.economy.bias_of(String(c[1]))
+		var lbl3 := "%s %d%%" % [String(c[0]), int(round(pb * 100.0))] if absf(pb - 1.0) > 0.01 else String(c[0])
+		bx = _button(lbl3, bx, y, "price_bias", String(c[1]), absf(pb - 1.0) > 0.01)
 	y += 19
 	if world.buildings.size() > 0:
 		var names: Array = []

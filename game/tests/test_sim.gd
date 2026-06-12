@@ -41,9 +41,10 @@ func _initialize() -> void:
 	_test_saveload()
 	_test_unit1_catalog()
 	_test_unit2_shops()
+	_test_unit2c_bias()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 169
+	const EXPECTED := 176
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -921,7 +922,8 @@ func _test_unit2_shops() -> void:
 			"level": 2},
 	]
 	var v4: Dictionary = SaveLoad.migrate(v3s)
-	_check(int(v4.get("version", -1)) == 4 and v4["shops"].size() == 7, "v3 save migrates to v4 (7-shop roster)")
+	_check(int(v4.get("version", -1)) == SaveLoad.SAVE_VERSION and v4["shops"].size() == 7,
+		"v3 save migrates to v%d (7-shop roster)" % SaveLoad.SAVE_VERSION)
 	var sw: Dictionary = {}
 	var genm: Dictionary = {}
 	for sd in v4["shops"]:
@@ -937,6 +939,62 @@ func _test_unit2_shops() -> void:
 	_check(w4 != null and w4.economy.shop_for("iron_sword").npc_id == "swordshop"
 		and w4.economy.shops.size() == 7 and (w4.economy.shops[1] as Shop).level == 2,
 		"migrated v3 world loads on the v4 roster (fishmonger keeps its evolved level)")
+
+func _test_unit2c_bias() -> void:
+	print("\n[Unit 2 #3c — price-bias lever: clamp, treasury-funded overpay, underpay, brain coupling]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var eco := Economy.new(content)
+	eco.set_price_bias("iron_ore", 99.0)
+	var clamped_hi: float = eco.bias_of("iron_ore")
+	eco.set_price_bias("iron_ore", 0.01)
+	var clamped_lo: float = eco.bias_of("iron_ore")
+	_check(absf(clamped_hi - Config.PRICE_BIAS_MAX) < 0.001 and absf(clamped_lo - Config.PRICE_BIAS_MIN) < 0.001,
+		"bias clamps to the swept band [%.0f%%, %.0f%%]" % [Config.PRICE_BIAS_MIN * 100, Config.PRICE_BIAS_MAX * 100])
+	# funded overpay advertises AND pays; the premium is drawn from the treasury
+	eco.treasury = 1000.0
+	eco.set_price_bias("iron_ore", Config.PRICE_BIAS_MAX)
+	var base_p: int = eco.shop_for("iron_ore").sell_price("iron_ore")
+	_check(eco.sell_price("iron_ore") == int(round(base_p * Config.PRICE_BIAS_MAX)),
+		"funded overpay advertises the biased price (%dg → %dg)" % [base_p, eco.sell_price("iron_ore")])
+	var seller := Hero.new()
+	seller.inv = {"iron_ore": 5}
+	var paid := eco.sell_goods(seller)
+	_check(eco.treasury_out_bias > 0.0 and paid > base_p * 5 * 0.9,
+		"overpay premium is treasury-funded (out_bias %.0fg on a %dg sale)" % [eco.treasury_out_bias, paid])
+	# unfunded overpay degrades to the base price (no overdraw, like bounties)
+	var eco2 := Economy.new(content)
+	eco2.treasury = 0.0
+	eco2.set_price_bias("iron_ore", Config.PRICE_BIAS_MAX)
+	var b2: int = eco2.shop_for("iron_ore").sell_price("iron_ore")
+	_check(eco2.sell_price("iron_ore") == b2, "unfunded overpay never advertises (treasury empty → base price)")
+	# underpay pays less and creates NO treasury flow (the savings were never minted)
+	var eco3 := Economy.new(content)
+	eco3.set_price_bias("iron_ore", Config.PRICE_BIAS_MIN)
+	var s3 := Hero.new()
+	s3.inv = {"iron_ore": 5}
+	var paid3 := eco3.sell_goods(s3)
+	var b3: int = eco3.shop_for("iron_ore").sell_price("iron_ore")
+	_check(paid3 < b3 * 5 and eco3.treasury_out_bias == 0.0 and absf(eco3.treasury - eco3.treasury_in_tax) < 0.001,
+		"underpay shrinks the faucet with zero treasury flow (%dg for 5 units)" % paid3)
+	# brain coupling: the gather reward term reads the biased price → the lever steers organically
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	var hg: Hero = world.heroes[0]
+	hg.inv["bronze_pickaxe"] = 1
+	var s_before := _cand_score(Brain.candidates_with_terms(hg, world), "GATHER_ORE")
+	world.economy.treasury = 10000.0
+	world.economy.set_price_bias("iron_ore", Config.PRICE_BIAS_MAX)
+	var s_after := _cand_score(Brain.candidates_with_terms(hg, world), "GATHER_ORE")
+	_check(s_after > s_before, "the brain's reward term reads the biased price (score %.1f → %.1f)" % [s_before, s_after])
+	# v4→v5 migration
+	var v4s: Dictionary = SaveLoad.save_world(world)
+	v4s["version"] = 4
+	v4s.erase("price_bias")
+	v4s.erase("treasury_out_bias")
+	var v5: Dictionary = SaveLoad.migrate(v4s)
+	_check(int(v5.get("version", -1)) == 5 and v5.has("price_bias") and float(v5.get("treasury_out_bias", -1.0)) == 0.0,
+		"v4 save migrates to v5 (bias dict + premium counter present)")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

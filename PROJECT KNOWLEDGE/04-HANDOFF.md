@@ -23,6 +23,14 @@ telemetry now reads ~1,790, +4% drift — within 1σ). M2 BRAIN_V2
 default-OFF (4th test failed it — see KI-4).
 
 ## What was just done (this session, 2026-06-12)
+- **#3c price-bias lever BUILT** (mechanics + UI + save v5 + 7 checks;
+  clamp sweep authored but unrun — see "In progress" for the exact state).
+- **Directive batch recorded** (2026-06-12, from the user): the COINPURSE
+  INVARIANT locked in the decisions log (hero gold never pools); punch
+  items **#13** (founders fully rolled), **#14** (immigrant gold in
+  economy-fitted rolled bands), **#15** (immigrant gear rolls), **#16**
+  (Legendary & Easter-Egg arrivals, GE-gated per-run) — full specs in
+  03-PUNCH-LIST.
 - **Unit 2 #3a+#3b SHIPPED** (punch #3, rulings R1/R3): 7-shop roster as
   data (`data/shops.json` — Horvik/Lowe/Zaff/Aubury/Swordshop + the 2
   incumbents; gear re-routed to specialists), per-good dynamic buy pricing
@@ -40,17 +48,36 @@ default-OFF (4th test failed it — see KI-4).
   1,460±332).
 
 ## In progress (and how far along)
-- **Unit 2 (punch #3): #3a ✅ #3b ✅ — #3c and #3d remain.**
-  - #3c: player price-bias lever (per-good sell-price multiplier) +
-    swept clamp (expect narrower than 50–150%) + Town-tab UI row.
-  - #3d: KI-4 counter-force sweep (COMBAT_CONGESTION_MULT {0.5/0.75/1.0}
-    ± gear-drop reward coupling; two-sided criterion: monoculture must
-    drop from ~44%, combat must not crater) + closing band re-baseline.
+- **Unit 2 (punch #3): #3a ✅ #3b ✅ · #3c MECHANICS BUILT (see below) ·
+  #3d not started.**
+  - **#3c state (wrap-up 2026-06-12):** the lever is fully BUILT and
+    committed — `Economy.price_bias` + `set_price_bias` (clamped to
+    `PRICE_BIAS_MIN/MAX`, opening stance 0.70–1.30), treasury-funded
+    overpay (premium drawn in `_pay_for`, affordability-gated per sale,
+    degrades to base price when unfunded — bounties pattern), underpay =
+    smaller faucet with NO treasury flow (pocketing savings would mint
+    gold), brain coupling free via `sell_price` (the reward term reads the
+    biased price), Town-tab cycle row (100%→MAX→MIN→100%), `treasury_out_
+    bias` ledger counter + telemetry, save v5 + v4→v5 upgrader, 7 suite
+    checks. **REMAINING for #3c: the clamp SWEEP** — `tools/diag_bias.gd`
+    is WRITTEN but UNRUN (4 arms: control / 130% / 150% / 70% on logs,
+    6 seeds × 16 days, organic treasury; lock criterion in its header).
+    Run it (~45 min), lock PRICE_BIAS_MIN/MAX from the evidence, update
+    the Config comment + decisions log, then mark #3c done.
+  - **#3d (not started):** KI-4 counter-force sweep — COMBAT_CONGESTION_
+    MULT {0.5/0.75/1.0} ± gear-drop reward coupling; two-sided criterion
+    (monoculture must drop from ~44%, combat must not crater); lock the
+    winner; Unit-2 CLOSING BAND RE-BASELINE (g/cap drifted to ~1,829
+    single-seed — the formal multi-seed re-baseline closes the unit).
 
 ## Next steps (in order)
-1. **#3c** price-bias lever (see punch list for spec).
-2. **#3d** KI-4 sweep + lock + Unit-2 closing band report.
+1. **Finish #3c**: run `tools/diag_bias.gd`, lock the clamp, docs, done.
+2. **#3d** KI-4 sweep + lock + Unit-2 closing band re-baseline.
 3. Unit 3 (C1 nudge popups + B4 gating, punch #4) per R11/R7.
+4. New directive items **#13–#15** (random founders / immigrant gold
+   bands / gear rolls — full specs in the punch list) slot naturally
+   AFTER the Unit-2 close (they need the fresh band as their anchor);
+   **#16** (Legendary arrivals) waits on Unit 4's GE + achievements.
 
 ## How to run / build / test
 ```

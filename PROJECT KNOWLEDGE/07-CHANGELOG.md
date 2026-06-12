@@ -219,3 +219,23 @@
 - **Verified:** suite **169/169** (+16 Unit-2 checks); determinism /
   save-load / offline gates PASS; render parses; telemetry drift −2%,
   kills 20,829, deaths 9.
+
+## 2026-06-12 — #3c price-bias lever MECHANICS + directive batch (#13–#16, coinpurse invariant) — session wrap-up
+- **#3c lever BUILT** (sweep still pending — see punch list): per-good
+  `price_bias` on what shops PAY heroes, clamped to `PRICE_BIAS_MIN/MAX`
+  (opening stance 0.70–1.30; the diag_bias sweep locks it). Overpay
+  premium is TREASURY-FUNDED + affordability-gated per sale (degrades to
+  base when unfunded — the bounty pattern; overpay mints gold, so it must
+  be funded re-injection per R1); underpay just shrinks the faucet (no
+  treasury flow — pocketing savings would mint treasury gold). The brain
+  reads the biased price through `sell_price` (steering is organic).
+  Town-tab cycle row (100%→MAX→MIN→100%); `treasury_out_bias` counter +
+  telemetry; **save v5** + v4→v5 upgrader; NEW `tools/diag_bias.gd`
+  (clamp sweep, 4 arms × 6 seeds — WRITTEN, NOT YET RUN).
+- **Directive batch (2026-06-12)**: coinpurse invariant LOCKED in the
+  decisions log (hero gold never pools); punch items #13 (founders fully
+  rolled), #14 (immigrant gold rolled in economy-fitted bands), #15
+  (immigrant gear rolls), #16 (Legendary & Easter-Egg arrivals, GE-gated
+  per-run) recorded with full specs.
+- **Verified:** suite **176/176** (+7 bias checks); determinism /
+  save-load / offline gates ALL PASS on the v5 shape.
