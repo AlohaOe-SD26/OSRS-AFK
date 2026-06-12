@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2   # v2: Slayer (kill_counts/tasks_assigned on world; slayer_task/points/skill on heroes)
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,20 @@ const SAVE_VERSION := 1
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {}
+	return {1: _migrate_1_to_2}
+
+## v1 → v2 (Unit 0, Slayer): pre-Slayer worlds know nothing and hold no tasks; heroes gain the
+## slayer skill at 1 (matching _new_hero's init so v2 worlds hash-shape consistently).
+static func _migrate_1_to_2(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	nd["kill_counts"] = {}
+	nd["slayer_tasks_assigned"] = 0
+	for hd in nd["heroes"]:
+		hd["slayer_task"] = {}
+		hd["slayer_points"] = 0
+		hd["skills"]["slayer"] = {"level": 1, "xp": 0}
+	nd["version"] = 2
+	return nd
 
 ## Walk `d` up the chain until it reaches SAVE_VERSION. Returns {} when the save cannot be brought
 ## current (future/unknown version, or a gap in the chain) — callers treat {} as "unloadable", which
@@ -78,6 +91,8 @@ static func save_world(w) -> Dictionary:
 		# player layer + story
 		"incentives": w.incentives.duplicate(true), "buildings": w.buildings.duplicate(true),
 		"kick_records": w.kick_records.duplicate(true),
+		# slayer (v2)
+		"kill_counts": w.kill_counts.duplicate(true), "slayer_tasks_assigned": w.slayer_tasks_assigned,
 		"announced_bonds": w._announced_bonds.duplicate(true),
 		"chronicle": w.chronicle.duplicate(true),
 	}
@@ -91,6 +106,7 @@ static func _save_hero(h) -> Dictionary:
 		"act": h.act.duplicate(true), "thought": h.thought, "flash": h.flash, "decisions": h.decisions,
 		"last_candidates": h.last_candidates.duplicate(true), "backstory": h.backstory,
 		"milestones": h.milestones.duplicate(true), "nudge": h.nudge.duplicate(true), "seized": h.seized,
+		"slayer_task": h.slayer_task.duplicate(true), "slayer_points": h.slayer_points,
 		"weapon": h.weapon, "equipped": h.equipped.duplicate(true), "goal": h.goal.duplicate(true), "run_on": h.run_on, "run_energy": h.run_energy,
 		"run_stop_at": h.run_stop_at, "run_cd_left": h.run_cd_left,
 		"path": h.path.duplicate(true), "path_goal": h.path_goal}
@@ -143,6 +159,8 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 	# player layer + story
 	w.incentives = d["incentives"]; w.buildings = d["buildings"]; w.kick_records = d["kick_records"]
 	w._announced_bonds = d["announced_bonds"]; w.chronicle = d["chronicle"]
+	# slayer (v2 — migration guarantees presence)
+	w.kill_counts = d["kill_counts"]; w.slayer_tasks_assigned = int(d["slayer_tasks_assigned"])
 	return w
 
 static func _load_hero(hd: Dictionary) -> Hero:
@@ -156,6 +174,7 @@ static func _load_hero(hd: Dictionary) -> Hero:
 	h.flash = float(hd["flash"]); h.decisions = int(hd["decisions"])
 	h.last_candidates = hd["last_candidates"]; h.backstory = hd["backstory"]
 	h.milestones = hd["milestones"]; h.nudge = hd["nudge"]; h.seized = bool(hd["seized"])
+	h.slayer_task = hd["slayer_task"]; h.slayer_points = int(hd["slayer_points"])
 	h.weapon = String(hd.get("weapon", "sword"))
 	h.equipped = hd.get("equipped", {})
 	h.goal = hd.get("goal", {})

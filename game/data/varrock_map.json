@@ -154,6 +154,13 @@
    "y": 2,
    "kind": "trees",
    "label": "Palace Yews"
+  },
+  "vannaka": {
+   "x": 13,
+   "y": 12,
+   "kind": "npc",
+   "label": "Vannaka (visiting)",
+   "comment": "R4 documented divergence: canon home is Edgeville Dungeon; he camps on the Edgeville road outside the west gate until zones expand westward."
   }
  },
  "terrain": {

@@ -120,6 +120,9 @@ static func _score_fight(hero: Hero, world, camp: String = "combat", mon_id: Str
 	terms.append(["sticky", Config.STICKY_BONUS if (hero.act.get("intent", "") == "FIGHT" and hero.act.get("loc", "") == camp) else 0.0])
 	terms.append(["incentive", _incentive(world, "FIGHT")])   # Tier-1 player lever (§18.4); 0 if unset
 	terms.append(["goal", Config.GOAL_BIAS if String(hero.goal.get("skill", "")) == "strength" else 0.0])
+	# Slayer on-task pull (Unit 0 / B2, R6): the camp hosting the hero's assigned monster gains a bounded
+	# bonus — per-hero and task-rotated, so it steers without becoming a standing colony-wide attractor.
+	terms.append(["task", Config.SLAYER_ON_TASK if String(hero.slayer_task.get("mon", "")) == mon_id else 0.0])
 	return _finish({"intent": "FIGHT", "loc": camp, "skill": "strength", "res": ""}, terms)
 
 static func _score(hero: Hero, world, intent: String) -> Dictionary:

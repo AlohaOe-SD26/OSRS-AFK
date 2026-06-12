@@ -224,6 +224,28 @@ const INCENTIVE_STEP: float = 12.0
 # pull). A *funded* per-unit bounty that clears through the treasury could safely go higher (a later
 # refinement; see PROJECT_STATUS). The clamp ensures the steering lever can never crater the economy.
 const INCENTIVE_MAX: float = 24.0
+# ---- Slayer (Unit 0 / spec B2 under rulings R4–R6) ----
+# Vannaka (designed cast, WORLD_AND_CHARACTERS §1) assigns tasks only to heroes of combat level ≥ 40
+# (canon gate). Until Edgeville exists he is stationed at the west-gate/Edgeville-road edge of the map
+# — a DOCUMENTED placement divergence (R4); relocate when zones expand westward.
+const SLAYER_COMBAT_GATE: int = 40
+# On-task utility bonus (R6: open at +20, lock via the standard sweep — per-hero and task-rotated, so
+# safer than a standing colony-wide bounty at equal magnitude). static var → sweepable.
+static var SLAYER_ON_TASK: float = 20.0
+# Knowledge gating (B2): a monster enters the task pool only once the COLONY has killed enough of them
+# (the same mechanism generalizes to the Scurrius kill-count boss gate).
+const SLAYER_KNOWLEDGE: int = 100
+const SLAYER_KNOWLEDGE_BOSS: int = 15
+# Task sizing inversely with toughness (B2, translated to our HP scale: rat 15 → Scurrius 500).
+# Bands are [min_hp, size_lo, size_hi], first match wins; bosses use the dedicated band.
+const SLAYER_SIZE_BOSS: Array = [3, 8]
+const SLAYER_SIZE_BANDS: Array = [[20, 8, 20], [10, 14, 35], [0, 20, 60]]
+# Bonus slayer XP per ON-TASK kill ≈ 0.9 × the monster's HP (reference-faithful; ×XP_RATE on grant).
+const SLAYER_XP_PER_HP: float = 0.9
+# Slayer points per completed task (currency; spending = later design, per B2).
+const SLAYER_POINTS_MIN: int = 8
+const SLAYER_POINTS_MAX: int = 16
+
 # Nudge (Tier 2): a nudge wins the next decision via a one-off utility bonus so large it dominates the
 # argmax for that single decision, then it is consumed (the hero resumes autonomy). Kept finite (not
 # infinite) so the candidate still carries an honest, inspectable score in the Thoughts tab.

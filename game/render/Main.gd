@@ -746,6 +746,12 @@ func _draw_location(loc: Dictionary) -> void:
 			lbl_col = Color("#9fd0f0"); lbl_y = -6.0
 		"build":
 			_draw_building(p, Color("#7a6a4a"))
+		"npc":
+			# a standing armoured figure (Vannaka: tall warrior, full helm — WORLD §1)
+			draw_rect(Rect2(cx - 3, cy - 16, 6, 12), Color("#6a6e78"))
+			_ell(Vector2(cx, cy - 18), 3.5, 3.5, Color("#8a8e98"))
+			_ell(Vector2(cx, cy), 7, 3, Color("#211c14"))
+			lbl_col = Color("#e07a5a"); lbl_y = -26.0
 		_:
 			_draw_tile_diamond(loc["pos"], Color("#6b5a3a"), Color("#4a3e26"))
 	_label(loc["label"], p + Vector2(0, lbl_y), lbl_col)

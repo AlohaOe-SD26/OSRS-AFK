@@ -35,10 +35,11 @@ func _initialize() -> void:
 	_test_social_negatives()
 	_test_civic_kick()
 	_test_chronicle_narrative()
+	_test_slayer()
 	_test_saveload()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 106
+	const EXPECTED := 122
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -487,6 +488,57 @@ func _test_chronicle_narrative() -> void:
 	world._chronicle_social_daily()
 	_check(world.chronicle.size() == n_before, "an unchanged bond is not re-narrated (de-dup)")
 
+func _test_slayer() -> void:
+	print("\n[Slayer — Unit 0 / spec B2 under rulings R4–R6]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	world.population.enabled = false
+	var h: Hero = null
+	for c in world.heroes:
+		if c.favorite == "fighting":
+			h = c
+			break
+	_check(h != null, "found a fighter to test with")
+	# canon Combat-40 gate (R4): fresh heroes are well below it → Vannaka ignores them
+	_check(world.combat_level_of(h) < Config.SLAYER_COMBAT_GATE,
+		"fresh fighter is below the Combat-40 gate (cl %d)" % world.combat_level_of(h))
+	_check(not world._wants_slayer_task(h), "no Vannaka detour below the gate")
+	world._boost(h, SimWorld.style_skill(h), 60)
+	world._boost(h, "defence", 60)
+	h.hp = h.max_hp()
+	h.gold = 200.0   # solvent → the FIGHT candidates exist (food-or-gold gate) for the term check below
+	_check(world.combat_level_of(h) >= Config.SLAYER_COMBAT_GATE, "boosted fighter passes the gate")
+	# knowledge gate (B2): nothing has been killed yet → empty pool even past the combat gate
+	_check(world.slayer_pool(h).is_empty(), "unknown monsters → empty task pool (knowledge gate)")
+	world.kill_counts["rat"] = Config.SLAYER_KNOWLEDGE
+	_check(not world.slayer_pool(h).is_empty(), "colony knowledge (%d rat kills) unlocks the rat task" % Config.SLAYER_KNOWLEDGE)
+	_check(world._wants_slayer_task(h), "eligible taskless fighter now wants a task")
+	world._assign_slayer_task(h)
+	_check(not h.slayer_task.is_empty() and String(h.slayer_task["mon"]) == "rat", "Vannaka assigns a rat task")
+	var total := int(h.slayer_task.get("total", 0))
+	_check(total >= 14 and total <= 35, "task sized in the HP-10..19 band 14–35 (%d)" % total)
+	# the on-task bonus appears on the FIGHT candidate for exactly the task camp (R6: open +20)
+	var on := 0.0
+	for c2 in Brain.candidates_with_terms(h, world):
+		if String(c2.get("intent", "")) == "FIGHT" and String(c2.get("loc", "")) == String(h.slayer_task["camp"]):
+			for t in c2["terms"]:
+				if String(t[0]) == "task":
+					on = float(t[1])
+	_check(absf(on - Config.SLAYER_ON_TASK) < 0.01, "on-task camp carries the +%d pull in fight scoring" % int(Config.SLAYER_ON_TASK))
+	# kill attribution → completion: slayer XP, points, task cleared, colony knowledge grows
+	h.slayer_task["remaining"] = 1
+	var mon: Monster = content.monster("rat")
+	var mi := MonsterInstance.from_type(mon, Vector2.ZERO)
+	var pts_before := h.slayer_points
+	var sxp_before := h.skill_xp("slayer")
+	world._record_kill(h, mi, mon)
+	_check(h.slayer_task.is_empty(), "task completes at 0 remaining")
+	_check(h.slayer_points >= pts_before + Config.SLAYER_POINTS_MIN, "slayer points awarded (+%d)" % (h.slayer_points - pts_before))
+	_check(h.skill_xp("slayer") > sxp_before, "on-task kill grants slayer XP (≈0.9×HP)")
+	_check(int(world.kill_counts["rat"]) == Config.SLAYER_KNOWLEDGE + 1, "colony kill_counts increments on the kill")
+
 func _test_saveload() -> void:
 	print("\n[Save/load — §25, Step 6 — the determinism invariant applied to persistence]")
 	var content := ContentDB.new()
@@ -535,6 +587,21 @@ func _test_saveload() -> void:
 		from_migrated.tick(SimWorld._ACTION_SECONDS)
 	_check(SimHash.state_string(world) == SimHash.state_string(from_migrated),
 		"migrated world continues deterministically from the load point (500 ticks)")
+	# --- the REAL v1→v2 upgrader (Unit 0, Slayer): a stripped v1 save walks the production chain
+	var v1: Dictionary = SaveLoad.save_world(world)
+	v1["version"] = 1
+	v1.erase("kill_counts")
+	v1.erase("slayer_tasks_assigned")
+	for hd in v1["heroes"]:
+		hd.erase("slayer_task")
+		hd.erase("slayer_points")
+		hd["skills"].erase("slayer")
+	var v2: Dictionary = SaveLoad.migrate(v1)
+	_check(int(v2.get("version", -1)) == SaveLoad.SAVE_VERSION and v2.has("kill_counts"),
+		"v1 save migrates to v%d via the production chain" % SaveLoad.SAVE_VERSION)
+	var w2: SimWorld = SaveLoad.load_world(content, v2)
+	_check(w2 != null and w2.heroes[0].slayer_task.is_empty() and w2.heroes[0].skill_level("slayer") == 1,
+		"migrated v1 world loads with Slayer defaults in place")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

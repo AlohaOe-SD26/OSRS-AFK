@@ -50,3 +50,23 @@
 - Gates: `gate_saveload.gd` IDENTICAL on all 3 seeds (load path now routes
   through `migrate()`). KI-3 RESOLVED — every future save-shape change
   bumps SAVE_VERSION and appends its upgrader.
+## 2026-06-11 — Slayer core: Vannaka, tasks, on-task pull (punch-list #1b; rulings R4–R6)
+- **Sim:** `kill_counts` colony-knowledge dict + `slayer_tasks_assigned` on
+  SimWorld; `slayer_task`/`slayer_points` + slayer skill on Hero; Vannaka
+  assignment (`slayer_pool` → knowledge gate 100/15-boss, slayer-level req,
+  `Combat.fight_is_winnable` feasibility with affordable-food loadout +
+  risk-trait margin), HP-band task sizing (boss 3–8 / ≥20hp 8–20 / ≥10hp
+  14–35 / else 20–60), kill attribution (`_record_kill`: 0.9×HP slayer XP
+  on-task, 8–16 points on completion), Vannaka check-in chained into FIGHT
+  trips like buyfood/buyammo. Combat-40 canon gate (`SLAYER_COMBAT_GATE`).
+- **Brain:** `task` term (+`SLAYER_ON_TASK` 20, static var → sweepable) on
+  the FIGHT candidate of the task camp.
+- **Content/render:** `vannaka` map location on the Edgeville road outside
+  the west gate (R4 documented divergence; comment in varrock_map.json);
+  `npc` location kind (armoured figure).
+- **Save v2** (first real use of the #1a scaffold): new fields serialized;
+  `_migrate_1_to_2` upgrader; `sim_hash` fingerprint extended with
+  kill_counts + per-hero task state.
+- **Verified:** suite 122/122 (14 slayer checks + 2 real-migration checks);
+  determinism/save-load/offline gates all PASS (Slayer inert below combat
+  40 → validated baselines untouched in 12-day runs).

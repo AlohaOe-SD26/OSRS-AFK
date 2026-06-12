@@ -49,6 +49,11 @@ var incentives: Dictionary = {}
 var buildings: Array = []
 # Civic kick-vote bookkeeping (§16.2, Step 5): target_id -> { failed: int, cooldown_until: float (sim_total) }.
 var kick_records: Dictionary = {}
+# ---- Slayer (Unit 0 / B2 under R4–R6) ----
+# Colony knowledge: monster type_id -> total colony kills. Gates the task pool (SLAYER_KNOWLEDGE)
+# and generalizes to kill-count boss unlocks (Scurrius). Serialized (save v2).
+var kill_counts: Dictionary = {}
+var slayer_tasks_assigned: int = 0   # lifetime counter; 0→1 fires the Vannaka-arrival Chronicle line
 # Chronicle de-dup (§17, Step 5): "a<b" pair key -> the strongest tier already announced for that pair, so a
 # forming alliance / nemesis is narrated ONCE (not every pass it stays at that tier).
 var _announced_bonds: Dictionary = {}
@@ -150,6 +155,7 @@ func _new_hero(id: int, favorite: String, tier_name: String, tier_boost: int, st
 	h.shirt = SHIRT[id % SHIRT.size()]
 	for s in GATHER_SKILLS:
 		h.skills[s] = {"level": 1, "xp": 0}
+	h.skills["slayer"] = {"level": 1, "xp": 0}   # Unit 0: trained only by on-task kills
 	h.skills["hitpoints"] = {"level": 10, "xp": XpTables.xp_for_level(10)}
 	# role head-start (legible from the first minute) + rarity-tier bonus on top
 	if favorite == "fighting":
@@ -361,6 +367,115 @@ static func _intent_phrase(intent: String) -> String:
 		"FIGHT": return "fight at the Rat Pit"
 		"REGROUP": return "head to town"
 	return intent
+
+# ---------------------------------------------------------------------------
+# SLAYER (Unit 0 / spec B2 under rulings R4–R6). Vannaka assigns finite, sized, feasibility-checked
+# kill tasks; on-task kills earn bonus slayer XP and the SLAYER_ON_TASK utility pull; completion pays
+# slayer points. Tasks are structurally a goal with a kill counter — a standing target layered over
+# the normal trip FSM (heroes still buy food, flee, re-decide; the bonus only tilts the brain).
+
+## The hero's full canon combat level (Vannaka's assignment gate).
+func combat_level_of(h: Hero) -> int:
+	return XpTables.combat_level(h.skill_level("attack"), h.skill_level("strength"),
+		h.skill_level("defence"), h.skill_level("hitpoints"),
+		h.skill_level("ranged"), h.skill_level("magic"), 1)
+
+## Hero's expected DPS against a monster type — the SAME canon math the live fight rolls
+## (style-correct levels, weapon tier, coarse type defence), in statistical form. Powers the
+## B2 feasibility gate; no RNG.
+func hero_dps_vs(h: Hero, mon: Monster) -> float:
+	var wt := int(Config.GEAR_TIER.get(h.equipped.get("main", ""), 0))
+	var ss := SimWorld.style_skill(h)
+	var acc_skill := "attack" if ss == "strength" else ss
+	var eff_acc := Combat.effective_level(h.skill_level(acc_skill), 1.0, 0)
+	var eff_pow := Combat.effective_level(h.skill_level(ss), 1.0, 0)
+	var def := maxi(1, int(round(mon.combat_level / 10.0)))   # same coarse defence as MonsterInstance.from_type
+	var acc := Combat.hit_chance(Combat.attack_roll(eff_acc, 4 + wt * 6), Combat.defence_roll(def, 0))
+	var mh := Combat.max_hit(eff_pow, 1 + wt * 4)
+	return Combat.dps(Combat.average_hit(mh), acc, Config.WORK_TICKS_PER_ACTION)
+
+## Monster's expected DPS against a hero (retaliation-chance-weighted, like the live loop).
+func monster_dps(mon: Monster) -> float:
+	return Combat.dps(Combat.average_hit(mon.max_hit), MONSTER_RETALIATE_CHANCE, mon.attack_speed)
+
+## B2's "provisioned feasibility": would this hero, with the food they carry PLUS what they could
+## afford to buy, be expected to win? Adapt: "banked-food loadout" → affordable food (no banks yet).
+## Risk-margin scales with the hero's risk trait (daredevil ~0.8, cautious ~1.5). Prayer inert (1.0).
+func slayer_feasible(h: Hero, mon: Monster) -> bool:
+	var food := int(h.inv.get("cooked_fish", 0))
+	var affordable: int = mini(int(h.gold / maxf(1.0, float(economy.food_price()))), Config.FOOD_BUY_QTY * 2)
+	var heal := (food + maxi(0, affordable)) * Config.FOOD_HEAL
+	var margin: float = 1.5 - 0.7 * float(h.traits.get("risk", 0.4))
+	return Combat.fight_is_winnable(hero_dps_vs(h, mon), monster_dps(mon), mon.hitpoints, h.hp, heal, margin)
+
+## True once the colony "knows" a monster well enough for Vannaka to assign it (B2 knowledge gate;
+## bosses use the lower threshold — the generalized Scurrius unlock mechanism).
+func monster_known(mon: Monster) -> bool:
+	var need := Config.SLAYER_KNOWLEDGE_BOSS if mon.is_boss else Config.SLAYER_KNOWLEDGE
+	return int(kill_counts.get(mon.id, 0)) >= need
+
+## The camps Vannaka may assign THIS hero: knowledge-gated, slayer-level-gated, feasibility-checked.
+## Returns [{ "mon": type_id, "camp": loc_key }]. Deterministic (no RNG) — safe to call when scoring.
+func slayer_pool(h: Hero) -> Array:
+	var out: Array = []
+	for c in CAMPS:
+		var mon: Monster = content.monster(String(c["mon"]))
+		if mon == null or not monster_known(mon):
+			continue
+		if mon.slayer_level_req > h.skill_level("slayer"):
+			continue
+		if not slayer_feasible(h, mon):
+			continue
+		out.append({"mon": mon.id, "camp": String(c["loc"])})
+	return out
+
+## Should this hero detour to Vannaka before fighting? (No task, past the canon combat gate, and
+## Vannaka has something they can take.)
+func _wants_slayer_task(h: Hero) -> bool:
+	return h.slayer_task.is_empty() and combat_level_of(h) >= Config.SLAYER_COMBAT_GATE \
+		and not slayer_pool(h).is_empty()
+
+## Vannaka rolls a task: uniform pick from the hero's pool, sized inversely with toughness (B2 bands,
+## translated to our HP scale). RNG draws — assignment perturbs the seed stream (planned; re-baseline).
+func _assign_slayer_task(h: Hero) -> void:
+	var pool := slayer_pool(h)
+	if pool.is_empty():
+		return
+	var pick: Dictionary = pool[rng.randi_range(0, pool.size() - 1)]
+	var mon: Monster = content.monster(String(pick["mon"]))
+	var lo: int = Config.SLAYER_SIZE_BOSS[0]
+	var hi: int = Config.SLAYER_SIZE_BOSS[1]
+	if not mon.is_boss:
+		for band in Config.SLAYER_SIZE_BANDS:
+			if mon.hitpoints >= int(band[0]):
+				lo = int(band[1])
+				hi = int(band[2])
+				break
+	var n := rng.randi_range(lo, hi)
+	h.slayer_task = {"mon": mon.id, "camp": String(pick["camp"]), "remaining": n, "total": n}
+	slayer_tasks_assigned += 1
+	if slayer_tasks_assigned == 1:   # R4's optional touch: announce the visiting master on first unlock
+		log_event("Vannaka, Slayer Master of Edgeville, takes post by the west gate — visiting Varrock.", "lv", 3)
+	_milestone(h, "Assigned a Slayer task: %d × %s" % [n, mon.name])
+	log_event("Vannaka assigns %s a task — %d × %s." % [h.hero_name, n, mon.name], "lv", 1)
+
+## Kill attribution (called by _fight_round on each kill): colony knowledge always counts; an on-task
+## kill also earns bonus slayer XP (≈0.9×HP, B2) and advances the task; completion pays slayer points.
+func _record_kill(h: Hero, r: MonsterInstance, mon: Monster) -> void:
+	kill_counts[r.type_id] = int(kill_counts.get(r.type_id, 0)) + 1
+	if h.slayer_task.is_empty() or String(h.slayer_task.get("mon", "")) != r.type_id:
+		return
+	if mon != null:
+		_grant_xp(h, "slayer", int(round(mon.hitpoints * Config.SLAYER_XP_PER_HP)))
+	h.slayer_task["remaining"] = int(h.slayer_task["remaining"]) - 1
+	if int(h.slayer_task["remaining"]) <= 0:
+		var pts := rng.randi_range(Config.SLAYER_POINTS_MIN, Config.SLAYER_POINTS_MAX)
+		h.slayer_points += pts
+		var mname: String = mon.name if mon != null else r.type_id
+		_milestone(h, "Completed a Slayer task: %d × %s (+%d pts)" % [int(h.slayer_task["total"]), mname, pts])
+		log_event("%s completes Vannaka's task — %d × %s slain (+%d Slayer points)." %
+			[h.hero_name, int(h.slayer_task["total"]), mname, pts], "boss", 2)
+		h.slayer_task = {}
 
 # ---------------------------------------------------------------------------
 # TOWN BUILDING / UPGRADES (GDD §19) — the tycoon layer. Funded by the treasury (the GE-tax skim);
@@ -893,6 +1008,7 @@ func _fight_round(h: Hero) -> void:
 		r.alive = false
 		r.respawn = MONSTER_RESPAWN_S
 		total_kills += 1
+		_record_kill(h, r, mon)   # Slayer: colony knowledge + on-task progress (Unit 0)
 		h.act["kills"] = int(h.act.get("kills", 0)) + 1   # §18.6 combat-trip progress
 		# coin drop from the CATALOG (per-monster ranges; rats keep the re-tuned Config values)
 		if mon != null and r.type_id != "rat":
@@ -1037,6 +1153,12 @@ func _apply_choice(h: Hero, c: Dictionary) -> void:
 	elif c["intent"] == "FIGHT" and h.weapon != "sword" and int(h.inv.get("Arrows" if h.weapon == "bow" else "Runes", 0)) < 10 and h.gold >= 12.0:
 		h.act["target"] = "shop"
 		h.act["then"] = "buyammo"
+	# pre-fight Slayer check-in (Unit 0): an eligible, taskless fighter detours via Vannaka — chained
+	# like buyfood/buyammo so task uptake is organic (no separate candidate to mis-tune; the on-task
+	# bonus does the steering from the next decision on).
+	elif c["intent"] == "FIGHT" and _wants_slayer_task(h):
+		h.act["target"] = "vannaka"
+		h.act["then"] = "gettask"
 	# fallback regroup: go to town and sell the load (frees cargo → gather available next decision)
 	elif c["intent"] == "REGROUP":
 		h.act["then"] = "sell"
@@ -1090,6 +1212,14 @@ func _work_action(h: Hero) -> void:
 						h.inv["Iron sword"] = int(h.inv.get("Iron sword", 0)) + 1
 						_grant_xp(h, "smithing", 40)
 					h.act = {}
+					return
+				"gettask":
+					_assign_slayer_task(h)
+					a["phase"] = "goto"
+					a["target"] = a["loc"]   # continue to THIS trip's chosen camp; the bonus steers next decision
+					a["then"] = ""
+					_set_move(h, a["loc"])
+					_narrate(h)
 					return
 				"buyammo":
 					var ak := "Arrows" if h.weapon == "bow" else "Runes"
@@ -1357,6 +1487,8 @@ func _narrate(h: Hero) -> void:
 	var then: String = a.get("then", "")
 	if phase == "goto" and then == "buyfood":
 		h.thought = "Buying food before the Rat Pit."
+	elif phase == "goto" and then == "gettask":
+		h.thought = "Checking in with Vannaka for a Slayer task."
 	elif phase == "fight":
 		h.thought = "Fighting rats · %d food left." % int(h.inv.get("cooked_fish", 0))
 	elif phase == "goto" and then == "sell":

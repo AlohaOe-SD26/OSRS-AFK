@@ -71,7 +71,11 @@
       "Bash(git add *)",
       "Bash(git commit -q -m 'docs: adopt design rulings R1-R12; resolve KI-1 \\(punch-list #1 prep\\) *)",
       "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tests/test_sim.gd\")",
-      "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tools/gate_saveload.gd\")"
+      "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tools/gate_saveload.gd\")",
+      "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tests/test_sim.gd\" 2>$null)",
+      "PowerShell($g = \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\"; $p = \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\"; foreach \\($t in @\\(\"gate_determinism\", \"gate_saveload\", \"gate_offline\"\\)\\) { & $g --headless --path $p --script \"res://tools/$t.gd\" 2>$null | Select-Object -Last 4 })",
+      "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --quit-after 3 2>&1)",
+      "Bash(git commit -q -m 'feat: Slayer core — Vannaka, knowledge-gated feasible tasks, on-task pull \\(punch-list #1b\\) *)"
     ]
   }
 }

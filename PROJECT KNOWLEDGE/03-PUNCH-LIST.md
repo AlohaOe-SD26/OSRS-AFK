@@ -12,11 +12,14 @@
     chain in `SaveLoad.migrate()` run before load; 5 new suite checks
     (106/106) incl. the ruled gate (migrated save loads validly + continues
     deterministically from the load point); save/load gate green. (2026-06-11)
-  - [ ] #1b — Slayer core: **Vannaka** at the west-gate/Edgeville-road edge
-    (documented placement divergence, R4), Combat-40 gate, task assignment
-    with feasibility check (wire `Combat.fight_is_winnable`), task sizing,
-    knowledge-gated pool, on-task bonus (open +20, lock via sweep — R6),
-    Chronicle events (assign notability 0, completion > 0).
+  - [x] #1b — Slayer core SHIPPED: Vannaka at the west gate (map loc
+    `vannaka`, documented divergence per R4), Combat-40 gate, knowledge-
+    gated pool (`kill_counts`, generalizes to the Scurrius unlock),
+    feasibility via `fight_is_winnable` (affordable-food loadout), HP-band
+    task sizing, on-task +20 brain term (`SLAYER_ON_TASK`, sweepable) +
+    0.9×HP slayer XP + 8–16 points, Vannaka check-in chained into FIGHT
+    trips (organic uptake), Chronicle events, save v2 + real v1→v2
+    upgrader. Suite 122/122; all 3 gates green. (2026-06-11)
   - [ ] #1c — Funded per-kill treasury bounty; RETIRE the clamped utility
     FIGHT bounty same unit (R5). Bounty payout enters scoring through the
     greed-weighted `reward` term; per-kill affordability check; player range

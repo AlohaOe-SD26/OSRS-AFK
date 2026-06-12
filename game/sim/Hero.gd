@@ -81,6 +81,11 @@ var nudge: Dictionary = {}
 var seized: bool = false
 var backstory: String = ""         # generated one-liner (Saga tab, §20)
 var milestones: Array = []         # newest-first per-hero saga events (§17), capped
+# ---- Slayer (Unit 0 / B2) ----
+# Active task: { "mon": type_id, "camp": loc_key, "remaining": int, "total": int }. Empty = none.
+# Assigned by Vannaka (SimWorld._assign_slayer_task) after the feasibility + knowledge gates.
+var slayer_task: Dictionary = {}
+var slayer_points: int = 0         # earned per completed task; spending = later design (B2)
 
 func skill_level(s: String) -> int:
 	return int(skills.get(s, {}).get("level", 1))

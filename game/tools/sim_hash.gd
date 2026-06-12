@@ -19,11 +19,17 @@ static func state_string(world) -> String:
 	var heroes: Array = world.heroes.duplicate()
 	heroes.sort_custom(func(a, b): return a.id < b.id)
 	for h in heroes:
-		parts.append("h%d:%s g%d hp%d %s|%s" % [h.id, h.hero_name, int(h.gold), h.hp,
-			_skills_str(h), String(h.act.get("intent", "-"))])
+		parts.append("h%d:%s g%d hp%d %s|%s sp%d task%s/%d" % [h.id, h.hero_name, int(h.gold), h.hp,
+			_skills_str(h), String(h.act.get("intent", "-")), h.slayer_points,
+			String(h.slayer_task.get("mon", "-")), int(h.slayer_task.get("remaining", 0))])
 	# economy shops
 	for s in world.economy.shops:
 		parts.append("shop%s L%d %s" % [s.npc_id, s.level, _stock_str(s)])
+	# slayer colony knowledge (Unit 0) — part of the persistence/determinism fingerprint
+	var kk: Array = world.kill_counts.keys()
+	kk.sort()
+	for k in kk:
+		parts.append("kc%s:%d" % [k, int(world.kill_counts[k])])
 	# social edge count + tier histogram (graph shape)
 	if world.social != null:
 		var th: Dictionary = world.social.tier_histogram(world.sim_day)
