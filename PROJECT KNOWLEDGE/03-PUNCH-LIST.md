@@ -8,9 +8,10 @@
 ## Now (active focus) — Unit 0, per DESIGN_RULINGS.md (2026-06-11)
 - [ ] #1 — **Unit 0: Slayer slice** (zones slice 2, absorbs B2; rulings
   R4/R5/R6/R10 govern). Sub-items in build order:
-  - [ ] #1a — Save-migration scaffold FIRST (R10, absorbs old #11):
-    versioned upgrader chain v1→v2→…; gate = migrated save loads validly
-    and continues deterministically from the load point.
+  - [x] #1a — Save-migration scaffold (R10, absorbs old #11): upgrader
+    chain in `SaveLoad.migrate()` run before load; 5 new suite checks
+    (106/106) incl. the ruled gate (migrated save loads validly + continues
+    deterministically from the load point); save/load gate green. (2026-06-11)
   - [ ] #1b — Slayer core: **Vannaka** at the west-gate/Edgeville-road edge
     (documented placement divergence, R4), Combat-40 gate, task assignment
     with feasibility check (wire `Combat.fight_is_winnable`), task sizing,

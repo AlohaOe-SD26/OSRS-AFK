@@ -14,6 +14,32 @@ extends RefCounted
 
 const SAVE_VERSION := 1
 
+# --------------------------------------------------------------------- migrations (R10 scaffold)
+## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
+## version-(v+1) dict. Every unit that changes the save shape bumps SAVE_VERSION and appends its
+## upgrader here (e.g. `1: _migrate_1_to_2`). Ruled contract (DESIGN_RULINGS R10): a migrated save
+## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
+## historical runs is only guaranteed WITHIN a version, never across a migration.
+static func _chain() -> Dictionary:
+	return {}
+
+## Walk `d` up the chain until it reaches SAVE_VERSION. Returns {} when the save cannot be brought
+## current (future/unknown version, or a gap in the chain) — callers treat {} as "unloadable", which
+## preserves the old strict-version rejection for anything the chain can't reach.
+## `chain` is injectable so tests can exercise the walker with a synthetic chain; production callers
+## pass nothing and get the real one.
+static func migrate(d: Dictionary, chain: Dictionary = {}) -> Dictionary:
+	if chain.is_empty():
+		chain = _chain()
+	var v := int(d.get("version", -1))
+	while v != SAVE_VERSION and chain.has(v):
+		d = chain[v].call(d)
+		var nv := int(d.get("version", -1))
+		if nv <= v:   # every upgrader must advance the version — guards against a stalled chain
+			return {}
+		v = nv
+	return d if v == SAVE_VERSION else {}
+
 # --------------------------------------------------------------------------- save
 static func save_world(w) -> Dictionary:
 	var heroes: Array = []
@@ -149,7 +175,9 @@ static func save_to_file(w, path: String) -> bool:
 	f.store_var(save_world(w))
 	return true
 
-## Returns the loaded SimWorld, or null (missing file / wrong version). Caller attaches telemetry.
+## Returns the loaded SimWorld, or null (missing file / unmigratable version). Old saves are run up
+## the migration chain first; only saves the chain can't bring current are rejected.
+## Caller attaches telemetry.
 static func load_from_file(content, path: String) -> SimWorld:
 	if not FileAccess.file_exists(path):
 		return null
@@ -157,6 +185,9 @@ static func load_from_file(content, path: String) -> SimWorld:
 	if f == null:
 		return null
 	var d = f.get_var()
-	if not (d is Dictionary) or int(d.get("version", -1)) != SAVE_VERSION:
+	if not (d is Dictionary):
 		return null
-	return load_world(content, d)
+	var current: Dictionary = migrate(d)
+	if current.is_empty():
+		return null
+	return load_world(content, current)

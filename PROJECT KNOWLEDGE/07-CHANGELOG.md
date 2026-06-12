@@ -37,3 +37,16 @@
   sweep-instrumentation scope per R4/R5/R6); #11 merged into #1a; #3/#5/#6
   updated with ruled constants (40% routing, escrow, 1% GE tax, bank-in,
   C4 ceiling formula); decisions log appended.
+## 2026-06-11 — Save-migration scaffold (punch-list #1a, ruling R10)
+- `SaveLoad.gd`: added `migrate()` — an ordered per-version upgrader chain
+  (`_chain()`, injectable for tests) run by `load_from_file` before
+  `load_world`; unmigratable saves (future version / chain gap) still
+  return null. Ruled contract honored: migrated saves load validly and
+  continue deterministically from the load point; cross-version
+  byte-equivalence explicitly NOT required.
+- `tests/test_sim.gd`: +5 checks (identity at current version; future
+  version rejected; synthetic v0 walks the chain; migrated save loads with
+  state ≡ source; deterministic continuation 500 ticks). Suite now 106/106.
+- Gates: `gate_saveload.gd` IDENTICAL on all 3 seeds (load path now routes
+  through `migrate()`). KI-3 RESOLVED — every future save-shape change
+  bumps SAVE_VERSION and appends its upgrader.

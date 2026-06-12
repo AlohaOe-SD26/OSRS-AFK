@@ -52,7 +52,7 @@ godot --headless --path game --script res://tools/headless_log.gd # telemetry
 Godot binary path & GDScript 4.6 gotchas: agent memory `godot-environment`.
 
 ## Gotchas / unpushed work
-- Save-version mismatch silently discards saves until #1a lands (KI-3).
+- Save-shape changes MUST bump SAVE_VERSION and append an upgrader to `SaveLoad._chain()` (the #1a scaffold) — never ship a schema change without one.
 - Any new sim RNG draw perturbs the seed stream → re-baseline sweeps.
 - Don't chase the stale "600–900" gold band; the validated band moved
   (see `02-ARCHITECTURE.md`).

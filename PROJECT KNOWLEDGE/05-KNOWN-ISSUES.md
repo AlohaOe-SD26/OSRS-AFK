@@ -9,13 +9,6 @@
   snapshots containing the outdated `PROJECT_STATUS.md`; confusable with the
   live `game/` build.
 
-## KI-3 — No save-schema migrations (opened 2026-06-11, severity: med)
-- **Symptom:** `SaveLoad.load_from_file` returns null on any SAVE_VERSION
-  mismatch → old saves silently discarded. Within v1, new hero fields rely
-  on `.get(default)` fallbacks (informal forward-compat only).
-- **Fix path:** migration scaffold pulled forward to Unit 0 / punch #1a
-  (ruling R10) — lands before any schema churn.
-
 ## KI-4 — §18 combat-utility asymmetry (opened ~2026-06-09, severity: med,
   status: substantially mitigated, "leading-but-unconfirmed")
 - **Symptom:** combat's base utility is price-independent (no reward

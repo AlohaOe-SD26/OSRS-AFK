@@ -69,7 +69,9 @@
       "Bash(git push *)",
       "Bash(git config *)",
       "Bash(git add *)",
-      "Bash(git commit -q -m 'docs: adopt design rulings R1-R12; resolve KI-1 \\(punch-list #1 prep\\) *)"
+      "Bash(git commit -q -m 'docs: adopt design rulings R1-R12; resolve KI-1 \\(punch-list #1 prep\\) *)",
+      "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tests/test_sim.gd\")",
+      "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tools/gate_saveload.gd\")"
     ]
   }
 }

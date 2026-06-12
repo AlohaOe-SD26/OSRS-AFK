@@ -38,7 +38,7 @@ func _initialize() -> void:
 	_test_saveload()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 101
+	const EXPECTED := 106
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -505,6 +505,36 @@ func _test_saveload() -> void:
 		loaded.tick(SimWorld._ACTION_SECONDS)
 	_check(SimHash.state_string(world) == SimHash.state_string(loaded),
 		"continued evolution stays identical (deterministic continuation, 2000 ticks)")
+
+	# --- migration scaffold (R10) — upgrader-chain walker; ruled contract: a migrated save loads
+	# validly and continues deterministically FROM THE LOAD POINT (cross-version byte-equivalence
+	# to historical runs is explicitly NOT required).
+	var cur: Dictionary = SaveLoad.save_world(world)
+	_check(SaveLoad.migrate(cur) == cur, "migrate() is identity at the current version")
+	var future: Dictionary = cur.duplicate(true)
+	future["version"] = SaveLoad.SAVE_VERSION + 1
+	_check(SaveLoad.migrate(future).is_empty(),
+		"future/unknown version is unmigratable → rejected (old strict check survives)")
+	# synthetic v0 save (field stripped) + injected upgrader: walks the chain back to current
+	var old: Dictionary = cur.duplicate(true)
+	old["version"] = 0
+	old.erase("paused")
+	var up0 := func(d: Dictionary) -> Dictionary:
+		var nd: Dictionary = d.duplicate(true)
+		nd["paused"] = false
+		nd["version"] = SaveLoad.SAVE_VERSION
+		return nd
+	var migrated: Dictionary = SaveLoad.migrate(old, {0: up0})
+	_check(not migrated.is_empty() and migrated.has("paused"),
+		"synthetic v0 save walks the upgrader chain to current")
+	var from_migrated: SimWorld = SaveLoad.load_world(content, migrated)
+	_check(from_migrated != null and SimHash.state_string(from_migrated) == SimHash.state_string(world),
+		"migrated save loads validly (state ≡ source world)")
+	for i in range(500):
+		world.tick(SimWorld._ACTION_SECONDS)
+		from_migrated.tick(SimWorld._ACTION_SECONDS)
+	_check(SimHash.state_string(world) == SimHash.state_string(from_migrated),
+		"migrated world continues deterministically from the load point (500 ticks)")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:
