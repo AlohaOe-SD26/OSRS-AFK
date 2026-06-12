@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 2   # v2: Slayer (kill_counts/tasks_assigned on world; slayer_task/points/skill on heroes)
+const SAVE_VERSION := 3   # v3: Unit-1 catalog migration (canon item ids as inv/equip/shop keys; gear on the shop board)
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,7 @@ const SAVE_VERSION := 2   # v2: Slayer (kill_counts/tasks_assigned on world; sla
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {1: _migrate_1_to_2}
+	return {1: _migrate_1_to_2, 2: _migrate_2_to_3}
 
 ## v1 → v2 (Unit 0, Slayer): pre-Slayer worlds know nothing and hold no tasks; heroes gain the
 ## slayer skill at 1 (matching _new_hero's init so v2 worlds hash-shape consistently).
@@ -40,6 +40,54 @@ static func _migrate_1_to_2(d: Dictionary) -> Dictionary:
 		hd["tol_t"] = 0.0
 	nd["version"] = 2
 	return nd
+
+## v2 → v3 (Unit 1, catalog migration): canon catalog ids replace the legacy good/gear keys in hero
+## inventories, equipment, and shop stock dicts; the General Store gains its gear board (initial
+## arm values — the same defs a fresh Economy builds, since load_world replaces shop dicts wholesale
+## by npc_id and a v2 save has no gear keys to carry).
+const _V3_ID_MAP := {
+	"ore": "iron_ore", "raw_fish": "raw_trout", "cooked_fish": "trout",
+	"Arrows": "arrows", "Runes": "runes", "Fishing bait": "fishing_bait",
+	"Pickaxe": "bronze_pickaxe", "Axe": "bronze_axe", "Fishing rod": "fishing_rod",
+	"Bronze sword": "bronze_sword", "Shortbow": "shortbow", "Apprentice staff": "apprentice_staff",
+	"Wooden shield": "wooden_shield", "Iron sword": "iron_sword", "Oak shortbow": "oak_shortbow",
+	"Battlestaff": "battlestaff", "Leather cowl": "leather_cowl", "Iron helm": "iron_helm",
+	"Leather body": "leather_body", "Iron platebody": "iron_platebody",
+}
+# The v3 gear board a v2 General Store gains (mirrors Economy's catalog-driven defs; values inline
+# because an upgrader transforms DATA — it must not depend on live catalog state to stay replayable).
+const _V3_GEAR_BOARD := {
+	"bronze_sword": 26.0, "shortbow": 23.0, "apprentice_staff": 25.0, "wooden_shield": 20.0,
+	"iron_sword": 60.0, "oak_shortbow": 50.0, "battlestaff": 70.0, "leather_cowl": 16.0,
+	"iron_helm": 44.0, "leather_body": 21.0, "iron_platebody": 90.0, "iron_scimitar": 112.0,
+}
+
+static func _migrate_2_to_3(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	for hd in nd["heroes"]:
+		hd["inv"] = _remap_keys(hd["inv"])
+		var eq: Dictionary = hd["equipped"]
+		for slot in eq:
+			eq[slot] = _V3_ID_MAP.get(String(eq[slot]), eq[slot])
+	for sd in nd["shops"]:
+		for field in ["stock", "maximum", "base", "consume"]:
+			sd[field] = _remap_keys(sd[field])
+		if String(sd["npc_id"]) == "general_store":
+			# iron_ore's base moves to the catalog value (KI-8: 16 → 17); gear board opens at fill 0.5
+			sd["base"]["iron_ore"] = 17.0
+			for gid in _V3_GEAR_BOARD:
+				sd["stock"][gid] = 4.0
+				sd["maximum"][gid] = 8.0
+				sd["base"][gid] = _V3_GEAR_BOARD[gid]
+				sd["consume"][gid] = 0.25
+	nd["version"] = 3
+	return nd
+
+static func _remap_keys(src: Dictionary) -> Dictionary:
+	var out := {}
+	for k in src:
+		out[_V3_ID_MAP.get(String(k), k)] = src[k]
+	return out
 
 ## Walk `d` up the chain until it reaches SAVE_VERSION. Returns {} when the save cannot be brought
 ## current (future/unknown version, or a gap in the chain) — callers treat {} as "unloadable", which
@@ -143,8 +191,8 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 		m.atk_cd = float(md.get("atk_cd", 0.0))
 		m.camp = String(md.get("camp", "combat"))
 		w.monsters.append(m)
-	# economy: fresh shops (canon defs), then overwrite all evolving fields by npc_id
-	w.economy = Economy.new()
+	# economy: fresh shops (catalog defs), then overwrite all evolving fields by npc_id
+	w.economy = Economy.new(content)
 	w.economy.treasury = float(d["treasury"])
 	w.economy.tax_collected = float(d["tax_collected"])
 	for sd in d["shops"]:

@@ -53,9 +53,10 @@ func _ingest_items(src: String, dst: String) -> bool:
 		var rec := {
 			"id": str(it.get("id", id)),
 			"name": it.get("name", ""),
-			"slot": equip.get("slot", ""),
+			"slot": _map_slot(str(equip.get("slot", ""))),
 			"baseValue": int(it.get("highalch", it.get("cost", 0))),
 			"stackable": bool(it.get("stackable", false)),
+			"tradeable": bool(it.get("tradeable", true)),
 			"levelReqs": equip.get("requirements", {}) if equip.get("requirements") != null else {},
 			"baseStats": _map_stats(equip),
 			"acquisition": {"type": "Unknown"},
@@ -63,6 +64,17 @@ func _ingest_items(src: String, dst: String) -> bool:
 		}
 		out.append(rec)
 	return _write(dst, out)
+
+## osrsreboxed equipment slot → our Hero slot key (Unit 1: catalog slot IS the equip slot).
+func _map_slot(slot: String) -> String:
+	match slot:
+		"weapon", "2h": return "main"
+		"shield": return "off"
+		"body": return "torso"
+		"hands": return "gloves"
+		"feet": return "boots"
+		"ammo": return ""        # ammo rides the inventory (stackable), not a paper-doll slot
+	return slot                  # head/cape/neck/legs/ring already match
 
 func _map_stats(equip: Dictionary) -> Dictionary:
 	# Map the osrsreboxed equipment bonus fields to our base_stats keys.

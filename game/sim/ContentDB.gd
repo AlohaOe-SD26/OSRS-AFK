@@ -72,3 +72,34 @@ func monster(id: String) -> Monster:
 func base_value(id: String) -> int:
 	var it: ItemType = items.get(id, null)
 	return it.base_value if it != null else 0
+
+# ------------------------------------------------------- Unit-1 catalog queries (single source of truth)
+var _drop_pool: Array = []   # cached Array[ItemType], catalog file order (deterministic — the drop roll indexes it)
+
+## The random gear-drop pool (replaces Config.GEAR_DROPS). Catalog file order is preserved so the
+## RNG draw maps to the same item the old table order did.
+func gear_drop_pool() -> Array:
+	if _drop_pool.is_empty():
+		for iid in items:
+			if items[iid].in_drop_pool():
+				_drop_pool.append(items[iid])
+	return _drop_pool
+
+## Gear tier of an item id (replaces Config.GEAR_TIER); 0 for unknown/non-gear.
+func tier(id: String) -> int:
+	var it: ItemType = items.get(id, null)
+	return it.tier if it != null else 0
+
+## Main-hand style of an item id ("sword"/"bow"/"staff"); "" for non-weapons.
+func style(id: String) -> String:
+	var it: ItemType = items.get(id, null)
+	return it.style if it != null else ""
+
+## Recipes-as-data: the crafted output whose recipe consumes `input_id` via `skill`
+## (e.g. craft_output("cooking", "raw_trout") → trout). null when no recipe matches.
+func craft_output(skill: String, input_id: String) -> ItemType:
+	for iid in items:
+		var it: ItemType = items[iid]
+		if it.craft_skill() == skill and it.recipe().has(input_id):
+			return it
+	return null

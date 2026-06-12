@@ -711,7 +711,7 @@ func _draw_location(loc: Dictionary) -> void:
 			_box(p, TW * 0.5, 16, Color("#8c5a3a")); lbl_col = Color("#f0b070"); lbl_y = -6.0
 			# the item being cooked appears ON the range while a cook is working it
 			for h in world.heroes:
-				if h.pos.distance_to(loc["pos"]) < 1.4 and (String(h.act.get("then", "")) == "cook" or int(h.inv.get("raw_fish", 0)) > 0):
+				if h.pos.distance_to(loc["pos"]) < 1.4 and (String(h.act.get("then", "")) == "cook" or int(h.inv.get("raw_trout", 0)) > 0):
 					_ell(Vector2(cx, cy - 8), 6, 3, Color("#2c261d"))
 					_ell(Vector2(cx, cy - 9), 3, 1.6, Color("#e8a050"))
 					break
@@ -975,7 +975,7 @@ func _menu_colony(pad: float, y: float) -> void:
 	_hud_line("THE COLONY", pad, y, Color("#c9a24b"), 13); y += 18
 	_hud_line("Day %d   Heroes %d   Rep %d" % [world.sim_day, world.heroes.size(), int(world.population.reputation)], pad, y, Color("#cdbf9f")); y += 16
 	_hud_line("Gold %d    Treasury %d" % [world.total_gold(), int(world.economy.treasury)], pad, y, Color("#e6c87a")); y += 16
-	_hud_line("Ore %dg   Food %d   Rats slain %d   Deaths %d" % [world.economy.sell_price("ore"), world.economy.total_stock("cooked_fish"), world.total_kills, world.deaths], pad, y, Color("#cdbf9f")); y += 22
+	_hud_line("Ore %dg   Food %d   Rats slain %d   Deaths %d" % [world.economy.sell_price("iron_ore"), world.economy.total_stock("trout"), world.total_kills, world.deaths], pad, y, Color("#cdbf9f")); y += 22
 	_draw_town(pad, y)
 
 # HERO POPUP drawer (independent of the main menu): header = name + ZOOM SLIDER (with readout) + close;
@@ -1175,16 +1175,10 @@ func _dominant_term(c: Dictionary) -> String:
 			bn = String(t[0])
 	return "%s %+.0f" % [bn, bv] if bn != "" else ""
 
-## Which slot a carried item equips to (catalog scan + starter gear); "" = not equipable.
+## Which slot a carried item equips to (Unit 1: pure catalog lookup); "" = not equipable.
 func _gear_slot_of(item: String) -> String:
-	for d in Config.GEAR_DROPS:
-		if String(d["item"]) == item:
-			return String(d["slot"])
-	if item in ["Bronze sword", "Shortbow", "Apprentice staff"]:
-		return "main"
-	if item == "Wooden shield":
-		return "off"
-	return ""
+	var it: ItemType = world.content.item(item)
+	return it.slot if it != null else ""
 
 ## Gear tab (M1d): paper-doll EQUIPPED grid (one item per slot, logical body arrangement) + a clearly
 ## SEPARATE bordered INVENTORY box to its right. Equip/unequip mechanics live on Hero (one-per-slot,
@@ -1208,7 +1202,7 @@ func _tab_gear(h: Hero, pad: float, y: float) -> float:
 				draw_rect(rect, Color("#6b5a2a") if h.equipped.has(slot) else Color("#564a38"), false, 1.0)
 				_hud_line(String(slot), bx + 3, by + 9, Color("#7b7060"), 8)
 				var itm := String(h.equipped.get(slot, ""))
-				_hud_line(itm if itm != "" else "-", bx + 3, by + 19, Color("#e6c87a") if itm != "" else Color("#4a4438"), 9)
+				_hud_line(world.item_name(itm) if itm != "" else "-", bx + 3, by + 19, Color("#e6c87a") if itm != "" else Color("#4a4438"), 9)
 				if h.seized and itm != "":   # seized: click a filled slot to UNEQUIP (needs bag space)
 					_ui_rects.append({"rect": rect, "kind": "unequip", "arg": slot})
 			bx += 77.0
@@ -1237,7 +1231,7 @@ func _tab_gear(h: Hero, pad: float, y: float) -> float:
 		if s2 < cells.size():
 			var nm := String(cells[s2][0])
 			var qn := int(cells[s2][1])
-			_hud_line(nm.left(3), cr.position.x + 2, cr.position.y + 12, Color("#d8ccb4"), 8)
+			_hud_line(world.item_name(nm).left(3), cr.position.x + 2, cr.position.y + 12, Color("#d8ccb4"), 8)
 			if qn > 1:
 				_hud_line(str(qn), cr.position.x + 2, cr.position.y + 21, Color("#ffd24a"), 8)
 			var slot2 := _gear_slot_of(nm)

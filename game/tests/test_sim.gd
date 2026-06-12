@@ -39,9 +39,10 @@ func _initialize() -> void:
 	_test_funded_bounty()
 	_test_aggro_and_boss()
 	_test_saveload()
+	_test_unit1_catalog()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 141
+	const EXPECTED := 153
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -72,19 +73,19 @@ func _test_shops_first_class() -> void:
 	print("\n[NPC shops — first-class entities, §6/§19.2]")
 	var eco := Economy.new()
 	_check(eco.shops.size() == 2, "two canon shops exist (General Store + Fishmonger)")
-	var gen: Shop = eco.shop_for("ore")
+	var gen: Shop = eco.shop_for("iron_ore")
 	_check(gen != null and gen.trades("logs"), "General Store trades ore AND logs (inspectable)")
-	_check(eco.shop_for("ore").level == 1, "shop level is inspectable (starts 1 — §19.2 dial for Step 4)")
+	_check(eco.shop_for("iron_ore").level == 1, "shop level is inspectable (starts 1 — §19.2 dial for Step 4)")
 	# saturation-aware price: a full shop pays strictly less than a near-empty one
-	var empty := eco.sell_price("ore")
-	gen.stock["ore"] = gen.maximum["ore"]
-	var full := eco.sell_price("ore")
+	var empty := eco.sell_price("iron_ore")
+	gen.stock["iron_ore"] = gen.maximum["iron_ore"]
+	var full := eco.sell_price("iron_ore")
 	_check(full < empty, "sell price falls as stock saturates (%d full < %d empty)" % [full, empty])
-	_check(full >= int(round(gen.base["ore"] * Config.PRICE_FLOOR_FRAC)), "saturated price respects the floor (anti-leak)")
+	_check(full >= int(round(gen.base["iron_ore"] * Config.PRICE_FLOOR_FRAC)), "saturated price respects the floor (anti-leak)")
 	# GE-tax is now tracked first-class
 	var eco2 := Economy.new()
 	var seller := Hero.new()
-	seller.inv = {"ore": 10}
+	seller.inv = {"iron_ore": 10}
 	eco2.sell_goods(seller)
 	_check(eco2.tax_collected > 0.0, "GE-tax accrues to tax_collected (%.2fg skimmed)" % eco2.tax_collected)
 
@@ -135,7 +136,7 @@ func _test_offline_catchup() -> void:
 	var world := SimWorld.new()
 	world.setup(content, 3, Config.DEFAULT_SEED)
 	# put a hero on a known gather activity
-	world.heroes[0].act = {"intent": "GATHER_ORE", "loc": "mine", "skill": "mining", "res": "ore", "phase": "gather", "target": "mine", "then": ""}
+	world.heroes[0].act = {"intent": "GATHER_ORE", "loc": "mine", "skill": "mining", "res": "iron_ore", "phase": "gather", "target": "mine", "then": ""}
 	var s10 := world.offline_catchup(10.0)
 	_check(s10["hours"] == 10.0, "10h elapsed not capped")
 	_check(s10["gold"] >= 0, "offline gold accrued (%d)" % s10["gold"])
@@ -162,13 +163,13 @@ func _test_offline_catchup() -> void:
 		"post-offline continuation is deterministic (two same-seed offline runs stay identical)")
 	# equipment (M1d): equipping moves the item OUT of the inventory; one per slot; swap returns the old
 	var eh := Hero.new()
-	eh.inv = {"Iron sword": 1, "Steel sword": 1}
+	eh.inv = {"iron_sword": 1, "Steel sword": 1}
 	var n0 := eh.inv_count()
-	eh.equip_item("main", "Iron sword")
-	_check(eh.inv_count() == n0 - 1 and String(eh.equipped["main"]) == "Iron sword",
+	eh.equip_item("main", "iron_sword")
+	_check(eh.inv_count() == n0 - 1 and String(eh.equipped["main"]) == "iron_sword",
 		"equip moves the item out of the inventory into its slot (frees space)")
 	eh.equip_item("main", "Steel sword")
-	_check(String(eh.equipped["main"]) == "Steel sword" and int(eh.inv.get("Iron sword", 0)) == 1,
+	_check(String(eh.equipped["main"]) == "Steel sword" and int(eh.inv.get("iron_sword", 0)) == 1,
 		"one item per slot — equipping a second swaps the old piece back to the inventory")
 
 func _test_live_combat() -> void:
@@ -187,7 +188,7 @@ func _test_live_combat() -> void:
 	for i in range(8000):
 		world.tick(SimWorld._ACTION_SECONDS)
 		if i % 50 == 0:
-			var fs := world.economy.total_stock("cooked_fish")
+			var fs := world.economy.total_stock("trout")
 			food_min = mini(food_min, fs)
 			food_sum += fs
 			samples += 1
@@ -307,7 +308,7 @@ func _test_control_tiers() -> void:
 	var w1 := SimWorld.new()
 	w1.setup(content, 6, Config.DEFAULT_SEED)
 	var hg: Hero = w1.heroes[0]
-	hg.inv["Axe"] = 1   # tool-gated now: give the axe so the candidate is the ACTIVITY, not the purchase
+	hg.inv["bronze_axe"] = 1   # tool-gated now: give the axe so the candidate is the ACTIVITY, not the purchase
 	var s0 := _cand_score(Brain.candidates_with_terms(hg, w1), "GATHER_LOGS")
 	w1.set_incentive("GATHER_LOGS", 20.0)
 	var s1 := _cand_score(Brain.candidates_with_terms(hg, w1), "GATHER_LOGS")
@@ -361,24 +362,24 @@ func _test_town_building() -> void:
 	# treasury is fed by the GE-tax skim (gold already removed from hero circulation → attractor untouched)
 	var eco := Economy.new()
 	var seller := Hero.new()
-	seller.inv = {"ore": 20}
+	seller.inv = {"iron_ore": 20}
 	eco.sell_goods(seller)
 	_check(eco.treasury > 0.0, "treasury accrues from the GE-tax skim (%.1fg)" % eco.treasury)
 	_check(abs(eco.treasury - eco.tax_collected) < 0.001, "treasury equals cumulative tax (same skim, double-booked for inspection)")
 
 	# §19.2 shop leveling: stock capacity AND town demand scale by the SAME factor (faucet/sink invariant)
-	var gen: Shop = eco.shop_for("ore")
+	var gen: Shop = eco.shop_for("iron_ore")
 	eco.treasury = 100000.0
 	var lvl0 := gen.level
-	var max0: float = gen.maximum["ore"]
-	var con0: float = gen.consume["ore"]
+	var max0: float = gen.maximum["iron_ore"]
+	var con0: float = gen.consume["iron_ore"]
 	var cost := eco.shop_upgrade_cost(gen)
 	var tre0 := eco.treasury
 	var up := eco.try_upgrade_shop(gen)
 	var factor := 1.0 + Config.SHOP_CAP_PER_LEVEL
 	_check(up and gen.level == lvl0 + 1, "shop upgrade raises the level (%d -> %d)" % [lvl0, gen.level])
-	_check(abs(gen.maximum["ore"] - max0 * factor) < 0.01, "upgrade scales stock capacity (×%.2f)" % factor)
-	_check(abs(gen.consume["ore"] - con0 * factor) < 0.01, "upgrade scales town demand by the SAME factor (bounded by construction)")
+	_check(abs(gen.maximum["iron_ore"] - max0 * factor) < 0.01, "upgrade scales stock capacity (×%.2f)" % factor)
+	_check(abs(gen.consume["iron_ore"] - con0 * factor) < 0.01, "upgrade scales town demand by the SAME factor (bounded by construction)")
 	_check(abs(eco.treasury - (tre0 - float(cost))) < 0.001, "upgrade debits the treasury by its cost (%dg)" % cost)
 	eco.treasury = 0.0
 	_check(not eco.try_upgrade_shop(gen), "upgrade fails when the treasury can't afford it")
@@ -620,7 +621,7 @@ func _test_aggro_and_boss() -> void:
 			break
 	var g: Hero = world.heroes[0]   # a miner — non-FIGHT intent
 	g.hp = 4
-	g.inv.erase("cooked_fish")
+	g.inv.erase("trout")
 	g.act = {"intent": "GATHER_LOGS", "loc": "forest", "phase": "gather"}
 	g.pos = gob.pos
 	world._monster_strike_hero(gob, content.monster("goblin"), g)
@@ -675,12 +676,12 @@ func _test_aggro_and_boss() -> void:
 	_check(gob2.atk_cd > 0.0, "...a fresh arrival is struck (harassment = arrival tax)")
 	# danger back-pressure: the goblin-shared willows carry a frailty-scaled penalty in gather scoring
 	var wc: Hero = world.heroes[2]
-	wc.inv["Axe"] = 1
-	wc.inv.erase("cooked_fish")
+	wc.inv["bronze_axe"] = 1
+	wc.inv.erase("trout")
 	wc.hp = maxi(1, int(wc.max_hp() * 0.3))
 	var hurt_pen := _gather_term(wc, world, "GATHER_LOGS", "danger")
 	wc.hp = wc.max_hp()
-	wc.inv["cooked_fish"] = 2
+	wc.inv["trout"] = 2
 	var fed_pen := _gather_term(wc, world, "GATHER_LOGS", "danger")
 	_check(hurt_pen < fed_pen and fed_pen < 0.0,
 		"goblin-shared willows carry a danger term; hurt+foodless deepens it (%.1f < %.1f)" % [hurt_pen, fed_pen])
@@ -771,6 +772,67 @@ func _test_saveload() -> void:
 	var w2: SimWorld = SaveLoad.load_world(content, v2)
 	_check(w2 != null and w2.heroes[0].slayer_task.is_empty() and w2.heroes[0].skill_level("slayer") == 1,
 		"migrated v1 world loads with Slayer defaults in place")
+
+func _test_unit1_catalog() -> void:
+	print("\n[Unit 1 — catalog migration: catalog-driven prices/gear/recipes + v2→v3 save upgrade]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	# KI-8 RESOLVED: shop base values come from the catalog (single price truth)
+	var eco := Economy.new(content)
+	_check(absf(float(eco.shop_for("iron_ore").base["iron_ore"]) - float(content.base_value("iron_ore"))) < 0.01
+		and content.base_value("iron_ore") == 17,
+		"shop base values are catalog-sourced (KI-8: iron_ore 17, not the old hardcoded 16)")
+	# shops trade gear: the General Store board lists tradeable tiered items
+	var gshop: Shop = eco.shop_for("iron_sword")
+	_check(gshop != null and gshop.npc_id == "general_store", "shops trade gear (iron_sword routed to the General Store)")
+	_check(eco.sell_price("iron_sword") == int(round(content.base_value("iron_sword") * 0.5)),
+		"gear board opens at the old half-value anchor (fill 0.5 → f 0.5 → %dg)" % eco.sell_price("iron_sword"))
+	var gh := Hero.new()
+	gh.inv = {"iron_sword": 1, "bronze_pickaxe": 1}
+	var tax0: float = eco.tax_collected
+	var got := eco.sell_goods(gh)
+	_check(got > 0 and not gh.inv.has("iron_sword") and eco.tax_collected > tax0,
+		"carried gear vendors through the shop board, taxed like any sale (+%dg)" % got)
+	_check(int(gh.inv.get("bronze_pickaxe", 0)) == 1, "untradeable items (tools/ammo) never vendor")
+	# recipes-as-data
+	var cook: ItemType = content.craft_output("cooking", "raw_trout")
+	_check(cook != null and cook.id == "trout" and cook.craft_xp() == 6,
+		"cooking recipe comes from the catalog (raw_trout → trout, craftXp 6)")
+	var smith: ItemType = content.craft_output("smithing", "iron_ore")
+	_check(smith != null and smith.id == "iron_sword" and smith.recipe().size() == 3,
+		"smithing recipe comes from the catalog (3× iron_ore → iron_sword)")
+	_check(content.gear_drop_pool().size() == 7, "gear drop pool is catalog-flagged (7 dropPool items)")
+	# --- the REAL v2→v3 upgrader: a v2-shaped save (LEGACY ids) walks the production chain
+	var world := SimWorld.new()
+	world.setup(content, 4, Config.DEFAULT_SEED)
+	var v2s: Dictionary = SaveLoad.save_world(world)
+	v2s["version"] = 2
+	var h0: Dictionary = v2s["heroes"][0]
+	h0["inv"] = {"ore": 3, "cooked_fish": 2, "Iron sword": 1}
+	h0["equipped"] = {"main": "Bronze sword"}
+	for sd in v2s["shops"]:
+		if String(sd["npc_id"]) == "general_store":
+			sd["stock"] = {"ore": 20.0, "logs": 20.0}
+			sd["maximum"] = {"ore": 120.0, "logs": 120.0}
+			sd["base"] = {"ore": 16.0, "logs": 12.0}
+			sd["consume"] = {"ore": 350.0, "logs": 350.0}
+		else:
+			sd["stock"] = {"raw_fish": 10.0, "cooked_fish": 14.0}
+			sd["maximum"] = {"raw_fish": 80.0, "cooked_fish": 80.0}
+			sd["base"] = {"raw_fish": 7.0, "cooked_fish": 9.0}
+			sd["consume"] = {"raw_fish": 0.0, "cooked_fish": 60.0}
+	var v3: Dictionary = SaveLoad.migrate(v2s)
+	_check(int(v3.get("version", -1)) == 3, "v2 save migrates to v3 via the production chain")
+	var h0m: Dictionary = v3["heroes"][0]
+	_check(int(h0m["inv"].get("iron_ore", 0)) == 3 and int(h0m["inv"].get("trout", 0)) == 2
+		and int(h0m["inv"].get("iron_sword", 0)) == 1 and not h0m["inv"].has("ore"),
+		"v3 upgrader renames inventory keys to canon catalog ids")
+	_check(String(h0m["equipped"]["main"]) == "bronze_sword", "v3 upgrader renames equipped item ids")
+	var w3: SimWorld = SaveLoad.load_world(content, v3)
+	var gen3: Shop = w3.economy.shop_for("iron_ore")
+	_check(w3 != null and gen3 != null and absf(float(gen3.base["iron_ore"]) - 17.0) < 0.01
+		and w3.economy.shop_for("iron_sword") != null and float(w3.economy.shop_for("iron_sword").stock["iron_sword"]) == 4.0,
+		"migrated v2 world loads with the catalog iron_ore base AND the gear board open at fill 0.5")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

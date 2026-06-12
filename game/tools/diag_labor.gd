@@ -44,11 +44,11 @@ func _initialize() -> void:
 	print("=== LABOR DIAGNOSTIC — day %d ===" % world.sim_day)
 	print("population: %d  ·  total gold: %d  ·  per-capita: %d" % [pop, gold, int(round(float(gold) / maxi(1, pop)))])
 	print("prices: ore %dg · logs %dg · food %dg  (floor frac %.2f×base)" % [
-		world.economy.sell_price("ore"), world.economy.sell_price("logs"), world.economy.food_price(), Config.PRICE_FLOOR_FRAC])
+		world.economy.sell_price("iron_ore"), world.economy.sell_price("logs"), world.economy.food_price(), Config.PRICE_FLOOR_FRAC])
 	print("shop stock: ore %d/%d · logs %d/%d · cooked_fish %d/%d" % [
-		world.economy.shop_for("ore").total_stock("ore"), int(world.economy.shop_for("ore").maximum["ore"]),
+		world.economy.shop_for("iron_ore").total_stock("iron_ore"), int(world.economy.shop_for("iron_ore").maximum["iron_ore"]),
 		world.economy.shop_for("logs").total_stock("logs"), int(world.economy.shop_for("logs").maximum["logs"]),
-		world.economy.total_stock("cooked_fish"), int(world.economy.shop_for("cooked_fish").maximum["cooked_fish"])])
+		world.economy.total_stock("trout"), int(world.economy.shop_for("trout").maximum["trout"])])
 	print("pop_scale (heroes/baseline): %.2f  →  effective town demand = base × this" % (float(pop) / float(Config.POP_BASELINE)))
 	var im := ""
 	for k in by_intent:

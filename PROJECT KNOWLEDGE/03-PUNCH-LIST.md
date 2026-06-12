@@ -5,52 +5,9 @@
 > Item format: `- [ ] #N — description` (N never reused; completed items move
 > to Done with the date).
 
-## Now (active focus) — Unit 0, per DESIGN_RULINGS.md (2026-06-11)
-- [x] #1 — **Unit 0: Slayer slice** COMPLETE 2026-06-12 (zones slice 2,
-  absorbs B2; rulings R4/R5/R6/R10 govern). Sub-items in build order:
-  - [x] #1a — Save-migration scaffold (R10, absorbs old #11): upgrader
-    chain in `SaveLoad.migrate()` run before load; 5 new suite checks
-    (106/106) incl. the ruled gate (migrated save loads validly + continues
-    deterministically from the load point); save/load gate green. (2026-06-11)
-  - [x] #1b — Slayer core SHIPPED: Vannaka at the west gate (map loc
-    `vannaka`, documented divergence per R4), Combat-40 gate, knowledge-
-    gated pool (`kill_counts`, generalizes to the Scurrius unlock),
-    feasibility via `fight_is_winnable` (affordable-food loadout), HP-band
-    task sizing, on-task +20 brain term (`SLAYER_ON_TASK`, sweepable) +
-    0.9×HP slayer XP + 8–16 points, Vannaka check-in chained into FIGHT
-    trips (organic uptake), Chronicle events, save v2 + real v1→v2
-    upgrader. Suite 122/122; all 3 gates green. (2026-06-11)
-  - [x] #1c — Funded per-kill bounty SHIPPED: `set_bounty` clamped 0–3× avg
-    coin drop, one affordability rule (`bounty_affordable`) read by both
-    payment and the brain's greed-weighted `bounty` term; treasury→hero
-    per-kill payout (overdraw impossible); utility FIGHT incentive RETIRED
-    (set_incentive rejects "FIGHT"); Town-tab bounty row (cycle per known
-    monster). (2026-06-12)
-  - [x] #1d — Aggressive monsters + Scurrius gate SHIPPED: catalog-flagged
-    aggro chase/strike vs non-fighting heroes; shared `_hero_death`
-    (gravestone grudges + reputation dents LIVE, now rare events); Scurrius
-    locked behind 300 colony rat kills, lair-bound, 240s respawn, boss-kill
-    Chronicle. Survival triad (canon regen 1HP/min · aggression tolerance
-    8s arrival-tax · brain danger term) measured: deaths 2,096→4 per 24k
-    ticks, rep 0→61, goblin culling restored. Suite 141/141; 3 gates
-    green. (2026-06-12)
-  - [x] #1e — Unit-0 closing sweep DONE (`tools/diag_unit0.gd`, 8 seeds ×
-    4 arms): SLAYER_ON_TASK locked at +20 (response saturates — +0
-    collapses engagement to 1% on-task/14 tasks, +35 buys nothing over
-    +20). §18 prediction SPLIT: rival-lean half HELD (web flipped
-    friend-leaning; KI-5 resolved); combat-share half FAILED (39–44% all
-    arms — the survival triad removed lethality as the counterweight;
-    KI-4 re-confirmed structural). BRAIN_V2 4th test run: V2 WORSENS
-    monoculture (52±3 vs 44±5) though it collapses gold variance (±84 vs
-    ±332) — default stays OFF. Gold band re-baselined 1,460±332 (8 seeds,
-    23d). (2026-06-12)
+## Now (active focus) — Unit 2 (shop economy v2, punch #3) is next up
 
 ## Next
-- [ ] #2 — Unit 1: catalog migration (prerequisite for all pricing work):
-  ContentDB-driven goods/prices (replace `Economy.GOODS` hardcodes +
-  `Config.GEAR_DROPS` tables), recipes-as-data, tradeable flags, shops trade
-  gear. Resolves KI-8 first. Rename `GE_TAX`→`SHOP_TAX` while files are open
-  (R8, cosmetic).
 - [ ] #3 — Unit 2: shop economy v2 (rulings R1/R3): per-good dynamic buy
   pricing, player price-bias lever (swept clamp, expect narrower than
   50–150%), ambient imports/restock-to-baseline (C5), tier-up stock unlocks,
@@ -58,7 +15,8 @@
   (Apothecary/Thessalia deferred; stagger openings optional),
   **purchase→treasury routing at 40%** (tune 30–50% band; one ledger unit
   with city-buy outflow — sweep once, re-center once; add treasury
-  inflow/outflow telemetry lines).
+  inflow/outflow telemetry lines). NOTE: design the KI-4 fix (combat reward
+  saturation / price coupling) into this unit while pricing files are open.
 - [ ] #4 — Unit 3: C1 parameterized nudge popups (+ B4 disabled-with-tooltip
   gating). UI tech RULED (R11): Control nodes for new popups only, shared
   visual constants, render-layer only, decisions-log entry on the paradigm
@@ -94,6 +52,29 @@
   relocate Vannaka to Edgeville when zones expand westward (R4).
 
 ## Done
+- [x] #1 — **Unit 0: Slayer slice COMPLETE** (2026-06-11 → 2026-06-12; zones
+  slice 2, absorbs B2; rulings R4/R5/R6/R10). #1a save-migration scaffold
+  (upgrader chain, ruled gate green) · #1b Slayer core (Vannaka,
+  knowledge-gated feasible tasks, on-task pull, save v2) · #1c funded
+  per-kill bounty (one affordability rule, FIGHT utility incentive retired)
+  · #1d aggressive monsters + Scurrius gate + canon survival triad (deaths
+  2,096→4/24k ticks, rep 0→61) · #1e closing sweep (SLAYER_ON_TASK locked
+  +20; §18 split — rival-lean held/KI-5 resolved, combat-share failed/KI-4
+  re-confirmed; BRAIN_V2 4th test: worsens monoculture 52±3 vs 44±5,
+  default stays OFF; band re-baselined 1,460±332). Full sub-item detail in
+  07-CHANGELOG (2026-06-11/12 entries).
+- [x] #2 — **Unit 1: catalog migration COMPLETE** (2026-06-12): canon catalog
+  ids are the sim's single item truth — inv/equip/shop keys renamed (ore→
+  iron_ore, cooked_fish→trout, display-name gear/tools/ammo→ids), shop base
+  values catalog-sourced (KI-8 RESOLVED: iron_ore 17), `GEAR_DROPS`/
+  `GEAR_TIER` retired into items.json (dropPool/tier/style), recipes-as-data
+  (cook raw_trout→trout + smith 3×iron_ore→iron_sword via
+  `ContentDB.craft_output`), tradeable flags gate vendoring, SHOPS TRADE
+  GEAR (General-Store board, fill-0.5 open ≈ old half-value anchor, flat
+  vendoring retired), `GE_TAX`→`SHOP_TAX` (R8). Save v3 + v2→v3 upgrader
+  (id remap + gear-board injection). Suite 153/153 (+12 Unit-1 checks);
+  3 gates PASS; render parses; telemetry drift +4%, day-23 g/cap ~1,790
+  (within 1σ of the 1,460±332 band).
 - [x] #0 — MVP slice complete: build steps 0–6 ("A Living Varrock") all
   CLOSED & green (99/99 → now 101/101) — economy attractor validated;
   population/social/control-tiers/save-load/offline/LOD gated. (2026-06-09)

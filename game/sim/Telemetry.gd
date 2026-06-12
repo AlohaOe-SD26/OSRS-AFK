@@ -30,9 +30,9 @@ func capture_snapshot(world: SimWorld) -> void:
 		"pop": pop,
 		"gpc": int(round(float(gold) / maxi(1, pop))),   # gold per capita — the population-robust balance
 		"rep": int(round(world.population.reputation)) if world.population != null else 0,
-		"ore": world.economy.sell_price("ore"),
+		"iron_ore": world.economy.sell_price("iron_ore"),
 		"food_p": world.economy.food_price(),
-		"food": world.economy.total_stock("cooked_fish"),
+		"food": world.economy.total_stock("trout"),
 		"acts": acts,
 		"deaths": world.deaths,
 		"flees": world.flees,
@@ -75,12 +75,12 @@ func export_log(world: SimWorld) -> String:
 
 	var anomalies: Array = []
 	if n > 12 and drift > 25:
-		anomalies.append("GOLD INFLATING (per-capita steady-state +%d%%) — faucets > sinks; raise UPKEEP_RATE/GE_TAX or lower drop-gold (§6)." % drift)
+		anomalies.append("GOLD INFLATING (per-capita steady-state +%d%%) — faucets > sinks; raise UPKEEP_RATE/SHOP_TAX or lower drop-gold (§6)." % drift)
 	if n > 12 and drift < -25:
 		anomalies.append("GOLD STARVING (per-capita steady-state %d%%) — sinks > faucets; lower UPKEEP_RATE or raise prices/drops (§6)." % drift)
 	var broke := 0
 	for h in world.heroes:
-		if h.gold < world.economy.food_price() and int(h.inv.get("cooked_fish", 0)) < 1 and h.favorite == "fighting":
+		if h.gold < world.economy.food_price() and int(h.inv.get("trout", 0)) < 1 and h.favorite == "fighting":
 			broke += 1
 	if broke > 0:
 		anomalies.append("%d fighter(s) broke & foodless — economy may be choking the combat loop." % broke)
@@ -102,7 +102,7 @@ func export_log(world: SimWorld) -> String:
 	var i := 0
 	while i < n:
 		var d: Dictionary = dbg_log[i]
-		rows.append("d%d t%d  pop %2d  gold %6d  g/cap %4d  rep %3d  ore %dg  food %3d  kills %d  deaths %d  cmb %d" % [d["day"], d["t"], d["pop"], d["gold"], d["gpc"], d["rep"], d["ore"], d["food"], d["kills"], d["deaths"], d["cmb"]])
+		rows.append("d%d t%d  pop %2d  gold %6d  g/cap %4d  rep %3d  ore %dg  food %3d  kills %d  deaths %d  cmb %d" % [d["day"], d["t"], d["pop"], d["gold"], d["gpc"], d["rep"], d["iron_ore"], d["food"], d["kills"], d["deaths"], d["cmb"]])
 		i += step
 
 	var chron: Array = []
@@ -112,7 +112,7 @@ func export_log(world: SimWorld) -> String:
 	var first_gold: int = dbg_log[0]["gold"] if n > 0 else gold_now
 	var txt := "=== GIELINOR TYCOON — PHASE 0 DEBUG LOG ===\n"
 	txt += "seed: %d · sim day %d · heroes %d · snapshots %d\n" % [seed_value, world.sim_day, world.heroes.size(), n]
-	txt += "CONFIG: xpRate %.1f · geTax %.2f · upkeepRate %.2f · ratDrop %d-%d\n\n" % [Config.XP_RATE, Config.GE_TAX, Config.UPKEEP_RATE, Config.RAT_DROP_MIN, Config.RAT_DROP_MIN + Config.RAT_DROP_RANGE]
+	txt += "CONFIG: xpRate %.1f · shopTax %.2f · upkeepRate %.2f · ratDrop %d-%d\n\n" % [Config.XP_RATE, Config.SHOP_TAX, Config.UPKEEP_RATE, Config.RAT_DROP_MIN, Config.RAT_DROP_MIN + Config.RAT_DROP_RANGE]
 	txt += "--- SUMMARY ---\n"
 	var pop_now: int = world.heroes.size()
 	txt += "total gold: %d -> %d  ·  per-capita drift %s%d%% (population-robust)\n" % [first_gold, gold_now, ("+" if drift >= 0 else ""), drift]
@@ -129,7 +129,7 @@ func export_log(world: SimWorld) -> String:
 		var th: Dictionary = world.social.tier_histogram(world.sim_day)
 		txt += "social graph: %d edges  ·  friends %d · allies %d · rivals %d · nemeses %d\n" % [world.social.edge_count(), th["Friend"], th["Ally"], th["Rival"], th["Nemesis"]]
 	txt += "rats slain: %d · deaths: %d · flees: %d\n" % [world.total_kills, world.deaths, world.flees]
-	txt += "ore sell %dg · food price %dg · food in shop %d\n" % [world.economy.sell_price("ore"), world.economy.food_price(), world.economy.total_stock("cooked_fish")]
+	txt += "ore sell %dg · food price %dg · food in shop %d\n" % [world.economy.sell_price("iron_ore"), world.economy.food_price(), world.economy.total_stock("trout")]
 	txt += "activity mix now: %s\n\n" % mix.trim_suffix("· ")
 	txt += "--- ANOMALIES (auto-flagged) ---\n"
 	for a in anomalies:

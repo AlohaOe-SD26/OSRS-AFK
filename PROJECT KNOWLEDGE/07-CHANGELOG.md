@@ -143,3 +143,41 @@
 - Note: `.godot/` editor cache was absent after the gitignore cleanup; the
   first headless run on a fresh tree must rebuild it (`godot --headless
   --path game --import`) or new tool scripts fail to parse class names.
+
+## 2026-06-12 — Unit 1: catalog migration (punch-list #2; ruling R8) — KI-8 RESOLVED
+- **Catalog is the single item truth.** `items.json` extended: tradeable
+  flags, gear `tier`/`style`, slots unified to Hero slot keys (main/off/
+  head/torso), 9 new entries (shortbow, apprentice_staff, wooden_shield,
+  fishing_rod, arrows, runes, iron_sword, oak_shortbow, battlestaff,
+  leather_cowl, iron_helm, iron_platebody), recipes carried in
+  `acquisition` (craftSkill/craftLevel/craftXp/recipe/dropPool).
+  `ItemType` gained the fields + accessors; `ContentDB` gained
+  `gear_drop_pool()` (catalog file order — preserves the old RNG→item
+  mapping), `tier()`, `style()`, `craft_output()`.
+- **Canon id rename (KI-8):** sim inventory/equipment/shop keys are catalog
+  ids now — ore→iron_ore, raw_fish→raw_trout, cooked_fish→trout,
+  Arrows/Runes→arrows/runes, Pickaxe/Axe/Fishing rod→bronze_pickaxe/
+  bronze_axe/fishing_rod, and all display-name gear → ids (~81 sites,
+  14 files). Logs/milestones/render display via new `SimWorld.item_name()`.
+- **Economy is ContentDB-driven:** `Economy.new(content)` sources base
+  values from the catalog (iron_ore 17 supersedes the hardcoded 16);
+  `GEAR_DROPS`/`GEAR_TIER` Config tables RETIRED (drop/tier/style reads go
+  to the catalog). **Shops trade gear:** every tradeable tiered item joins
+  the General Store board (stock 4/max 8/consume 0.25 — fill 0.5 open
+  reproduces the old half-value vendoring; flat 0.5× mint retired;
+  gear sales are taxed + backpressured like any good).
+- **Recipes-as-data:** cook (raw_trout→trout, craftXp 6) and smith
+  (3×iron_ore→iron_sword, craftXp 40) resolve via `craft_output()` —
+  behavior identical, the mapping now lives in data.
+- **`GE_TAX`→`SHOP_TAX`** (R8 cosmetic): Config, Economy, offline
+  projection, telemetry strings.
+- **Save v3** + `_migrate_2_to_3`: id remap across hero inv/equipment and
+  shop dicts + gear-board injection (frozen inline values — an upgrader
+  must not depend on live catalog state); load_world passes content.
+- **Verified:** suite **153/153** (+12 Unit-1 checks: KI-8 parity, gear
+  routing/pricing/vendoring, tradeable gating, both recipes, drop pool,
+  v2→v3 inv/equip/shop migration + load); determinism / save-load /
+  offline gates PASS; render parses; telemetry day-23 drift +4%,
+  g/cap ~1,790 (within 1σ of 1,460±332). KI-8 removed from
+  05-KNOWN-ISSUES; "5 fighters broke & foodless" snapshot flag noted
+  under KI-10 watch numbers.

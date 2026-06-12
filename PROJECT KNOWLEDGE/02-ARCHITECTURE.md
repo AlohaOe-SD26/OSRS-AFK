@@ -16,7 +16,8 @@ game/
     SimWorld.gd   # tick loop, trip FSM, combat, control tiers, kick votes,
                   # buildings, offline catch-up, chronicle
     Config.gd     # ALL tuned constants (mirrors EQUATIONS CONFIG.*)
-    Economy.gd    # market facade: 2 shops, treasury, tax, upkeep attractor
+    Economy.gd    # market facade: 2 shops (+ gear board), treasury, tax,
+                  # upkeep attractor; base values catalog-sourced (Unit 1)
     Shop.gd       # per-shop stock / dynamic prices / consumption / leveling
     Brain.gd      # utility scoring (score == sum of named terms)
     Hero.gd       # 28-slot canon inventory, 10 equip slots, goals,
@@ -32,9 +33,11 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 101-check headless gate suite
+  tests/test_sim.gd   # 153-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
-  data/               # items.json (11) · monsters.json (10) · varrock_map.json
+  data/               # items.json (23 — THE item truth: ids/values/tiers/
+                      # styles/recipes/tradeable, Unit 1) · monsters.json (10)
+                      # · varrock_map.json
 ```
 Root: 6 original design docs (unmodified), `prototype.html`,
 `STEP3_HANDOFF.md`, `sweep_out.txt`, `ANALYSIS REPORT/`, this folder.

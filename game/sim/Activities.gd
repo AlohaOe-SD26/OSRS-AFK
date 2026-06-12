@@ -14,9 +14,9 @@ const TRIP_EFFICIENCY: float = 0.7        # statistical de-rate for travel/banki
 ## Activity catalog. Each entry: skill trained, the resource produced, the world location key,
 ## and the good the resource is ultimately sold as (fish is cooked → cooked_fish before sale).
 const CATALOG := {
-	"GATHER_ORE":   {"skill": "mining",      "res": "ore",      "loc": "mine",    "sells_as": "ore"},
+	"GATHER_ORE":   {"skill": "mining",      "res": "iron_ore",      "loc": "mine",    "sells_as": "iron_ore"},
 	"GATHER_LOGS":  {"skill": "woodcutting", "res": "logs",     "loc": "forest",  "sells_as": "logs"},
-	"PROVISION":    {"skill": "fishing",     "res": "raw_fish", "loc": "fishing", "sells_as": "cooked_fish"},
+	"PROVISION":    {"skill": "fishing",     "res": "raw_trout", "loc": "fishing", "sells_as": "trout"},
 }
 
 const FIGHT_KILLS_PER_HOUR: float = 60.0   # coarse Phase-0 estimate for offline combat yield

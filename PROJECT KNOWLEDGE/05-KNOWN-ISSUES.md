@@ -35,18 +35,12 @@
   unused since the grid-BFS pathfinder shipped. Left untouched by the
   read-only probe.
 
-## KI-8 — Economy.GOODS vs items.json base-value mismatch (severity: low,
-  blocks pricing work)
-- **Symptom:** live shop base values are hardcoded in `Economy._init`
-  (ore 16) while the catalog says iron_ore 17, etc.; gear lives in Config
-  tables, not the catalog.
-- **Fix path:** the catalog migration (punch #2) — must precede GE/city-
-  order/item-cost features.
-
 ## KI-9 — `--shot` capture can inherit stray-click popup state
   (severity: cosmetic, capture-only)
 
 ## KI-10 — Watch numbers (standing): heavy-shop treasury-throughput ceiling
   (squeezed by 3 consecutive faucets, re-relieved — re-check per economy
   change); post-collision equilibrium is travel-bound (kills ~5× below
-  pre-collision peak — watch).
+  pre-collision peak — watch); post-Unit-1 telemetry flagged "5 fighters
+  broke & foodless" at one end-of-run snapshot (momentary-state check,
+  suite food-floor checks green, drift +4% — watch, don't react).

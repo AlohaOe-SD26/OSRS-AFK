@@ -42,8 +42,8 @@ static func candidates_with_terms(hero: Hero, world) -> Array:
 			candidates.append(fight)
 	# SMITHING (crafting slice 1): forge carried ore into a sword at the anvil. The glut term makes
 	# smithing attractive exactly when the ore market floors — the over-supply release valve.
-	if int(hero.inv.get("ore", 0)) >= 3:
-		var glut: float = maxf(0.0, 6.0 - float(world.economy.sell_price("ore"))) * 2.5
+	if int(hero.inv.get("iron_ore", 0)) >= 3:
+		var glut: float = maxf(0.0, 6.0 - float(world.economy.sell_price("iron_ore"))) * 2.5
 		var sterms: Array = [["base", 9.0 + hero.skill_level("smithing") * 0.4], ["glut", glut],
 			["goal", Config.GOAL_BIAS if String(hero.goal.get("skill", "")) == "smithing" else 0.0],
 			["sticky", Config.STICKY_BONUS if hero.act.get("intent", "") == "SMITH" else 0.0]]
@@ -97,7 +97,7 @@ static func _score_fight(hero: Hero, world, camp: String = "combat", mon_id: Str
 		return {}   # locked boss camp (#1d) — no candidate until the kill-count gate opens
 	if hero.skill_level(SimWorld.style_skill(hero)) + hero.skill_level("defence") < mon.combat_level:
 		return {}
-	var food := int(hero.inv.get("cooked_fish", 0))
+	var food := int(hero.inv.get("trout", 0))
 	var food_price := int(world.economy.food_price())
 	var can_fight := food >= 1 or hero.gold >= food_price * 2
 	if not can_fight:
@@ -156,7 +156,7 @@ static func _score_inner(hero: Hero, world, intent: String, skill: String, loc_k
 		terms.append(["favorite", 0.0])
 		# DEMAND-RESPONSIVE labor (the concept's economy→brain feedback): town food running low pulls fishers
 		if intent == "PROVISION":
-			var stock: int = world.economy.total_stock("cooked_fish")
+			var stock: int = world.economy.total_stock("trout")
 			if stock < 12:
 				terms.append(["demand", minf(20.0, (12.0 - stock) * 2.0) * (0.4 + float(hero.traits.get("greed", 0.4)))])
 	else:
@@ -180,7 +180,7 @@ static func _score_inner(hero: Hero, world, intent: String, skill: String, loc_k
 	var threat: float = world.aggro_threat_at(loc_key)
 	if threat > 0.0:
 		var hp_frac := float(hero.hp) / maxf(1.0, float(hero.max_hp()))
-		var foodless := 2.0 if int(hero.inv.get("cooked_fish", 0)) <= 0 else 1.0
+		var foodless := 2.0 if int(hero.inv.get("trout", 0)) <= 0 else 1.0
 		terms.append(["danger", -threat * (1.5 - hp_frac) * foodless])
 	# travel cost
 	terms.append(["travel", -world.distance_to(hero, loc_key) * 0.4])

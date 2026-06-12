@@ -22,7 +22,7 @@ func _initialize() -> void:
 		print("  act histogram: ", hist)
 		for h in world.heroes:
 			print("  %s w=%s ammo=A%d/R%d gold=%d dec=%d act=%s/%s food=%d" % [h.hero_name, h.weapon,
-				int(h.inv.get("Arrows", 0)), int(h.inv.get("Runes", 0)), int(h.gold), h.decisions,
-				String(h.act.get("intent", "-")), String(h.act.get("then", "")), int(h.inv.get("cooked_fish", 0))])
+				int(h.inv.get("arrows", 0)), int(h.inv.get("runes", 0)), int(h.gold), h.decisions,
+				String(h.act.get("intent", "-")), String(h.act.get("then", "")), int(h.inv.get("trout", 0))])
 	Config.AMMO_ON = false
 	quit(0)

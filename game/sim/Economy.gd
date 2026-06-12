@@ -11,42 +11,58 @@ extends RefCounted
 ##     (Shop.sell_price) — closes the "shop mints at floor price forever" leak.
 ##  2. Capacity-respecting sales: the shop only pays for whole units that fit (Shop.room_for) →
 ##     backpressure on over-gathering.
-##  3. GE_TAX skim on every sale — now ACCUMULATED in `tax_collected` (first-class, inspectable)
+##  3. SHOP_TAX skim on every sale — now ACCUMULATED in `tax_collected` (first-class, inspectable)
 ##     instead of an anonymous inline subtraction.
 ##  4. economy_tick(): per-shop town consumption (Shop.consume_tick) bounds the faucet +
 ##     wealth-proportional hero upkeep (the stable attractor that flattens total gold).
 ##
-## NOTE ON BASE VALUES: the resource goods use the base values the equilibrium was tuned against
-## (ore 16 / logs 12 / raw_fish 7 / cooked_fish 9). When the full item economy wires up, per-item
-## base_value comes from the dataset (ContentDB) and the sinks get re-tuned — but for the Phase-0
-## gather/combat loop these preserve the proven curve.
+## UNIT 1 (catalog migration): BASE VALUES come from the CATALOG (ContentDB/items.json — KI-8's
+## single price truth; iron_ore 17 supersedes the old hardcoded 16), and SHOPS TRADE GEAR — every
+## tradeable tiered item joins the General Store's board with a small stock arm whose 0.5 starting
+## fill reproduces the old half-value vendoring at open (f = 1.2 − 0.5×1.4 = 0.5). The null-content
+## fallback bases keep bare unit tests (Economy.new()) meaningful; the live sim always passes content.
 
-const GOODS := ["ore", "logs", "raw_fish", "cooked_fish"]
+const GOODS := ["iron_ore", "logs", "raw_trout", "trout"]
 const FOOD_BUY_BASE: float = 22.0   # what the shop charges heroes for cooked fish (the food sink)
 
 var shops: Array = []               # Array[Shop] — inspectable (hero panel / shop UI, §20 / §19.2)
 var _by_good: Dictionary = {}       # good -> Shop (routing index)
-var tax_collected: float = 0.0      # cumulative GE_TAX skim (the §5 wealth-scaling sink, tracked)
-# Town treasury (§19): the SPENDABLE pool the player builds from. Fed by the GE tax — i.e. gold the
+var tax_collected: float = 0.0      # cumulative SHOP_TAX skim (the §5 wealth-scaling sink, tracked)
+# Town treasury (§19): the SPENDABLE pool the player builds from. Fed by the shop tax — i.e. gold the
 # §5 sink ALREADY removed from hero circulation, so banking it here changes nothing about total_gold()
 # or the validated attractor; it just gives the skimmed gold a tycoon purpose. Drained by build/upkeep.
 var treasury: float = 0.0
 
-func _init() -> void:
-	# Two canon Varrock vendors (GDD §7). Stock/max/base/consume = the validated tune; consumption
-	# is sourced from Config.SHOP_CONSUME so there's still a single tuning home for those numbers.
-	var general := Shop.make("general_store", "Varrock General Store", {
-		"ore":  {"stock": 20.0, "max": 120.0, "base": 16.0, "consume": Config.SHOP_CONSUME["ore"]},
-		"logs": {"stock": 20.0, "max": 120.0, "base": 12.0, "consume": Config.SHOP_CONSUME["logs"]},
-	})
+func _init(content: ContentDB = null) -> void:
+	# Two canon Varrock vendors (GDD §7). Stock/max/consume = the validated tune (Config.SHOP_CONSUME
+	# stays the single tuning home); BASE values are catalog-sourced (Unit 1 / KI-8).
+	var general_defs := {
+		"iron_ore": {"stock": 20.0, "max": 120.0, "base": _bv(content, "iron_ore", 16.0), "consume": Config.SHOP_CONSUME["iron_ore"]},
+		"logs": {"stock": 20.0, "max": 120.0, "base": _bv(content, "logs", 12.0), "consume": Config.SHOP_CONSUME["logs"]},
+	}
+	# Unit 1 — SHOPS TRADE GEAR: every tradeable catalog item with a gear tier joins the board
+	# (catalog file order — deterministic). The roster split (Horvik/Lowe/...) arrives with Unit 2.
+	if content != null:
+		for iid in content.items:
+			var it: ItemType = content.items[iid]
+			if it.tier > 0 and it.tradeable:
+				general_defs[iid] = {"stock": Config.GEAR_SHOP_STOCK, "max": Config.GEAR_SHOP_MAX,
+					"base": float(it.base_value), "consume": Config.GEAR_SHOP_CONSUME}
+	var general := Shop.make("general_store", "Varrock General Store", general_defs)
 	var market := Shop.make("fishmonger", "Varrock Fishmonger", {
-		"raw_fish":    {"stock": 10.0, "max": 80.0, "base": 7.0, "consume": Config.SHOP_CONSUME["raw_fish"]},
-		"cooked_fish": {"stock": 14.0, "max": 80.0, "base": 9.0, "consume": Config.SHOP_CONSUME["cooked_fish"]},
+		"raw_trout": {"stock": 10.0, "max": 80.0, "base": _bv(content, "raw_trout", 7.0), "consume": Config.SHOP_CONSUME["raw_trout"]},
+		"trout": {"stock": 14.0, "max": 80.0, "base": _bv(content, "trout", 9.0), "consume": Config.SHOP_CONSUME["trout"]},
 	})
 	shops = [general, market]
 	for s: Shop in shops:
 		for good in s.goods:
 			_by_good[good] = s
+
+## Catalog base value with a legacy fallback (bare-test construction only — see the _init note).
+static func _bv(content: ContentDB, id: String, fallback: float) -> float:
+	if content != null and content.base_value(id) > 0:
+		return float(content.base_value(id))
+	return fallback
 
 func shop_for(good: String) -> Shop:
 	return _by_good.get(good, null)
@@ -58,12 +74,12 @@ func sell_price(item: String) -> int:
 
 ## Price the shop CHARGES a hero for cooked fish (rises as food stock falls).
 func food_price() -> int:
-	return _by_good["cooked_fish"].buy_price("cooked_fish", FOOD_BUY_BASE)
+	return _by_good["trout"].buy_price("trout", FOOD_BUY_BASE)
 
-## Internal: pay a hero for `qty` units of `good`, skimming + banking GE_TAX. Returns gold paid.
+## Internal: pay a hero for `qty` units of `good`, skimming + banking SHOP_TAX. Returns gold paid.
 func _pay_for(hero: Hero, good: String, qty: int, s: Shop) -> int:
 	var gross := qty * s.sell_price(good)
-	var tax := gross * Config.GE_TAX
+	var tax := gross * Config.SHOP_TAX
 	tax_collected += tax
 	treasury += tax        # the skim becomes the player's spendable town fund (§19); see `treasury` note
 	var net := int(round(gross - tax))
@@ -71,38 +87,39 @@ func _pay_for(hero: Hero, good: String, qty: int, s: Shop) -> int:
 	s.stock[good] += qty
 	return net
 
-## Sell gathered ore/logs to the General Store. Only whole units that fit are bought (backpressure).
-## Carried GEAR also vendors here at half catalog value (so spares don't clog inventories).
+## Sell carried goods to the shops that trade them. Only whole units that fit are bought
+## (backpressure). Unit 1: GEAR is a REAL shop trade now — carried tradeable gear routes through
+## the SAME saturation-aware, taxed path as ore/logs (the flat half-value vendoring is retired).
+## Food (trout/raw_trout) deliberately does NOT sell here — sell_food owns it (fighter keep-buffer);
+## otherwise a fighter's REGROUP would dump its own rations. Untradeables (tools, ammo) never sell.
 func sell_goods(hero: Hero) -> int:
 	var g := 0
-	for d in Config.GEAR_DROPS:
-		var item := String(d["item"])
-		var n := int(hero.inv.get(item, 0))
-		if n > 0:
-			var pay := int(float(d["value"]) * 0.5) * n
-			hero.gold += pay
-			g += pay
-			hero.inv.erase(item)
-	for it in ["ore", "logs"]:
-		var have := int(hero.inv.get(it, 0))
-		if have <= 0:
+	for k in hero.inv.keys():
+		var item := String(k)
+		if item == "trout" or item == "raw_trout":
 			continue
-		var s: Shop = _by_good[it]
-		var qty := mini(have, s.room_for(it))
+		var s: Shop = _by_good.get(item, null)
+		if s == null:
+			continue
+		var have := int(hero.inv.get(item, 0))
+		var qty := mini(have, s.room_for(item))
 		if qty > 0:
-			g += _pay_for(hero, it, qty, s)
-			hero.inv[it] = have - qty
+			g += _pay_for(hero, item, qty, s)
+			if have - qty <= 0:
+				hero.inv.erase(item)
+			else:
+				hero.inv[item] = have - qty
 	return g
 
 ## Cooks supply the Fishmonger's food (keeping a small buffer if the hero is a fighter).
 func sell_food(hero: Hero, keep: int = 0) -> int:
-	var have := int(hero.inv.get("cooked_fish", 0))
+	var have := int(hero.inv.get("trout", 0))
 	var qty := maxi(0, have - keep)
-	var s: Shop = _by_good["cooked_fish"]
-	qty = mini(qty, s.room_for("cooked_fish"))
+	var s: Shop = _by_good["trout"]
+	qty = mini(qty, s.room_for("trout"))
 	if qty > 0:
-		var pay := _pay_for(hero, "cooked_fish", qty, s)
-		hero.inv["cooked_fish"] = have - qty
+		var pay := _pay_for(hero, "trout", qty, s)
+		hero.inv["trout"] = have - qty
 		return pay
 	return 0
 
@@ -110,11 +127,11 @@ func sell_food(hero: Hero, keep: int = 0) -> int:
 func buy_food(hero: Hero, want: int) -> int:
 	var bought := 0
 	var p := food_price()
-	var s: Shop = _by_good["cooked_fish"]
-	while bought < want and hero.gold >= p and s.stock["cooked_fish"] >= 1.0 and not hero.inv_full():
+	var s: Shop = _by_good["trout"]
+	while bought < want and hero.gold >= p and s.stock["trout"] >= 1.0 and not hero.inv_full():
 		hero.gold -= p
-		s.stock["cooked_fish"] -= 1.0
-		hero.inv["cooked_fish"] = int(hero.inv.get("cooked_fish", 0)) + 1
+		s.stock["trout"] -= 1.0
+		hero.inv["trout"] = int(hero.inv.get("trout", 0)) + 1
 		bought += 1
 	return bought
 

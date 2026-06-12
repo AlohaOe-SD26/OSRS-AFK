@@ -128,7 +128,7 @@ func compute_satisfaction(world, h) -> float:
 	var sat: float = Config.SAT_BASE
 	sat += minf(1.0, h.gold / Config.SAT_GOLD_REF) * Config.SAT_WEALTH
 	sat += minf(Config.SAT_SUCCESS_CAP, h.recent_success * Config.SAT_SUCCESS)
-	var food: int = int(h.inv.get("cooked_fish", 0))
+	var food: int = int(h.inv.get("trout", 0))
 	var fp: int = world.economy.food_price()
 	if food < 1 and h.gold < fp:
 		sat -= Config.SAT_BROKE_PENALTY

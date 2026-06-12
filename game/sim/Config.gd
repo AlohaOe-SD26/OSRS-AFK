@@ -2,7 +2,7 @@ class_name Config
 extends RefCounted
 ## Tunable constants — mirrors EQUATIONS_AND_SCHEMAS.md `CONFIG.*`.
 ##
-## Economy sinks (GE_TAX, UPKEEP_*, RAT_DROP_*, PRICE_FLOOR_FRAC, SHOP_CONSUME) are
+## Economy sinks (SHOP_TAX, UPKEEP_*, RAT_DROP_*, PRICE_FLOOR_FRAC, SHOP_CONSUME) are
 ## NOT placeholders: they were validated in prototype.html, taking total gold from
 ## an unbounded +3,557%/6-day runaway to a bounded equilibrium (~5.3k @ 8 heroes,
 ## steady-state drift ±~15%). See GDD §23 / §6 and the tuning session notes.
@@ -44,7 +44,7 @@ static var BRAIN_V2: bool = false
 # combat needs a MAIN-HAND weapon equipped. Heroes spawn with ONLY their favorite's item; switching
 # skills requires BUYING the tool at the shop (gold sink) — the mandatory companion that prevents
 # tool-gating × goal-rotation from becoming a favorite-only lockout (would-be bug-class #6).
-const TOOL_FOR: Dictionary = {"mining": "Pickaxe", "woodcutting": "Axe", "fishing": "Fishing rod"}
+const TOOL_FOR: Dictionary = {"mining": "bronze_pickaxe", "woodcutting": "bronze_axe", "fishing": "fishing_rod"}
 static var AMMO_ON: bool = true    # ammo consumption ON — instance-#7 (capital lockout) fixed by the
                                    # dry-punch fallback; gate-validated via diag_ammo + the suite
 const TOOL_COST: int = 12      # affordable off early gather income (20g start — no spawn poverty trap)
@@ -87,7 +87,9 @@ static var COMBAT_TRIP_KILLS: int = 6
 static var COMBAT_TRIP_ROUNDS: int = 9999
 
 # ---- economy sinks (§6) — VALIDATED in the prototype tune ----
-const GE_TAX: float = 0.03            # sales skim on every shop sale (§5 wealth-scaling sink)
+# Renamed GE_TAX→SHOP_TAX (Unit 1, ruling R8): this is the SHOP-sale skim, locked at 3%; the real
+# GE arrives in Unit 4 with its own 1% treasury-routed trade tax.
+const SHOP_TAX: float = 0.03          # sales skim on every shop sale (§5 wealth-scaling sink)
 # Re-centered 2026-06-10: exact BFS pathing ≈doubled effective income (no wasted walking) → the band
 # drifted to ~1955..2144 vs the validated ~600-900. Doubling the proportional rate halves g* back into
 # range; the offline attractor-projection reads this same constant, so live/offline stay coherent.
@@ -100,33 +102,30 @@ const RAT_DROP_MIN: int = 3           # coin drop range per rat kill (keeps the 
 const RAT_DROP_RANGE: int = 5
 # M3a slice 1: rats occasionally drop GEAR. If it beats the hero's piece in that slot (and matches
 # their weapon style for main-hand), they AUTO-EQUIP it (old piece salvages to half value in coins);
-# otherwise the drop salvages directly. No inventory residue (vendor-trash abstraction until shops trade gear).
+# otherwise it's CARRIED and vendors at the shop's gear board. Unit 1: the drop pool, tiers, styles
+# and values all live in the CATALOG now (items.json dropPool/tier/style/baseValue — the old
+# GEAR_DROPS/GEAR_TIER tables are retired; ContentDB.gear_drop_pool()/tier()/style() replace them).
 static var GEAR_DROP_CHANCE: float = 0.04
-const GEAR_TIER: Dictionary = {"Bronze sword": 1, "Shortbow": 1, "Apprentice staff": 1,
-	"Iron sword": 2, "Oak shortbow": 2, "Battlestaff": 2,
-	"Leather cowl": 1, "Iron helm": 2, "Leather body": 1, "Iron platebody": 2}
-const GEAR_DROPS: Array = [
-	{"item": "Iron sword", "slot": "main", "style": "sword", "value": 60},
-	{"item": "Oak shortbow", "slot": "main", "style": "bow", "value": 50},
-	{"item": "Battlestaff", "slot": "main", "style": "staff", "value": 70},
-	{"item": "Leather cowl", "slot": "head", "style": "", "value": 16},
-	{"item": "Iron helm", "slot": "head", "style": "", "value": 44},
-	{"item": "Leather body", "slot": "torso", "style": "", "value": 24},
-	{"item": "Iron platebody", "slot": "torso", "style": "", "value": 90},
-]
 # a saturated shop still pays this fraction of base value. static var (not const) so the labor
 # sweep can test whether the gather-price floor is what drives heroes into combat; 0.12 = validated.
 static var PRICE_FLOOR_FRAC: float = 0.12
+
+# Unit 1 — the gear arm of the shop board (shops trade gear; replaces the flat half-value
+# vendoring). Initial fill 0.5 makes the open price ≈ 0.5×base (the old anchor, by construction:
+# f = 1.2 − 0.5×1.4 = 0.5); the small town demand absorbs gear so the arm can't saturate forever.
+const GEAR_SHOP_STOCK: float = 4.0
+const GEAR_SHOP_MAX: float = 8.0
+const GEAR_SHOP_CONSUME: float = 0.25
 
 # town demand: whole units/sim-day the NPC town absorbs (bounds the gather faucet, §6).
 # cooked_fish is low because in the combat economy the real food sink is FIGHTERS buying food
 # (§6) — the town only takes a small residual; the 260 here was a gather-only-era artifact that
 # starved the fighters (see PROJECT_STATUS combat-tuning note).
 const SHOP_CONSUME: Dictionary = {
-	"ore": 350.0,
+	"iron_ore": 350.0,
 	"logs": 350.0,
-	"raw_fish": 0.0,
-	"cooked_fish": 60.0,
+	"raw_trout": 0.0,
+	"trout": 60.0,
 }
 
 # ---- population, reputation & immigration (§16 / §19.4 / EQUATIONS §8) ----

@@ -26,7 +26,7 @@ func _initialize() -> void:
 	print("=== DECISION INSTRUMENT — day %d · pop %d ===" % [world.sim_day, world.heroes.size()])
 	print("fight-intent heroes: %d · congestion(\"combat\"): %d · congestion(mine/forest/fishing): %d/%d/%d" % [
 		fight_n, world.congestion("combat"), world.congestion("mine"), world.congestion("forest"), world.congestion("fishing")])
-	print("ore sell %dg · food price %dg\n" % [world.economy.sell_price("ore"), world.economy.food_price()])
+	print("ore sell %dg · food price %dg\n" % [world.economy.sell_price("iron_ore"), world.economy.food_price()])
 
 	# aggregate term breakdown for NON-fighting-favorite heroes currently fighting (the puzzle)
 	var agg_combat := {}
@@ -93,7 +93,7 @@ func _initialize() -> void:
 		print("example: %s (favorite %s · STR %d · mine %d wc %d fish %d · %dg · %d food)" % [
 			h.hero_name, h.favorite, h.skill_level("strength"),
 			h.skill_level("mining"), h.skill_level("woodcutting"), h.skill_level("fishing"),
-			int(h.gold), int(h.inv.get("cooked_fish", 0))])
+			int(h.gold), int(h.inv.get("trout", 0))])
 		print("   COMBAT      %s" % _fmt(ex["combat"]))
 		print("   %s %s" % [("%s(fav)" % SimWorld._cap(ex["gather"]["skill"])).rpad(11), _fmt(ex["gather"])])
 	quit(0)

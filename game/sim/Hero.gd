@@ -17,7 +17,7 @@ var hp: int = 10
 var gold: float = 20.0   # float so the small per-action proportional upkeep (§6) accrues instead
                          # of rounding to 0 each tick; display sites floor it
 
-var inv: Dictionary = {"ore": 0, "logs": 0, "raw_fish": 0, "cooked_fish": 0}
+var inv: Dictionary = {"iron_ore": 0, "logs": 0, "raw_trout": 0, "trout": 0}
 # Weapon type = attack style (M1c): sword=melee, bow=ranged, staff=magic. Assigned deterministically
 # (id-based, no RNG draw). Phase-0: style sets ENGAGE REACH + visuals; full triangle math lands in M3b.
 var weapon: String = "sword"
@@ -103,7 +103,7 @@ func max_hp() -> int:
 
 # CANON OSRS INVENTORY: 28 slots max; every item takes 1 slot per unit EXCEPT stackables
 # (arrows, runes, fishing bait when implemented), which occupy a single slot for any quantity.
-const STACKABLES := ["Arrows", "Runes", "Fishing bait"]
+const STACKABLES := ["arrows", "runes", "fishing_bait"]
 const INV_SLOTS := 28
 
 func inv_count() -> int:   # = SLOTS USED (canon accounting)
@@ -122,7 +122,7 @@ func inv_full() -> bool:
 # toward the "is there room to gather loot?" test (§ candidate-generation invariant). Otherwise a
 # food-heavy fighter has every gather option deleted from its menu before scoring (the starved-menu
 # bug the decision instrument proved).
-const CONSUMABLES := ["cooked_fish", "Arrows", "Runes"]   # ammo rides the reserved partition like food
+const CONSUMABLES := ["trout", "arrows", "runes"]   # ammo rides the reserved partition like food
 
 func cargo_count() -> int:
 	var n := 0

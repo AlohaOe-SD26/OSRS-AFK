@@ -90,7 +90,7 @@ static var _DD_PER_ACTION: float = Config.SIM_MINUTES_PER_TICK / 1440.0
 func setup(content_db: ContentDB, hero_count: int = 6, seed_value: int = Config.DEFAULT_SEED) -> void:
 	content = content_db
 	rng = Rng.new(seed_value)
-	economy = Economy.new()
+	economy = Economy.new(content)   # Unit 1: shop bases + gear board come from the catalog
 	population = Population.new()
 	social = Social.new()
 	_load_locations()
@@ -196,11 +196,11 @@ func _new_hero(id: int, favorite: String, tier_name: String, tier_boost: int, st
 	h.weapon = ["sword", "bow", "staff"][id % 3]   # deterministic (id-based, no RNG draw)
 	# spawn loadout = ONLY the favorite's item: fighters get their weapon; skillers get their tool
 	if favorite == "fighting":
-		h.equipped = {"main": {"sword": "Bronze sword", "bow": "Shortbow", "staff": "Apprentice staff"}[h.weapon]}
+		h.equipped = {"main": {"sword": "bronze_sword", "bow": "shortbow", "staff": "apprentice_staff"}[h.weapon]}
 		if h.weapon == "bow":
-			h.inv["Arrows"] = 60   # ranged/magic styles consume supplies (melee doesn't — RS-like)
+			h.inv["arrows"] = 60   # ranged/magic styles consume supplies (melee doesn't — RS-like)
 		elif h.weapon == "staff":
-			h.inv["Runes"] = 60
+			h.inv["runes"] = 60
 	elif Config.TOOL_FOR.has(favorite):
 		h.inv[Config.TOOL_FOR[favorite]] = 1
 	h.backstory = _make_backstory(h)   # deterministic (no rng draw) — must not perturb the seed stream
@@ -439,7 +439,7 @@ func combat_level_of(h: Hero) -> int:
 ## (style-correct levels, weapon tier, coarse type defence), in statistical form. Powers the
 ## B2 feasibility gate; no RNG.
 func hero_dps_vs(h: Hero, mon: Monster) -> float:
-	var wt := int(Config.GEAR_TIER.get(h.equipped.get("main", ""), 0))
+	var wt: int = content.tier(String(h.equipped.get("main", "")))
 	var ss := SimWorld.style_skill(h)
 	var acc_skill := "attack" if ss == "strength" else ss
 	var eff_acc := Combat.effective_level(h.skill_level(acc_skill), 1.0, 0)
@@ -457,7 +457,7 @@ func monster_dps(mon: Monster) -> float:
 ## afford to buy, be expected to win? Adapt: "banked-food loadout" → affordable food (no banks yet).
 ## Risk-margin scales with the hero's risk trait (daredevil ~0.8, cautious ~1.5). Prayer inert (1.0).
 func slayer_feasible(h: Hero, mon: Monster) -> bool:
-	var food := int(h.inv.get("cooked_fish", 0))
+	var food := int(h.inv.get("trout", 0))
 	var affordable: int = mini(int(h.gold / maxf(1.0, float(economy.food_price()))), Config.FOOD_BUY_QTY * 2)
 	var heal := (food + maxi(0, affordable)) * Config.FOOD_HEAL
 	var margin: float = 1.5 - 0.7 * float(h.traits.get("risk", 0.4))
@@ -981,7 +981,7 @@ func _tick_monsters(dt: float) -> void:
 ## An aggressive monster's strike (#1d): same damage/mitigation as fight-phase retaliation. A
 ## NON-fighting victim reacts the way the fight loop would — eat when low, abandon work when hurt.
 func _monster_strike_hero(r: MonsterInstance, mt: Monster, h: Hero) -> void:
-	var mit := 1.0 - 0.06 * (int(Config.GEAR_TIER.get(h.equipped.get("head", ""), 0)) + int(Config.GEAR_TIER.get(h.equipped.get("torso", ""), 0)))
+	var mit := 1.0 - 0.06 * (content.tier(String(h.equipped.get("head", ""))) + content.tier(String(h.equipped.get("torso", ""))))
 	if h.equipped.has("off"):
 		mit -= 0.12
 	var raw := rng.randi_range(0, r.monster_max_hit)
@@ -991,8 +991,8 @@ func _monster_strike_hero(r: MonsterInstance, mt: Monster, h: Hero) -> void:
 		_hero_death(h, mt.name if mt.is_boss else "a %s" % mt.name)
 		return
 	if String(h.act.get("intent", "")) != "FIGHT":
-		if h.hp < int(h.max_hp() * Config.EAT_THRESHOLD) and int(h.inv.get("cooked_fish", 0)) > 0:
-			h.inv["cooked_fish"] = int(h.inv["cooked_fish"]) - 1
+		if h.hp < int(h.max_hp() * Config.EAT_THRESHOLD) and int(h.inv.get("trout", 0)) > 0:
+			h.inv["trout"] = int(h.inv["trout"]) - 1
 			h.hp = mini(h.max_hp(), h.hp + Config.FOOD_HEAL)
 		elif h.hp < int(h.max_hp() * 0.6):
 			h.act = {}
@@ -1040,26 +1040,24 @@ func _nearest_monster(h: Hero) -> MonsterInstance:
 	return best
 
 ## M3a: a gear drop — auto-equip if it beats the current piece in that slot (style-matched for main),
-## salvage to coins otherwise (half value; full value if it replaced nothing). Saga-logged on upgrade.
+## salvage to coins otherwise (half value). Unit 1: pool/tier/style/value all come from the CATALOG.
 func _gear_drop(h: Hero) -> void:
-	var d: Dictionary = Config.GEAR_DROPS[rng.randi_range(0, Config.GEAR_DROPS.size() - 1)]
-	var slot := String(d["slot"])
-	var style := String(d["style"])
-	if style != "" and style != h.weapon:
-		h.gold += float(d["value"]) * 0.5   # wrong style → salvage
+	var pool: Array = content.gear_drop_pool()
+	var it: ItemType = pool[rng.randi_range(0, pool.size() - 1)]
+	if it.style != "" and it.style != h.weapon:
+		h.gold += float(it.base_value) * 0.5   # wrong style → salvage
 		return
-	var cur_tier := int(Config.GEAR_TIER.get(h.equipped.get(slot, ""), 0))
-	var new_tier := int(Config.GEAR_TIER.get(d["item"], 0))
-	if new_tier > cur_tier:
-		if h.equipped.has(slot):
+	var cur_tier: int = content.tier(String(h.equipped.get(it.slot, "")))
+	if it.tier > cur_tier:
+		if h.equipped.has(it.slot):
 			h.gold += 8.0   # salvage the old piece (flat scrap)
-		h.equipped[slot] = String(d["item"])
-		_milestone(h, "Looted & equipped %s" % String(d["item"]))
-		log_event("%s loots a %s — an upgrade!" % [h.hero_name, String(d["item"])], "gold", 2)
+		h.equipped[it.slot] = it.id
+		_milestone(h, "Looted & equipped %s" % it.name)
+		log_event("%s loots a %s — an upgrade!" % [h.hero_name, it.name], "gold", 2)
 	elif h.cargo_count() < 24:
-		h.inv[String(d["item"])] = int(h.inv.get(String(d["item"]), 0)) + 1   # CARRIED — sellable/swappable
+		h.inv[it.id] = int(h.inv.get(it.id, 0)) + 1   # CARRIED — sellable/swappable
 	else:
-		h.gold += float(d["value"]) * 0.5   # no space → salvage
+		h.gold += float(it.base_value) * 0.5   # no space → salvage
 
 ## Hero death (§14, live-only): counters, reputation dent (§8), gravestone-loot grab (§16.3 grudge),
 ## respawn at town. Shared by the fight loop and aggressive-monster strikes (#1d).
@@ -1104,11 +1102,11 @@ func _fight_round(h: Hero) -> void:
 		h.thought = "Waiting for a foe to appear…"
 		return
 	# reactive interrupts (§18): eat low, flee if starving
-	if h.hp < int(h.max_hp() * Config.EAT_THRESHOLD) and int(h.inv.get("cooked_fish", 0)) > 0:
-		h.inv["cooked_fish"] = int(h.inv["cooked_fish"]) - 1
+	if h.hp < int(h.max_hp() * Config.EAT_THRESHOLD) and int(h.inv.get("trout", 0)) > 0:
+		h.inv["trout"] = int(h.inv["trout"]) - 1
 		h.hp = mini(h.max_hp(), h.hp + Config.FOOD_HEAL)
 		h.flash = 0.4
-	elif h.hp < int(h.max_hp() * Config.FLEE_THRESHOLD) and int(h.inv.get("cooked_fish", 0)) <= 0:
+	elif h.hp < int(h.max_hp() * Config.FLEE_THRESHOLD) and int(h.inv.get("trout", 0)) <= 0:
 		flees += 1
 		log_event("%s flees the Rat Pit — out of food!" % h.hero_name, "die")
 		h.act = {}
@@ -1121,7 +1119,7 @@ func _fight_round(h: Hero) -> void:
 	# can always punch) at melee reach with no gear bonus — income keeps flowing, the hero recovers,
 	# no capital lockout (the probe showed broke+dry fighters thrashing FIGHT→disengage forever).
 	var dry: bool = Config.AMMO_ON and h.weapon != "sword" \
-		and int(h.inv.get("Arrows" if h.weapon == "bow" else "Runes", 0)) <= 0
+		and int(h.inv.get("arrows" if h.weapon == "bow" else "runes", 0)) <= 0
 	var reach := 0.9
 	if not dry:
 		if h.weapon == "bow":
@@ -1133,7 +1131,7 @@ func _fight_round(h: Hero) -> void:
 		return
 	# hero attacks — canon rolls (Combat.gd); GEAR IS REAL (M3b): weapon tier feeds the attack/strength
 	# bonuses (tier-1 ≡ the old flat constants, upgrades now matter); armor tiers + shield mitigate.
-	var wt := 0 if dry else int(Config.GEAR_TIER.get(h.equipped.get("main", ""), 0))
+	var wt: int = 0 if dry else content.tier(String(h.equipped.get("main", "")))
 	# STYLE-CORRECT rolls & XP (M3b): swords roll attack/strength; bows roll & train RANGED;
 	# staves roll & train MAGIC. Same canon roll machinery, style-appropriate levels.
 	var ss := "strength" if dry else SimWorld.style_skill(h)   # unarmed = melee rolls
@@ -1152,7 +1150,7 @@ func _fight_round(h: Hero) -> void:
 	# ammo/rune consumption (M3b): bows and staves spend 1 per attack; dry → disengage to restock.
 	# GATED OFF pending diagnosis: first enable collapsed kills 2631→25 (×100, far beyond the intended
 	# supply cost) — cause undiagnosed; needs a dedicated cycle. Plumbing (spawn ammo, buyammo chain) stays.
-	var ammo_kind := ("Arrows" if h.weapon == "bow" else ("Runes" if h.weapon == "staff" else "")) if (Config.AMMO_ON and not dry) else ""
+	var ammo_kind := ("arrows" if h.weapon == "bow" else ("runes" if h.weapon == "staff" else "")) if (Config.AMMO_ON and not dry) else ""
 	if ammo_kind != "":
 		h.inv[ammo_kind] = int(h.inv[ammo_kind]) - 1   # punching (dry) consumes nothing
 	var dmg := 0
@@ -1164,7 +1162,7 @@ func _fight_round(h: Hero) -> void:
 		_grant_xp(h, "hitpoints", int(round(dmg * 1.33)))
 	# monster retaliates — armor tiers (head/torso) and a shield reduce damage taken
 	if rng.chance(MONSTER_RETALIATE_CHANCE):
-		var mit := 1.0 - 0.06 * (int(Config.GEAR_TIER.get(h.equipped.get("head", ""), 0)) + int(Config.GEAR_TIER.get(h.equipped.get("torso", ""), 0)))
+		var mit := 1.0 - 0.06 * (content.tier(String(h.equipped.get("head", ""))) + content.tier(String(h.equipped.get("torso", ""))))
 		if h.equipped.has("off"):
 			mit -= 0.12
 		var raw := rng.randi_range(0, r.monster_max_hit)
@@ -1190,7 +1188,7 @@ func _fight_round(h: Hero) -> void:
 		_hero_death(h, (mon.name if mon.is_boss else "a %s" % mon.name) if mon != null else "a rat")
 		return
 	# disengage to re-provision if low on food and hurt
-	if int(h.inv.get("cooked_fish", 0)) <= 0 and h.hp < int(h.max_hp() * 0.6):
+	if int(h.inv.get("trout", 0)) <= 0 and h.hp < int(h.max_hp() * 0.6):
 		h.act = {}
 		_set_move(h, "shop")
 		_narrate(h)
@@ -1205,7 +1203,7 @@ func _fight_round(h: Hero) -> void:
 		_set_move(h, "shop")
 		h.thought = "Good haul — back to town to restock and weigh what's worth doing."
 		return
-	h.thought = "Fighting rats · %d food left." % int(h.inv.get("cooked_fish", 0))
+	h.thought = "Fighting rats · %d food left." % int(h.inv.get("trout", 0))
 
 # ---------------------------------------------------------------------------
 # The trip FSM (GDD §18.1 Layer 3). Mirrors the validated prototype loop.
@@ -1295,11 +1293,11 @@ func _apply_choice(h: Hero, c: Dictionary) -> void:
 	h.act = {"intent": c["intent"], "loc": c["loc"], "skill": c["skill"],
 		"res": c["res"], "phase": "goto", "target": c["loc"], "then": "", "kills": 0}
 	# pre-fight: stock up on food at the Market before heading to the Rat Pit (the food sink)
-	if c["intent"] == "FIGHT" and int(h.inv.get("cooked_fish", 0)) < 2 and h.gold >= economy.food_price():
+	if c["intent"] == "FIGHT" and int(h.inv.get("trout", 0)) < 2 and h.gold >= economy.food_price():
 		h.act["target"] = "shop"
 		h.act["then"] = "buyfood"
 	# pre-fight ammo restock (bow/staff): 30 for 12g — cheap per-kill margin (anti-poverty-trap)
-	elif c["intent"] == "FIGHT" and h.weapon != "sword" and int(h.inv.get("Arrows" if h.weapon == "bow" else "Runes", 0)) < 10 and h.gold >= 12.0:
+	elif c["intent"] == "FIGHT" and h.weapon != "sword" and int(h.inv.get("arrows" if h.weapon == "bow" else "runes", 0)) < 10 and h.gold >= 12.0:
 		h.act["target"] = "shop"
 		h.act["then"] = "buyammo"
 	# pre-fight Slayer check-in (Unit 0): an eligible, taskless fighter detours via Vannaka — chained
@@ -1353,13 +1351,18 @@ func _work_action(h: Hero) -> void:
 					_narrate(h)
 					return
 				"smith":
-					# forge: 3 ore → an Iron sword (carried — equip if upgrade, else vendors later)
-					while int(h.inv.get("ore", 0)) >= 3 and not h.inv_full():
-						h.inv["ore"] = int(h.inv["ore"]) - 3
-						if int(h.inv["ore"]) <= 0:
-							h.inv.erase("ore")
-						h.inv["Iron sword"] = int(h.inv.get("Iron sword", 0)) + 1
-						_grant_xp(h, "smithing", 40)
+					# forge via the CATALOG recipe (Unit 1, recipes-as-data): the smithing output whose
+					# recipe consumes iron_ore (3× iron_ore → iron_sword; xp from craftXp). Carried —
+					# equip if upgrade, else vendors later.
+					var s_out: ItemType = content.craft_output("smithing", "iron_ore")
+					if s_out != null:
+						var s_need: int = s_out.recipe().size()
+						while int(h.inv.get("iron_ore", 0)) >= s_need and not h.inv_full():
+							h.inv["iron_ore"] = int(h.inv["iron_ore"]) - s_need
+							if int(h.inv["iron_ore"]) <= 0:
+								h.inv.erase("iron_ore")
+							h.inv[s_out.id] = int(h.inv.get(s_out.id, 0)) + 1
+							_grant_xp(h, "smithing", s_out.craft_xp())
 					h.act = {}
 					return
 				"gettask":
@@ -1371,7 +1374,7 @@ func _work_action(h: Hero) -> void:
 					_narrate(h)
 					return
 				"buyammo":
-					var ak := "Arrows" if h.weapon == "bow" else "Runes"
+					var ak := "arrows" if h.weapon == "bow" else "runes"
 					if h.gold >= 12.0:
 						h.gold -= 12.0   # burned supply sink (the ranged/magic counterpart of the food sink)
 						h.inv[ak] = int(h.inv.get(ak, 0)) + 60   # bigger bundle = fewer restock trips
@@ -1386,21 +1389,21 @@ func _work_action(h: Hero) -> void:
 					if tool != "" and h.gold >= Config.TOOL_COST:
 						h.gold -= Config.TOOL_COST   # burned: the tool-purchase gold sink
 						h.inv[tool] = int(h.inv.get(tool, 0)) + 1
-						log_event("%s bought a %s — taking up %s." % [h.hero_name, tool, String(a.get("skill", ""))], "gold", 0)
+						log_event("%s bought a %s — taking up %s." % [h.hero_name, item_name(tool), String(a.get("skill", ""))], "gold", 0)
 					h.act = {}
 					return
 				"buyweapon":
 					if h.gold >= Config.WEAPON_COST:
 						h.gold -= Config.WEAPON_COST
-						h.equipped["main"] = {"sword": "Bronze sword", "bow": "Shortbow", "staff": "Apprentice staff"}[h.weapon]
-						_milestone(h, "Bought a %s" % String(h.equipped["main"]))
+						h.equipped["main"] = {"sword": "bronze_sword", "bow": "shortbow", "staff": "apprentice_staff"}[h.weapon]
+						_milestone(h, "Bought a %s" % item_name(String(h.equipped["main"])))
 					h.act = {}
 					return
 				"buyoffhand":
 					if h.gold >= 35.0 and not h.equipped.has("off"):
 						h.gold -= 35.0   # burned sink, like tools
-						h.equipped["off"] = "Wooden shield"
-						_milestone(h, "Bought a Wooden shield")
+						h.equipped["off"] = "wooden_shield"
+						_milestone(h, "Bought a %s" % item_name("wooden_shield"))
 					h.act = {}
 					return
 				"sell":
@@ -1410,11 +1413,14 @@ func _work_action(h: Hero) -> void:
 					h.act = {}
 					return
 				"cook":
+					# cook via the CATALOG recipe (Unit 1, recipes-as-data): raw_trout → trout, xp from craftXp
 					var cooked := 0
-					while int(h.inv.get("raw_fish", 0)) > 0:
-						h.inv["raw_fish"] = int(h.inv["raw_fish"]) - 1
-						h.inv["cooked_fish"] = int(h.inv.get("cooked_fish", 0)) + 1
-						_grant_xp(h, "cooking", 6)
+					var raw_id := String(a.get("res", "raw_trout"))
+					var c_out: ItemType = content.craft_output("cooking", raw_id)
+					while c_out != null and int(h.inv.get(raw_id, 0)) > 0:
+						h.inv[raw_id] = int(h.inv[raw_id]) - 1
+						h.inv[c_out.id] = int(h.inv.get(c_out.id, 0)) + 1
+						_grant_xp(h, "cooking", c_out.craft_xp())
 						cooked += 1
 					a["phase"] = "goto"
 					a["target"] = "shop"
@@ -1447,9 +1453,9 @@ func _work_action(h: Hero) -> void:
 				_set_move(h, "shop")
 				_narrate(h)
 		"fish":
-			h.inv["raw_fish"] = int(h.inv.get("raw_fish", 0)) + 1
+			h.inv["raw_trout"] = int(h.inv.get("raw_trout", 0)) + 1
 			_grant_xp(h, "fishing", 8)
-			if int(h.inv["raw_fish"]) >= 8 or h.inv_full():
+			if int(h.inv["raw_trout"]) >= 8 or h.inv_full():
 				a["phase"] = "goto"
 				a["target"] = "range"
 				a["then"] = "cook"
@@ -1601,7 +1607,7 @@ func offline_catchup(elapsed_hours: float) -> Dictionary:
 			var consume_rate: float = float(shop.consume.get(good, 0.0)) if shop != null else 0.0
 			var market_uph: float = consume_rate * pop_scale * simdays_per_hour   # units/hr the town absorbs
 			var uph: float = minf(Activities.actions_per_hour() * Activities.TRIP_EFFICIENCY, market_uph / n)
-			r_h = uph * float(economy.sell_price(good)) * (1.0 - Config.GE_TAX)
+			r_h = uph * float(economy.sell_price(good)) * (1.0 - Config.SHOP_TAX)
 			xp_h = Activities.actions_per_hour() * Activities.TRIP_EFFICIENCY * Activities.GATHER_XP_PER_ACTION * Config.XP_RATE
 		elif Activities.is_combat(intent):
 			skill = "strength"
@@ -1639,7 +1645,7 @@ func _narrate(h: Hero) -> void:
 	elif phase == "goto" and then == "gettask":
 		h.thought = "Checking in with Vannaka for a Slayer task."
 	elif phase == "fight":
-		h.thought = "Fighting rats · %d food left." % int(h.inv.get("cooked_fish", 0))
+		h.thought = "Fighting rats · %d food left." % int(h.inv.get("trout", 0))
 	elif phase == "goto" and then == "sell":
 		h.thought = "Inventory full — off to the Market to sell."
 	elif phase == "goto" and then == "cook":
@@ -1647,12 +1653,17 @@ func _narrate(h: Hero) -> void:
 	elif phase == "goto" and then == "sellfood":
 		h.thought = "Taking fresh food to the Market."
 	elif phase == "goto":
-		var what: String = {"GATHER_ORE": "ore", "GATHER_LOGS": "logs", "PROVISION": "fish", "FIGHT": "a fight"}.get(a["intent"], "work")
+		var what: String = {"GATHER_ORE": "iron ore", "GATHER_LOGS": "logs", "PROVISION": "fish", "FIGHT": "a fight"}.get(a["intent"], "work")
 		h.thought = "Heading out for %s." % what
 	elif phase == "gather":
 		h.thought = "%s — %d so far." % ["Mining ore" if a["skill"] == "mining" else "Chopping logs", int(h.inv.get(a["res"], 0))]
 	elif phase == "fish":
-		h.thought = "Fishing — %d caught." % int(h.inv.get("raw_fish", 0))
+		h.thought = "Fishing — %d caught." % int(h.inv.get("raw_trout", 0))
+
+## Display name for an item id (log/milestone/render strings — ids are the keys, names are for humans).
+func item_name(id: String) -> String:
+	var it: ItemType = content.item(id) if content != null else null
+	return it.name if it != null else id
 
 ## Append a Chronicle event (§17). `notability` (1 ordinary … 3 saga-worthy) lets the viewer surface the
 ## most memorable happenings; the colony's running event log is curated by only logging notable things.

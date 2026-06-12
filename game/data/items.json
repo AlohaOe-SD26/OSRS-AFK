@@ -1,70 +1,174 @@
 [
   {
     "id": "iron_ore", "name": "Iron ore", "slot": "", "baseValue": 17, "stackable": false,
+    "tradeable": true,
     "levelReqs": {"mining": 15},
     "acquisition": {"type": "Gathered", "gatherSkill": "mining", "gatherLevel": 15},
     "iconId": "iron_ore"
   },
   {
     "id": "logs", "name": "Logs", "slot": "", "baseValue": 12, "stackable": false,
+    "tradeable": true,
     "levelReqs": {"woodcutting": 1},
     "acquisition": {"type": "Gathered", "gatherSkill": "woodcutting", "gatherLevel": 1},
     "iconId": "logs"
   },
   {
     "id": "raw_trout", "name": "Raw trout", "slot": "", "baseValue": 7, "stackable": false,
+    "tradeable": true,
     "levelReqs": {"fishing": 20},
     "acquisition": {"type": "Gathered", "gatherSkill": "fishing", "gatherLevel": 20},
     "iconId": "raw_trout"
   },
   {
     "id": "trout", "name": "Trout", "slot": "", "baseValue": 9, "stackable": false,
-    "isFood": true, "heals": 7,
+    "tradeable": true, "isFood": true, "heals": 7,
     "levelReqs": {"cooking": 15},
-    "acquisition": {"type": "Craftable", "craftSkill": "cooking", "craftLevel": 15, "recipe": ["raw_trout"]},
+    "acquisition": {"type": "Craftable", "craftSkill": "cooking", "craftLevel": 15, "craftXp": 6, "recipe": ["raw_trout"]},
     "iconId": "trout"
   },
   {
-    "id": "bronze_pickaxe", "name": "Bronze pickaxe", "slot": "weapon", "baseValue": 1, "stackable": false,
+    "id": "cowhide", "name": "Cowhide", "slot": "", "baseValue": 8, "stackable": false,
+    "tradeable": true,
+    "acquisition": {"type": "DropOnly", "dropSources": [{"monsterId": "cow", "rate": 1.0}]},
+    "iconId": "cowhide"
+  },
+  {
+    "id": "bones", "name": "Bones", "slot": "", "baseValue": 1, "stackable": false,
+    "tradeable": true,
+    "acquisition": {"type": "DropOnly", "dropSources": [{"monsterId": "rat", "rate": 1.0}]},
+    "iconId": "bones"
+  },
+
+  {
+    "id": "bronze_pickaxe", "name": "Bronze pickaxe", "slot": "", "baseValue": 1, "stackable": false,
+    "tradeable": false,
     "levelReqs": {"mining": 1},
     "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 1},
     "iconId": "bronze_pickaxe"
   },
   {
-    "id": "bronze_axe", "name": "Bronze axe", "slot": "weapon", "baseValue": 1, "stackable": false,
+    "id": "bronze_axe", "name": "Bronze axe", "slot": "", "baseValue": 1, "stackable": false,
+    "tradeable": false,
     "levelReqs": {"woodcutting": 1},
     "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 1},
     "iconId": "bronze_axe"
   },
   {
-    "id": "bronze_sword", "name": "Bronze sword", "slot": "weapon", "baseValue": 26, "stackable": false,
+    "id": "fishing_rod", "name": "Fishing rod", "slot": "", "baseValue": 1, "stackable": false,
+    "tradeable": false,
+    "levelReqs": {"fishing": 1},
+    "acquisition": {"type": "Bought"},
+    "iconId": "fishing_rod"
+  },
+  {
+    "id": "arrows", "name": "Arrows", "slot": "", "baseValue": 1, "stackable": true,
+    "tradeable": false,
+    "acquisition": {"type": "Bought"},
+    "iconId": "arrows"
+  },
+  {
+    "id": "runes", "name": "Runes", "slot": "", "baseValue": 1, "stackable": true,
+    "tradeable": false,
+    "acquisition": {"type": "Bought"},
+    "iconId": "runes"
+  },
+
+  {
+    "id": "bronze_sword", "name": "Bronze sword", "slot": "main", "style": "sword", "tier": 1,
+    "baseValue": 26, "stackable": false, "tradeable": true,
     "baseStats": {"att_stab": 4, "att_slash": 3, "str": 5},
     "levelReqs": {"attack": 1},
     "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 4},
     "iconId": "bronze_sword"
   },
   {
-    "id": "iron_scimitar", "name": "Iron scimitar", "slot": "weapon", "baseValue": 112, "stackable": false,
+    "id": "shortbow", "name": "Shortbow", "slot": "main", "style": "bow", "tier": 1,
+    "baseValue": 23, "stackable": false, "tradeable": true,
+    "baseStats": {"att_ranged": 8},
+    "levelReqs": {"ranged": 1},
+    "acquisition": {"type": "Craftable", "craftSkill": "fletching", "craftLevel": 5},
+    "iconId": "shortbow"
+  },
+  {
+    "id": "apprentice_staff", "name": "Apprentice staff", "slot": "main", "style": "staff", "tier": 1,
+    "baseValue": 25, "stackable": false, "tradeable": true,
+    "baseStats": {"att_magic": 6},
+    "levelReqs": {"magic": 1},
+    "acquisition": {"type": "Bought"},
+    "iconId": "apprentice_staff"
+  },
+  {
+    "id": "wooden_shield", "name": "Wooden shield", "slot": "off", "tier": 1,
+    "baseValue": 20, "stackable": false, "tradeable": true,
+    "baseStats": {"def_stab": 4, "def_slash": 5, "def_crush": 4},
+    "levelReqs": {"defence": 1},
+    "acquisition": {"type": "Bought"},
+    "iconId": "wooden_shield"
+  },
+
+  {
+    "id": "iron_sword", "name": "Iron sword", "slot": "main", "style": "sword", "tier": 2,
+    "baseValue": 60, "stackable": false, "tradeable": true,
+    "baseStats": {"att_stab": 6, "att_slash": 4, "str": 7},
+    "levelReqs": {"attack": 1},
+    "acquisition": {"type": "Hybrid", "craftSkill": "smithing", "craftLevel": 15, "craftXp": 40, "recipe": ["iron_ore", "iron_ore", "iron_ore"], "dropPool": true},
+    "iconId": "iron_sword"
+  },
+  {
+    "id": "oak_shortbow", "name": "Oak shortbow", "slot": "main", "style": "bow", "tier": 2,
+    "baseValue": 50, "stackable": false, "tradeable": true,
+    "baseStats": {"att_ranged": 14},
+    "levelReqs": {"ranged": 5},
+    "acquisition": {"type": "DropOnly", "dropPool": true},
+    "iconId": "oak_shortbow"
+  },
+  {
+    "id": "battlestaff", "name": "Battlestaff", "slot": "main", "style": "staff", "tier": 2,
+    "baseValue": 70, "stackable": false, "tradeable": true,
+    "baseStats": {"att_magic": 12},
+    "levelReqs": {"magic": 5},
+    "acquisition": {"type": "DropOnly", "dropPool": true},
+    "iconId": "battlestaff"
+  },
+  {
+    "id": "leather_cowl", "name": "Leather cowl", "slot": "head", "tier": 1,
+    "baseValue": 16, "stackable": false, "tradeable": true,
+    "baseStats": {"def_stab": 2, "def_slash": 3, "def_crush": 2},
+    "levelReqs": {"defence": 1},
+    "acquisition": {"type": "DropOnly", "dropPool": true},
+    "iconId": "leather_cowl"
+  },
+  {
+    "id": "iron_helm", "name": "Iron helm", "slot": "head", "tier": 2,
+    "baseValue": 44, "stackable": false, "tradeable": true,
+    "baseStats": {"def_stab": 4, "def_slash": 5, "def_crush": 4},
+    "levelReqs": {"defence": 1},
+    "acquisition": {"type": "DropOnly", "dropPool": true},
+    "iconId": "iron_helm"
+  },
+  {
+    "id": "leather_body", "name": "Leather body", "slot": "torso", "tier": 1,
+    "baseValue": 21, "stackable": false, "tradeable": true,
+    "baseStats": {"def_stab": 4, "def_slash": 5, "def_crush": 3},
+    "levelReqs": {"defence": 1},
+    "acquisition": {"type": "Hybrid", "craftSkill": "crafting", "craftLevel": 14, "recipe": ["leather"], "dropPool": true},
+    "iconId": "leather_body"
+  },
+  {
+    "id": "iron_platebody", "name": "Iron platebody", "slot": "torso", "tier": 2,
+    "baseValue": 90, "stackable": false, "tradeable": true,
+    "baseStats": {"def_stab": 9, "def_slash": 8, "def_crush": 7},
+    "levelReqs": {"defence": 1},
+    "acquisition": {"type": "DropOnly", "dropPool": true},
+    "iconId": "iron_platebody"
+  },
+  {
+    "id": "iron_scimitar", "name": "Iron scimitar", "slot": "main", "style": "sword", "tier": 2,
+    "baseValue": 112, "stackable": false, "tradeable": true,
     "baseStats": {"att_slash": 10, "str": 9},
     "levelReqs": {"attack": 1},
     "acquisition": {"type": "Craftable", "craftSkill": "smithing", "craftLevel": 20},
     "iconId": "iron_scimitar"
-  },
-  {
-    "id": "leather_body", "name": "Leather body", "slot": "body", "baseValue": 21, "stackable": false,
-    "baseStats": {"def_stab": 4, "def_slash": 5, "def_crush": 3},
-    "levelReqs": {"defence": 1},
-    "acquisition": {"type": "Craftable", "craftSkill": "crafting", "craftLevel": 14, "recipe": ["leather"]},
-    "iconId": "leather_body"
-  },
-  {
-    "id": "cowhide", "name": "Cowhide", "slot": "", "baseValue": 8, "stackable": false,
-    "acquisition": {"type": "DropOnly", "dropSources": [{"monsterId": "cow", "rate": 1.0}]},
-    "iconId": "cowhide"
-  },
-  {
-    "id": "bones", "name": "Bones", "slot": "", "baseValue": 1, "stackable": false,
-    "acquisition": {"type": "DropOnly", "dropSources": [{"monsterId": "rat", "rate": 1.0}]},
-    "iconId": "bones"
   }
 ]

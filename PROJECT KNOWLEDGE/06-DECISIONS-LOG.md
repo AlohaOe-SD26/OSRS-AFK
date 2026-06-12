@@ -126,3 +126,32 @@
   on-task +20; old band 1,065–1,211 was pre-survival-triad — fewer
   deaths/flees = more productive hours; variance widened because rare
   deaths now swing trajectories instead of truncating them).
+
+## 2026-06-12 — Unit-1 catalog-migration decisions
+- **Canon catalog ids win everywhere** (one v2→v3 save migration) over a
+  permanent sim-id↔catalog-id mapping table. Why: the vision is canon OSRS;
+  a translation layer is standing tech debt that every future pricing/GE/
+  city-order feature would pay. Alternative rejected: renaming catalog ids
+  to match the sim (betrays "canon stats come from the dataset" and the
+  osrsreboxed ingest path).
+- **Gear trades through the existing saturation curve** with the arm opened
+  at fill 0.5, making the open price ≈ the old flat half-value mint by
+  construction (f = 1.2 − 0.5×1.4 = 0.5) — continuity without a re-tune;
+  small town gear demand (0.25/day/item, pop-scaled) bounds the arm.
+  Alternative rejected: a special gear price formula (two pricing systems
+  to keep coherent for no gain).
+- **Upgrader values are frozen inline** (_V3_GEAR_BOARD), not read from the
+  live catalog: an upgrader transforms data and must replay identically
+  forever, even after future catalog edits.
+- **Tradeable=false for tools/ammo** preserves the old behavior (they were
+  never vendorable); starter gear became tradeable=true (it now vendors
+  via the board if unequipped — minor, sensible delta).
+- **New-entry base values seed from the feel-tuned GEAR_DROPS numbers**
+  (iron_sword 60 etc.) rather than canon GE prices — those arrive with the
+  real osrsreboxed ingest; existing catalog entries kept their values
+  (leather_body 21 supersedes the table''s 24; iron_ore 17 supersedes 16,
+  resolving KI-8 in the catalog''s favor).
+- **KI-4 design hook noted for Unit 2:** with prices now catalog-driven,
+  the combat-side counter-force (reward saturation / price coupling on the
+  combat base) belongs in the shop-economy-v2 unit while pricing files are
+  open — recorded on punch #3.

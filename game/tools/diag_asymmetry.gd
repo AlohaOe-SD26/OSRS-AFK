@@ -72,7 +72,7 @@ func _run_one(seed_v: int) -> Dictionary:
 		var pop: int = int(d["pop"])
 		if pop <= 0:
 			continue
-		var price := float(d["ore"])
+		var price := float(d["iron_ore"])
 		var fshare := float(int(d["acts"].get("fight", 0))) / float(pop)
 		if i >= n / 8:
 			fx.append(price); fy.append(fshare)
