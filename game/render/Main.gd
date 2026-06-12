@@ -310,6 +310,8 @@ func _dispatch_ui(u: Dictionary) -> void:
 			world.build(String(u["arg"]))
 		"incentive":
 			_cycle_incentive(String(u["arg"]))
+		"bounty":
+			_cycle_bounty(String(u["arg"]))
 		"kick_vote":
 			if selected != null:
 				world.start_kick_vote(selected)
@@ -348,7 +350,17 @@ func _dispatch_ui(u: Dictionary) -> void:
 		"top_tab":
 			_top_tab = int(u["arg"])
 
-## Cycle a posted bounty on an activity: off → one step → max → off (Tier-1 Incentivize, §18.4).
+## Cycle a funded per-kill bounty: off → 1× → 2× → 3× avg coin drop → off (Unit 0 / R5).
+func _cycle_bounty(mon_id: String) -> void:
+	var mon: Monster = world.content.monster(mon_id)
+	if mon == null:
+		return
+	var step := world.avg_coin_drop(mon)
+	var cur := float(world.bounties.get(mon_id, 0.0))
+	world.set_bounty(mon_id, 0.0 if cur >= world.bounty_cap(mon) - 0.01 else cur + step)
+
+## Cycle a posted utility incentive on a GATHER activity: off → one step → max → off (§18.4; FIGHT
+## retired per R5 — combat steering is the funded bounty row).
 func _cycle_incentive(intent: String) -> void:
 	var cur := float(world.incentives.get(intent, 0.0))
 	var nxt := 0.0
@@ -1074,12 +1086,23 @@ func _draw_town(pad: float, y: float) -> float:
 		var spec: Dictionary = Config.BUILDINGS[kind]
 		bx = _button("+%s %d" % [String(kind).capitalize(), int(spec["cost"])], bx, y, "build", kind, false)
 	y += 19
-	_hud_line("Bounties (click to cycle off/+%d/+%d):" % [int(Config.INCENTIVE_STEP), int(Config.INCENTIVE_MAX)], pad, y, Color("#857a67"), 10); y += 14
+	_hud_line("Gather incentives (cycle off/+%d/+%d):" % [int(Config.INCENTIVE_STEP), int(Config.INCENTIVE_MAX)], pad, y, Color("#857a67"), 10); y += 14
 	bx = pad
-	for c in [["Mine", "GATHER_ORE"], ["Chop", "GATHER_LOGS"], ["Fish", "PROVISION"], ["Fight", "FIGHT"]]:
+	for c in [["Mine", "GATHER_ORE"], ["Chop", "GATHER_LOGS"], ["Fish", "PROVISION"]]:
 		var w := float(world.incentives.get(c[1], 0.0))
 		var lbl := "%s+%d" % [String(c[0]), int(w)] if w > 0.0 else String(c[0])
 		bx = _button(lbl, bx, y, "incentive", String(c[1]), w > 0.0)
+	y += 19
+	# funded per-kill bounties (Unit 0 / R5): treasury-paid, per KNOWN monster, cycle 0→1×→2×→3× avg drop
+	_hud_line("Kill bounties — treasury pays per kill (cycle to 3× avg drop):", pad, y, Color("#857a67"), 10); y += 14
+	bx = pad
+	for c in SimWorld.CAMPS:
+		var mon: Monster = world.content.monster(String(c["mon"]))
+		if mon == null or not world.monster_known(mon):
+			continue
+		var b := float(world.bounties.get(mon.id, 0.0))
+		var lbl2 := "%s %dg" % [mon.name, int(round(b))] if b > 0.0 else mon.name
+		bx = _button(lbl2, bx, y, "bounty", mon.id, b > 0.0)
 	y += 19
 	if world.buildings.size() > 0:
 		var names: Array = []

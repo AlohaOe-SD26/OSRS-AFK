@@ -63,6 +63,15 @@ const MOVE_SPEED: float = 3.4         # tiles per second (raised 2.4→3.4 with 
 const EAT_THRESHOLD: float = 0.45     # eat at 45% HP
 const FLEE_THRESHOLD: float = 0.28    # flee below 28% with no food
 const FOOD_HEAL: int = 6
+# Canon OSRS passive regen: 1 HP per minute. Denominated in work-actions (2.4s each → 25/min) and
+# pulsed off the serialized action_n counter — no new save state, deterministic across save/load.
+# Without this, a foodless worker chipped by aggressive monsters can NEVER recover (#1d death-loop).
+const REGEN_EVERY_ACTIONS: int = 25
+# Canon OSRS aggression tolerance (#1d): aggressive monsters ignore a hero who has been on the
+# current trip longer than this — harassment is an ARRIVAL TAX (a strike or two), not sustained
+# DPS. Without it, goblins sharing the willows out-damage regen and workers death-loop
+# (measured: ~90 deaths/day colony-wide). Bosses never become tolerant.
+const AGGRO_TOLERANCE_S: float = 8.0
 const FOOD_BUY_QTY: int = 4
 # §18.6 decision-cadence: a combat trip COMPLETES after this many kills → the hero banks/restocks
 # and RE-DECIDES (like a gather trip filling its inventory). Without this the fight loop self-
@@ -245,6 +254,9 @@ const SLAYER_XP_PER_HP: float = 0.9
 # Slayer points per completed task (currency; spending = later design, per B2).
 const SLAYER_POINTS_MIN: int = 8
 const SLAYER_POINTS_MAX: int = 16
+# Scurrius kill-count boss gate (#1d): the sewers boss emerges once the colony has culled this many
+# rats — the queue's named unlock, driven by the same kill_counts knowledge the task pool uses.
+const SCURRIUS_UNLOCK_KILLS: int = 300
 
 # Nudge (Tier 2): a nudge wins the next decision via a one-off utility bonus so large it dominates the
 # argmax for that single decision, then it is consumed (the hero resumes autonomy). Kept finite (not

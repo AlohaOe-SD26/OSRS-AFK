@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/OSRS-AFK
-**Last updated:** 2026-06-11
+**Last updated:** 2026-06-12
 
 ## What is this project?
 A Godot 4.6.3 single-player idle/tycoon "ant farm" in canon OSRS Varrock:
@@ -19,24 +19,33 @@ day-12 per-capita band ~1,065–1,211, drift +2–6%. Post-MVP merge plan in
 progress: M1 visual port ✅ · M2 brain-v2 measured (default-off) · M3
 content waves underway (gear/equipment/smithing/zones-slice-1 done).
 
-## What was just done (this session, 2026-06-11)
-- **Design rulings received** (`ANALYSIS REPORT/DESIGN_RULINGS.md` — R1–R12,
-  all 12 report questions ruled; sequencing Units 0–5 endorsed as-is). The
-  hold is lifted; punch list updated with ruled scope/constants.
-- **Initial commit + push DONE** (`5fd5d97` → origin/main). KI-1 resolved.
-- Unit 0 build started (see In progress).
+## What was just done (this session, 2026-06-12)
+- **#1c funded bounty SHIPPED** (R5): `set_bounty` 0–3× avg drop, one
+  affordability rule for payment AND attraction, per-kill treasury→hero
+  payout, utility FIGHT incentive retired, Town-tab bounty row.
+- **#1d aggressive monsters + Scurrius SHIPPED**: aggro chase/strike,
+  shared death handler (gravestone grudges + rep dents LIVE), Scurrius
+  behind 300 rat kills. First cut was a meat grinder (2,096 deaths/24k
+  ticks, rep pinned 0); fixed with the canon survival triad — passive
+  regen (1 HP/min off action_n), aggression tolerance (`tol_t` 8s
+  arrival-tax; also restored goblin culling 96→3,730), brain danger term,
+  lair-bound bosses. Measured: deaths 4/24k ticks, rep 61, Scurrius slain
+  16×. Suite 141/141; determinism/save-load/offline gates green; render
+  parses.
+- Fixed a malformed `.claude/settings.local.json` allow-entry
+  (`Bash(python -c ' *)`) that crashed the permission matcher.
 
 ## In progress (and how far along)
-- **Punch #1 — Unit 0: Slayer slice** (see `03-PUNCH-LIST.md` #1a–#1e for
-  exact ruled scope). Build order: #1a save-migration scaffold → #1b Slayer
-  core (Vannaka) → #1c funded bounty (retires utility FIGHT bounty) →
-  #1d aggressive monsters + Scurrius gate → #1e instrumented sweep +
-  BRAIN_V2 4th test.
+- **Punch #1 — Unit 0: Slayer slice**: #1a ✅ #1b ✅ #1c ✅ #1d ✅ — only
+  **#1e remains** (instrumented closing sweep + BRAIN_V2 4th test).
 
 ## Next steps (in order)
-1. Finish Unit 0 sub-items, gating + committing each.
-2. Unit 0 closing sweep with monoculture/rival-lean metrics (R6); record
-   whether the §18 prediction held in the decisions log.
+1. **#1e**: Unit-0 closing sweep with monoculture/rival-lean metrics (R6;
+   multi-seed — single-seed is RNG-confounded); record whether the §18
+   prediction held in the decisions log. NOTE: per-capita gold drifted to
+   ~1,485 (validated band was 1,065–1,211; fewer deaths/flees = more
+   productive hours) — re-baseline the band as part of this sweep.
+2. BRAIN_V2 4th test (activity breadth now widened — decision point).
 3. Unit 1 (catalog migration, punch #2) — resolves KI-8, renames GE_TAX.
 
 ## How to run / build / test

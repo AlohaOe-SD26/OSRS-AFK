@@ -93,6 +93,8 @@ static func _score_fight(hero: Hero, world, camp: String = "combat", mon_id: Str
 	var mon: Monster = world.content.monster(mon_id)
 	if mon == null:
 		return {}
+	if mon.is_boss and not world.scurrius_unlocked:
+		return {}   # locked boss camp (#1d) — no candidate until the kill-count gate opens
 	if hero.skill_level(SimWorld.style_skill(hero)) + hero.skill_level("defence") < mon.combat_level:
 		return {}
 	var food := int(hero.inv.get("cooked_fish", 0))
@@ -113,12 +115,16 @@ static func _score_fight(hero: Hero, world, camp: String = "combat", mon_id: Str
 	# coin reward — camps now differ economically (wizards/guards pay; chickens don't)
 	var wealth_w := 0.6 + float(hero.traits.get("greed", 0.4))
 	terms.append(["reward", (mon.coin_drop_min + mon.coin_drop_max) * 0.5 * 0.2 * wealth_w])
+	# FUNDED BOUNTY (Unit 0 / R5): the posted per-kill payout enters through the SAME greed-weighted
+	# reward shape — one number the player sets, attraction derived from the payout. Affordability-
+	# gated by the same rule that gates payment, so an empty treasury attracts nobody.
+	terms.append(["bounty", _bounty(world, mon_id) * 0.2 * wealth_w])
 	terms.append(["congestion", -world.congestion(camp) * Config.CONGESTION_K * Config.COMBAT_CONGESTION_MULT])
 	terms.append(["risk", -(1.0 - float(hero.traits.get("risk", 0.4))) * (4.0 + mon.max_hit * 2.0)])
 	terms.append(["travel", -world.distance_to(hero, camp) * 0.4])
 	terms.append(["food_pen", -6.0 if food < 1 else 0.0])
 	terms.append(["sticky", Config.STICKY_BONUS if (hero.act.get("intent", "") == "FIGHT" and hero.act.get("loc", "") == camp) else 0.0])
-	terms.append(["incentive", _incentive(world, "FIGHT")])   # Tier-1 player lever (§18.4); 0 if unset
+	# (the clamped utility FIGHT incentive is RETIRED — R5: combat steering is the funded bounty above)
 	terms.append(["goal", Config.GOAL_BIAS if String(hero.goal.get("skill", "")) == "strength" else 0.0])
 	# Slayer on-task pull (Unit 0 / B2, R6): the camp hosting the hero's assigned monster gains a bounded
 	# bonus — per-hero and task-rotated, so it steers without becoming a standing colony-wide attractor.
@@ -167,6 +173,15 @@ static func _score_inner(hero: Hero, world, intent: String, skill: String, loc_k
 	terms.append(["reward", price * 0.25 * wealth_w])
 	# self-balancing: crowded nodes are less attractive (§6 / §18.6)
 	terms.append(["congestion", -world.congestion(loc_key) * Config.CONGESTION_K])
+	# danger (#1d back-pressure): aggressive monsters sharing this workplace tax it, scaled by
+	# frailty — a hurt or foodless hero looks elsewhere until passive regen restores them, while a
+	# healthy provisioned one shrugs the harassment off. Without this term the goblin-shared willows
+	# stayed the argmax for chipped-down woodcutters → measured death-loop (2,096 deaths/24k ticks).
+	var threat: float = world.aggro_threat_at(loc_key)
+	if threat > 0.0:
+		var hp_frac := float(hero.hp) / maxf(1.0, float(hero.max_hp()))
+		var foodless := 2.0 if int(hero.inv.get("cooked_fish", 0)) <= 0 else 1.0
+		terms.append(["danger", -threat * (1.5 - hp_frac) * foodless])
 	# travel cost
 	terms.append(["travel", -world.distance_to(hero, loc_key) * 0.4])
 	# anti-thrash hysteresis
@@ -185,4 +200,14 @@ static func _incentive(world, intent: String) -> float:
 	var inc = world.get("incentives")
 	if inc is Dictionary:
 		return float(inc.get(intent, 0.0))
+	return 0.0
+
+## The AFFORDABLE funded bounty on a monster (0 if none / treasury short / bare test rig). Reads the
+## same affordability rule the payment uses, defensively like _incentive.
+static func _bounty(world, mon_id: String) -> float:
+	var b = world.get("bounties")
+	if b is Dictionary and b.has(mon_id) and world.economy != null:
+		var amt: float = float(b[mon_id])
+		if float(world.economy.treasury) >= amt:
+			return amt
 	return 0.0

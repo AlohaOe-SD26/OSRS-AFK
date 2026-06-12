@@ -70,3 +70,55 @@
 - **Verified:** suite 122/122 (14 slayer checks + 2 real-migration checks);
   determinism/save-load/offline gates all PASS (Slayer inert below combat
   40 → validated baselines untouched in 12-day runs).
+## 2026-06-12 — Funded per-kill bounty; FIGHT incentive retired (punch-list #1c, ruling R5)
+- **Sim:** `bounties` dict on SimWorld (monster type_id → gold/kill);
+  `set_bounty` clamps to 0–3× the monster's average coin drop
+  (`bounty_cap`/`avg_coin_drop` — rats use the re-tuned Config range);
+  `bounty_affordable` is the ONE affordability rule read by both payment
+  and attraction; `_record_kill` pays treasury→hero per kill (overdraw
+  impossible). `set_incentive("FIGHT")` now rejects — the clamped utility
+  combat bounty is retired same-unit per R5.
+- **Brain:** `bounty` term on FIGHT candidates = affordable payout × 0.2 ×
+  (0.6+greed) — the same greed-weighted reward shape as coin drops; one
+  lever, two effects. Empty treasury → zero attraction.
+- **Render:** topbar Town tab — "Kill bounties" row (per KNOWN monster,
+  click cycles 0→1×→2×→3× avg drop→off); gather-incentive row keeps
+  Mine/Chop/Fish only.
+- **Save v2 extended** (defensive `.get` defaults, same pattern as atk_cd):
+  bounties + scurrius_unlocked serialized; sim_hash fingerprints bounties.
+- **Verified:** 6 new suite checks (clamp, term derivation, affordability
+  symmetry, payment, overdraw guard, FIGHT-incentive rejection).
+
+## 2026-06-12 — Aggressive monsters + Scurrius gate + the survival triad (punch-list #1d)
+- **Sim:** aggressive monsters (goblins/dark wizards/zombies/Scurrius per
+  catalog flags) chase the nearest non-fighting hero within 2.4 tiles and
+  strike when adjacent (same mitigation math as fight-phase retaliation;
+  `atk_cd` per monster, serialized). Struck workers eat at <45% HP or
+  abandon the trip below 60% and fall back to town. `_hero_death` extracted
+  to a shared handler (fight loop + aggro strikes): death counter, §8
+  reputation dent, §14 gravestone-loot grudge, town respawn.
+- **Scurrius:** boss camp `scurrius` (Rat Pit nest, map loc added) locked
+  until 300 colony rat kills (`_check_boss_unlock`, same kill_counts
+  knowledge as the Slayer pool); brain hides locked-boss candidates;
+  240s boss respawn; boss kill = milestone + town-news Chronicle line.
+- **The survival triad** (first cut was a meat grinder — 2,096 deaths/24k
+  ticks, reputation pinned 0, goblin culling collapsed to 96 kills because
+  perma-chasing goblins never stood still):
+  1. **Canon passive regen** — 1 HP/min, pulsed off the serialized
+     `action_n` counter (no new save state).
+  2. **Canon aggression tolerance** — `tol_t` per hero (serialized);
+     monsters ignore heroes >8s into their current trip. Harassment is an
+     ARRIVAL TAX, not sustained DPS — the OSRS rule that lets players
+     skill near aggressive mobs.
+  3. **Brain danger term** — gather candidates at camps with live
+     aggressive monsters carry −threat × frailty (hurt/foodless heroes
+     look elsewhere; bug-class rule: every force needs a counter-force).
+  Plus: **bosses are lair-bound** — they strike only trespassers whose
+  trip targets the lair (first cut: Scurrius farmed the adjacent rat pit,
+  ~800 hero kills).
+- **Measured (diag_aggro.gd, 24k ticks, immigration on):** deaths 2,096→4
+  (rare, narratable — the gravestone/grudge channel is LIVE but
+  occasional); reputation 0→60.8; goblin kills 96→3,730; Scurrius slain
+  16× vs 2 trespasser deaths; pop 42; economy bounded.
+- **Verified:** suite 141/141 (13 aggro/boss/bounty + 6 survival-triad
+  checks); determinism / save-load / offline gates PASS; render parses.

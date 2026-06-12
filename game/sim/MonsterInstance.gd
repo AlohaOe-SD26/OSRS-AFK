@@ -13,6 +13,7 @@ var attack_speed: int = 4
 var alive: bool = true
 var respawn: float = 0.0      # seconds until respawn when dead
 var wander: float = 0.0       # seconds until next idle wander
+var atk_cd: float = 0.0       # aggressive-strike cooldown, seconds (#1d; serialized — determinism)
 var move_target: Variant = null
 var camp: String = "combat"   # which camp location this monster belongs to (multi-camp world)
 

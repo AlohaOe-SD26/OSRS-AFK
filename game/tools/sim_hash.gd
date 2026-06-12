@@ -30,6 +30,10 @@ static func state_string(world) -> String:
 	kk.sort()
 	for k in kk:
 		parts.append("kc%s:%d" % [k, int(world.kill_counts[k])])
+	var bk: Array = world.bounties.keys()
+	bk.sort()
+	for k in bk:
+		parts.append("bty%s:%.1f" % [k, float(world.bounties[k])])
 	# social edge count + tier histogram (graph shape)
 	if world.social != null:
 		var th: Dictionary = world.social.tier_histogram(world.sim_day)

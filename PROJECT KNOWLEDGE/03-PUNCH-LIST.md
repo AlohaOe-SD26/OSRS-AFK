@@ -20,12 +20,20 @@
     0.9×HP slayer XP + 8–16 points, Vannaka check-in chained into FIGHT
     trips (organic uptake), Chronicle events, save v2 + real v1→v2
     upgrader. Suite 122/122; all 3 gates green. (2026-06-11)
-  - [ ] #1c — Funded per-kill treasury bounty; RETIRE the clamped utility
-    FIGHT bounty same unit (R5). Bounty payout enters scoring through the
-    greed-weighted `reward` term; per-kill affordability check; player range
-    0–3× avg coin drop.
-  - [ ] #1d — AGGRESSIVE monsters (deaths → gravestone/social negatives)
-    + Scurrius boss gate (kill-count unlock).
+  - [x] #1c — Funded per-kill bounty SHIPPED: `set_bounty` clamped 0–3× avg
+    coin drop, one affordability rule (`bounty_affordable`) read by both
+    payment and the brain's greed-weighted `bounty` term; treasury→hero
+    per-kill payout (overdraw impossible); utility FIGHT incentive RETIRED
+    (set_incentive rejects "FIGHT"); Town-tab bounty row (cycle per known
+    monster). (2026-06-12)
+  - [x] #1d — Aggressive monsters + Scurrius gate SHIPPED: catalog-flagged
+    aggro chase/strike vs non-fighting heroes; shared `_hero_death`
+    (gravestone grudges + reputation dents LIVE, now rare events); Scurrius
+    locked behind 300 colony rat kills, lair-bound, 240s respawn, boss-kill
+    Chronicle. Survival triad (canon regen 1HP/min · aggression tolerance
+    8s arrival-tax · brain danger term) measured: deaths 2,096→4 per 24k
+    ticks, rep 0→61, goblin culling restored. Suite 141/141; 3 gates
+    green. (2026-06-12)
   - [ ] #1e — Unit-0 sweep instrumented with monoculture/rival-lean metrics
     (R6 — verifies the banked §18 prediction); then BRAIN_V2 4th test
     (activity breadth widened).

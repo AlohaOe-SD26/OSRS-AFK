@@ -80,9 +80,21 @@ behavioral reference carrying the validated Step-1 economy tune.
 - **Interim social negatives:** canon sources (PvP/death-loot) don't exist
   yet; scarcity-gated competition-friction bridges until content wave (e),
   then retires.
-- **Tier-1 incentives:** currently an unfunded utility bounty clamped at +24
-  (sweep-measured overproduction cliff ~+36). INTENDED design = funded
-  per-unit/per-kill bounty paid from the treasury — queued.
+- **Tier-1 incentives (combat half DONE 2026-06-12, R5):** combat steering
+  is now the funded per-kill bounty — one player-set number (0–3× the
+  monster's avg coin drop) that is BOTH the treasury-paid reward and,
+  through the greed-weighted reward term, the attraction; an empty treasury
+  attracts nobody. The unfunded utility FIGHT bounty is retired. GATHER
+  incentives remain utility-clamped (+24) until Unit 4 migrates them to
+  funded buy orders / price bias (R5 end state).
+- **Living danger (#1d, 2026-06-12):** aggressive monsters harass
+  non-fighting heroes — by design an ARRIVAL TAX, not sustained DPS. Three
+  canon mechanics keep deaths rare-but-real (the gravestone/grudge channel
+  fires occasionally, not constantly): passive regen (1 HP/min), aggression
+  tolerance (settled heroes are ignored after ~8s), lair-bound bosses
+  (Scurrius punishes trespassers only, unlocked at 300 colony rat kills).
+  The brain prices workplace danger (frailty-scaled term) — every force has
+  its counter-force.
 - **Economy & incentive feature set under design review (2026-06-11):** GE
   order book + city buy orders, city inventory + item-cost upgrades, shop
   sell-back rules, shop crafting + imports, parameterized nudge popups — see

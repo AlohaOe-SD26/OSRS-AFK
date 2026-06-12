@@ -29,10 +29,15 @@ static func _migrate_1_to_2(d: Dictionary) -> Dictionary:
 	var nd: Dictionary = d.duplicate(true)
 	nd["kill_counts"] = {}
 	nd["slayer_tasks_assigned"] = 0
+	nd["bounties"] = {}
+	nd["scurrius_unlocked"] = false
+	for md in nd["monsters"]:
+		md["atk_cd"] = 0.0
 	for hd in nd["heroes"]:
 		hd["slayer_task"] = {}
 		hd["slayer_points"] = 0
 		hd["skills"]["slayer"] = {"level": 1, "xp": 0}
+		hd["tol_t"] = 0.0
 	nd["version"] = 2
 	return nd
 
@@ -62,8 +67,8 @@ static func save_world(w) -> Dictionary:
 	for m in w.monsters:
 		monsters.append({"type_id": m.type_id, "pos": m.pos, "hp": m.hp, "max_hp": m.max_hp,
 			"defence": m.defence, "monster_max_hit": m.monster_max_hit, "attack_speed": m.attack_speed,
-			"alive": m.alive, "respawn": m.respawn, "wander": m.wander, "move_target": m.move_target,
-			"camp": m.camp})
+			"alive": m.alive, "respawn": m.respawn, "wander": m.wander, "atk_cd": m.atk_cd,
+			"move_target": m.move_target, "camp": m.camp})
 	var shops: Array = []
 	for s in w.economy.shops:
 		shops.append({"npc_id": s.npc_id, "stock": s.stock.duplicate(true),
@@ -91,8 +96,9 @@ static func save_world(w) -> Dictionary:
 		# player layer + story
 		"incentives": w.incentives.duplicate(true), "buildings": w.buildings.duplicate(true),
 		"kick_records": w.kick_records.duplicate(true),
-		# slayer (v2)
+		# slayer + funded bounties + boss gate (v2)
 		"kill_counts": w.kill_counts.duplicate(true), "slayer_tasks_assigned": w.slayer_tasks_assigned,
+		"bounties": w.bounties.duplicate(true), "scurrius_unlocked": w.scurrius_unlocked,
 		"announced_bonds": w._announced_bonds.duplicate(true),
 		"chronicle": w.chronicle.duplicate(true),
 	}
@@ -108,7 +114,7 @@ static func _save_hero(h) -> Dictionary:
 		"milestones": h.milestones.duplicate(true), "nudge": h.nudge.duplicate(true), "seized": h.seized,
 		"slayer_task": h.slayer_task.duplicate(true), "slayer_points": h.slayer_points,
 		"weapon": h.weapon, "equipped": h.equipped.duplicate(true), "goal": h.goal.duplicate(true), "run_on": h.run_on, "run_energy": h.run_energy,
-		"run_stop_at": h.run_stop_at, "run_cd_left": h.run_cd_left,
+		"run_stop_at": h.run_stop_at, "run_cd_left": h.run_cd_left, "tol_t": h.tol_t,
 		"path": h.path.duplicate(true), "path_goal": h.path_goal}
 
 # --------------------------------------------------------------------------- load
@@ -134,6 +140,7 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 		m.defence = int(md["defence"]); m.monster_max_hit = int(md["monster_max_hit"])
 		m.attack_speed = int(md["attack_speed"]); m.alive = bool(md["alive"])
 		m.respawn = float(md["respawn"]); m.wander = float(md["wander"]); m.move_target = md["move_target"]
+		m.atk_cd = float(md.get("atk_cd", 0.0))
 		m.camp = String(md.get("camp", "combat"))
 		w.monsters.append(m)
 	# economy: fresh shops (canon defs), then overwrite all evolving fields by npc_id
@@ -159,8 +166,10 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 	# player layer + story
 	w.incentives = d["incentives"]; w.buildings = d["buildings"]; w.kick_records = d["kick_records"]
 	w._announced_bonds = d["announced_bonds"]; w.chronicle = d["chronicle"]
-	# slayer (v2 — migration guarantees presence)
+	# slayer + funded bounties + boss gate (v2 — migration guarantees presence)
 	w.kill_counts = d["kill_counts"]; w.slayer_tasks_assigned = int(d["slayer_tasks_assigned"])
+	w.bounties = d.get("bounties", {})
+	w.scurrius_unlocked = bool(d.get("scurrius_unlocked", false))
 	return w
 
 static func _load_hero(hd: Dictionary) -> Hero:
@@ -182,6 +191,7 @@ static func _load_hero(hd: Dictionary) -> Hero:
 	h.run_energy = float(hd.get("run_energy", 100.0))
 	h.run_stop_at = float(hd.get("run_stop_at", 0.0))
 	h.run_cd_left = float(hd.get("run_cd_left", 0.0))
+	h.tol_t = float(hd.get("tol_t", 0.0))
 	h.path = hd.get("path", [])
 	h.path_goal = hd.get("path_goal", null)
 	return h

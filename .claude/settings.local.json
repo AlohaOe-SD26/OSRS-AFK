@@ -45,7 +45,6 @@
       "Bash(timeout 90 \"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/gate_saveload.gd\")",
       "Bash(timeout 90 \"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:/Users/Ripto/Downloads/osrs_afk/game\" res://render/Main.tscn --quit-after 100)",
       "Bash(timeout 500 \"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/diag_stage2.gd\")",
-      "Bash(python -c ' *)",
       "Bash(timeout 200 \"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tests/test_sim.gd\")",
       "Bash(timeout 300 \"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/diag_ammo.gd\")",
       "Bash(timeout 120 \"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/gate_saveload.gd\")",
@@ -75,7 +74,20 @@
       "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tests/test_sim.gd\" 2>$null)",
       "PowerShell($g = \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\"; $p = \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\"; foreach \\($t in @\\(\"gate_determinism\", \"gate_saveload\", \"gate_offline\"\\)\\) { & $g --headless --path $p --script \"res://tools/$t.gd\" 2>$null | Select-Object -Last 4 })",
       "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --quit-after 3 2>&1)",
-      "Bash(git commit -q -m 'feat: Slayer core — Vannaka, knowledge-gated feasible tasks, on-task pull \\(punch-list #1b\\) *)"
+      "Bash(git commit -q -m 'feat: Slayer core — Vannaka, knowledge-gated feasible tasks, on-task pull \\(punch-list #1b\\) *)",
+      "PowerShell($g = \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\"; $p = \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\"; foreach \\($t in @\\(\"gate_determinism\", \"gate_saveload\", \"gate_offline\"\\)\\) { & $g --headless --path $p --script \"res://tools/$t.gd\" 2>$null | Select-Object -Last 2 }; & $g --headless --path $p --quit-after 3 2>$null | Select-Object -First 3)",
+      "PowerShell(git -C C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk status --short)",
+      "PowerShell(git -C C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk diff --stat)",
+      "PowerShell(git -C C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk diff -- game/sim/Config.gd game/sim/Brain.gd game/sim/SaveLoad.gd game/sim/MonsterInstance.gd game/data/varrock_map.json game/tools/sim_hash.gd)",
+      "PowerShell(git -C C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk diff -- game/sim/SimWorld.gd)",
+      "PowerShell(git -C C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk diff -- game/tests/test_sim.gd game/render/Main.gd)",
+      "PowerShell(& \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\Godot_v4.6.3-stable_win64.exe\\\\Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"C:\\\\Users\\\\Ripto\\\\Downloads\\\\osrs_afk\\\\game\" --script \"res://tools/diag_aggro.gd\")",
+      "PowerShell($f = \"C:\\\\Users\\\\Ripto\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Ripto-Downloads-osrs-afk\\\\03be510d-a6be-431d-bc8f-1ed7889e628d\\\\tasks\\\\bxv4odiyh.output\"; \\(Get-Item $f\\).Length; \\(Get-Content $f | Measure-Object -Line\\).Lines)",
+      "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/gate_determinism.gd\")",
+      "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/gate_saveload.gd\")",
+      "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/gate_offline.gd\")",
+      "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/diag_aggro.gd\")",
+      "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tests/test_sim.gd\")"
     ]
   }
 }

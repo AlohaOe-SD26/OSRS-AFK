@@ -36,10 +36,12 @@ func _initialize() -> void:
 	_test_civic_kick()
 	_test_chronicle_narrative()
 	_test_slayer()
+	_test_funded_bounty()
+	_test_aggro_and_boss()
 	_test_saveload()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 122
+	const EXPECTED := 141
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -539,6 +541,168 @@ func _test_slayer() -> void:
 	_check(h.skill_xp("slayer") > sxp_before, "on-task kill grants slayer XP (≈0.9×HP)")
 	_check(int(world.kill_counts["rat"]) == Config.SLAYER_KNOWLEDGE + 1, "colony kill_counts increments on the kill")
 
+func _test_funded_bounty() -> void:
+	print("\n[Funded per-kill bounty — Unit 0 / R5 (one lever, two effects; utility FIGHT incentive retired)]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	world.population.enabled = false
+	world.set_incentive("FIGHT", 24.0)
+	_check(not world.incentives.has("FIGHT"), "set_incentive(FIGHT) is rejected — utility combat bounty retired")
+	var rat: Monster = content.monster("rat")
+	world.set_bounty("rat", 999.0)
+	_check(absf(float(world.bounties["rat"]) - world.bounty_cap(rat)) < 0.01,
+		"bounty clamps to 3× avg coin drop (%.1fg)" % world.bounty_cap(rat))
+	var h: Hero = null
+	for c in world.heroes:
+		if c.favorite == "fighting":
+			h = c
+			break
+	h.gold = 200.0
+	world.economy.treasury = 1000.0
+	var wealth_w := 0.6 + float(h.traits.get("greed", 0.4))
+	_check(absf(_fight_term(h, world, "combat", "bounty") - float(world.bounties["rat"]) * 0.2 * wealth_w) < 0.01,
+		"bounty term = payout × 0.2 × (0.6+greed) — attraction derives from the payout")
+	world.economy.treasury = 0.0
+	_check(_fight_term(h, world, "combat", "bounty") == 0.0,
+		"empty treasury → zero attraction (same affordability rule as payment)")
+	world.economy.treasury = 100.0
+	var mi := MonsterInstance.from_type(rat, Vector2.ZERO)
+	var g0 := h.gold
+	world._record_kill(h, mi, rat)
+	_check(absf(h.gold - g0 - world.bounty_cap(rat)) < 0.01
+		and absf(world.economy.treasury - (100.0 - world.bounty_cap(rat))) < 0.01,
+		"a kill pays the bounty treasury → hero")
+	world.economy.treasury = 1.0
+	g0 = h.gold
+	world._record_kill(h, mi, rat)
+	_check(h.gold == g0 and world.economy.treasury == 1.0,
+		"treasury short → the kill pays nothing (overdraw impossible)")
+
+func _test_aggro_and_boss() -> void:
+	print("\n[Aggressive monsters + Scurrius kill-count gate — Unit 0 #1d]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	world.population.enabled = false
+	var boss_count := 0
+	for m in world.monsters:
+		if m.type_id == "scurrius":
+			boss_count += 1
+	_check(boss_count == 0, "Scurrius does not spawn while the gate is locked")
+	var h: Hero = null
+	for c in world.heroes:
+		if c.favorite == "fighting":
+			h = c
+			break
+	world._boost(h, SimWorld.style_skill(h), 90)
+	world._boost(h, "defence", 90)
+	h.hp = h.max_hp()
+	h.gold = 500.0
+	_check(_fight_term(h, world, "scurrius", "base") < -1e8,
+		"even an endgame-strength hero gets no candidate for the locked lair")
+	world.kill_counts["rat"] = Config.SCURRIUS_UNLOCK_KILLS
+	world.tick(SimWorld._ACTION_SECONDS)
+	_check(world.scurrius_unlocked, "the gate opens at %d colony rat kills" % Config.SCURRIUS_UNLOCK_KILLS)
+	var spawned := false
+	for m in world.monsters:
+		if m.type_id == "scurrius" and m.alive:
+			spawned = true
+	_check(spawned, "Scurrius spawns at his nest on unlock")
+	_check(_fight_term(h, world, "scurrius", "base") > -1e8, "the strong hero now sees the boss candidate")
+	# aggressive strike: a hurt worker adjacent to a goblin abandons the trip and falls back to town
+	var gob: MonsterInstance = null
+	for m in world.monsters:
+		if m.type_id == "goblin" and m.alive:
+			gob = m
+			break
+	var g: Hero = world.heroes[0]   # a miner — non-FIGHT intent
+	g.hp = 4
+	g.inv.erase("cooked_fish")
+	g.act = {"intent": "GATHER_LOGS", "loc": "forest", "phase": "gather"}
+	g.pos = gob.pos
+	world._monster_strike_hero(gob, content.monster("goblin"), g)
+	_check(g.act.is_empty() and g.thought.begins_with("Harassed"),
+		"a struck worker abandons the trip and falls back to town")
+	var d0 := world.deaths
+	world._hero_death(g, "a goblin")
+	_check(world.deaths == d0 + 1 and g.pos == world.location_tile("shop"),
+		"shared death handler: counter increments, hero respawns at town")
+	# passive regen (canon 1 HP/min): the RECOVERY half of harassment — without it a foodless
+	# chipped-down worker can never heal and the aggro loop converges on death (measured)
+	g.hp = 3
+	for i in range(Config.REGEN_EVERY_ACTIONS + 1):
+		world.tick(SimWorld._ACTION_SECONDS)
+	_check(g.hp > 3, "passive regen heals a hurt hero (1 HP per %d actions)" % Config.REGEN_EVERY_ACTIONS)
+	# a lair boss punishes trespassers only — never passers-by (else he farms the adjacent rat pit)
+	var boss: MonsterInstance = null
+	for m in world.monsters:
+		if m.type_id == "scurrius" and m.alive:
+			boss = m
+			break
+	var pb: Hero = world.heroes[1]
+	pb.hp = pb.max_hp()
+	pb.act = {"intent": "GATHER_ORE", "loc": "mine", "phase": "gather"}
+	pb.pos = boss.pos
+	boss.atk_cd = 0.0
+	world._tick_monsters(0.05)
+	_check(boss.atk_cd == 0.0 and pb.hp == pb.max_hp(), "a lair boss ignores a passer-by (no strike)")
+	pb.act = {"intent": "FIGHT", "loc": "scurrius", "phase": "travel"}
+	pb.pos = boss.pos
+	world._tick_monsters(0.05)
+	_check(boss.atk_cd > 0.0, "...but strikes a trespasser who came for him")
+	# canon aggression tolerance: a settled worker is ignored; a fresh arrival is fair game
+	var gob2: MonsterInstance = null
+	for m in world.monsters:
+		if m.type_id == "goblin" and m.alive:
+			gob2 = m
+			break
+	var wc2: Hero = world.heroes[3]
+	for c in world.heroes:   # park everyone else in town so wc2 is the only prey in radius
+		if c != wc2:
+			c.pos = world.location_tile("shop")
+	wc2.hp = wc2.max_hp()
+	wc2.act = {"intent": "GATHER_LOGS", "loc": "forest", "phase": "gather"}
+	wc2.pos = gob2.pos
+	gob2.atk_cd = 0.0
+	wc2.tol_t = Config.AGGRO_TOLERANCE_S + 1.0
+	world._tick_monsters(0.05)
+	_check(gob2.atk_cd == 0.0, "a settled worker (past tolerance) is ignored by aggressive monsters")
+	wc2.tol_t = 0.0
+	world._tick_monsters(0.05)
+	_check(gob2.atk_cd > 0.0, "...a fresh arrival is struck (harassment = arrival tax)")
+	# danger back-pressure: the goblin-shared willows carry a frailty-scaled penalty in gather scoring
+	var wc: Hero = world.heroes[2]
+	wc.inv["Axe"] = 1
+	wc.inv.erase("cooked_fish")
+	wc.hp = maxi(1, int(wc.max_hp() * 0.3))
+	var hurt_pen := _gather_term(wc, world, "GATHER_LOGS", "danger")
+	wc.hp = wc.max_hp()
+	wc.inv["cooked_fish"] = 2
+	var fed_pen := _gather_term(wc, world, "GATHER_LOGS", "danger")
+	_check(hurt_pen < fed_pen and fed_pen < 0.0,
+		"goblin-shared willows carry a danger term; hurt+foodless deepens it (%.1f < %.1f)" % [hurt_pen, fed_pen])
+
+## The named term's value on the `intent` gather candidate (-1e9 if candidate/term absent).
+func _gather_term(h: Hero, world: SimWorld, intent: String, term: String) -> float:
+	for c in Brain.candidates_with_terms(h, world):
+		if String(c.get("intent", "")) == intent:
+			for t in c["terms"]:
+				if String(t[0]) == term:
+					return float(t[1])
+	return -1e9
+
+## The named term's value on the FIGHT candidate for `camp` (-1e9 if candidate/term absent).
+func _fight_term(h: Hero, world: SimWorld, camp: String, term: String) -> float:
+	for c in Brain.candidates_with_terms(h, world):
+		if String(c.get("intent", "")) == "FIGHT" and String(c.get("loc", "")) == camp:
+			for t in c["terms"]:
+				if String(t[0]) == term:
+					return float(t[1])
+	return -1e9
+
 func _test_saveload() -> void:
 	print("\n[Save/load — §25, Step 6 — the determinism invariant applied to persistence]")
 	var content := ContentDB.new()
@@ -592,9 +756,14 @@ func _test_saveload() -> void:
 	v1["version"] = 1
 	v1.erase("kill_counts")
 	v1.erase("slayer_tasks_assigned")
+	v1.erase("bounties")
+	v1.erase("scurrius_unlocked")
+	for md in v1["monsters"]:
+		md.erase("atk_cd")
 	for hd in v1["heroes"]:
 		hd.erase("slayer_task")
 		hd.erase("slayer_points")
+		hd.erase("tol_t")
 		hd["skills"].erase("slayer")
 	var v2: Dictionary = SaveLoad.migrate(v1)
 	_check(int(v2.get("version", -1)) == SaveLoad.SAVE_VERSION and v2.has("kill_counts"),

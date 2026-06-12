@@ -155,6 +155,12 @@
    "kind": "trees",
    "label": "Palace Yews"
   },
+  "scurrius": {
+   "x": 35,
+   "y": 4,
+   "kind": "hole",
+   "label": "Scurrius' Nest"
+  },
   "vannaka": {
    "x": 13,
    "y": 12,

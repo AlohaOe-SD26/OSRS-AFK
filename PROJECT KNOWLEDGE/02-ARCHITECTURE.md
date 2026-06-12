@@ -87,6 +87,11 @@ Day-12 per-capita gold ≈ **1,065–1,211** (post-pathfinder re-center,
 UPKEEP_RATE 0.80); recent content slices ran 926–1,058 and 682–1,249,
 drift +2–6%. The old "600–900" band is stale. POP_CAP 50; perf ≈ 305 ms /
 1k ticks at 50 heroes headless.
+**Post-#1d drift (2026-06-12, awaiting #1e re-baseline):** the survival
+triad (regen/tolerance — deaths 2,096→4, flees ~0) lifted per-capita to
+~1,485 at day 23 in the aggro diagnostic. More productive hours, same
+attractor; formally re-baseline in the #1e instrumented sweep before
+treating any number as a regression.
 
 ## External dependencies & services
 None at runtime. GitHub remote `https://github.com/AlohaOe-SD26/OSRS-AFK`

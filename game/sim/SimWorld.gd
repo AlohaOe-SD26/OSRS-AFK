@@ -54,6 +54,13 @@ var kick_records: Dictionary = {}
 # and generalizes to kill-count boss unlocks (Scurrius). Serialized (save v2).
 var kill_counts: Dictionary = {}
 var slayer_tasks_assigned: int = 0   # lifetime counter; 0→1 fires the Vannaka-arrival Chronicle line
+# FUNDED PER-KILL BOUNTY (Unit 0 / R5 — the banked "funded per-unit bounty" design, validated by the
+# reference build): monster type_id -> gold the treasury pays the killer PER KILL. One lever, two
+# effects: the same number is the payment AND (through the brain's greed-weighted reward shape) the
+# attraction. Affordability-checked at every kill; treasury→hero re-injection accepted per R1.
+# This RETIRES the clamped utility FIGHT incentive (set_incentive rejects "FIGHT").
+var bounties: Dictionary = {}
+var scurrius_unlocked: bool = false   # the #1d boss gate; flips once via _check_boss_unlock
 # Chronicle de-dup (§17, Step 5): "a<b" pair key -> the strongest tier already announced for that pair, so a
 # forming alliance / nemesis is narrated ONCE (not every pass it stays at that tier).
 var _announced_bonds: Dictionary = {}
@@ -103,13 +110,14 @@ const CAMPS: Array = [
 	{"loc": "stone_circle", "mon": "dark_wizard", "n": 3},   # weak RANGED
 	{"loc": "longhall", "mon": "barbarian", "n": 3},          # weak MAGIC — triangle coverage complete
 	{"loc": "forest", "mon": "goblin", "n": 3},               # goblins harass the willows (shared workplace)
+	{"loc": "scurrius", "mon": "scurrius", "n": 1},           # BOSS — locked until the kill-count gate (#1d)
 ]
 
 func _spawn_monsters(_n: int) -> void:
 	monsters.clear()
 	for c in CAMPS:
 		var mt: Monster = content.monster(String(c["mon"]))
-		if mt == null:
+		if mt == null or (mt.is_boss and not scurrius_unlocked):
 			continue
 		for i in range(int(c["n"])):
 			var mi := MonsterInstance.from_type(mt, _combat_scatter(String(c["loc"])))
@@ -285,6 +293,19 @@ func alive_monster_count_at(loc: String) -> int:
 			c += 1
 	return c
 
+## Sum of max-hit over LIVE aggressive (non-boss) monsters camped at `loc` — the brain's danger
+## signal (#1d back-pressure: aggro is a force; without a counter-force in scoring, frail heroes
+## walk straight back into goblin territory and death-loop). Bosses excluded — lair-bound, they
+## never threaten workers.
+func aggro_threat_at(loc: String) -> float:
+	var t := 0.0
+	for r in monsters:
+		if r.alive and r.camp == loc:
+			var mt: Monster = content.monster(r.type_id)
+			if mt != null and mt.aggressive and not mt.is_boss:
+				t += float(mt.max_hit)
+	return t
+
 # ---------------------------------------------------------------------------
 # PLAYER CONTROL TIERS (GDD §2 / §18.4) — the Step-4 keystone. All three act on the SAME utility
 # brain / activity systems the heroes use autonomously (the dual-agency invariant, HANDOFF §5).
@@ -294,11 +315,45 @@ func alive_monster_count_at(loc: String) -> int:
 ## `step` multiples of Config.INCENTIVE_STEP are the natural UI unit; clamped so it can't crowd out
 ## survival entirely. weight 0 (or clear_incentive) removes it.
 func set_incentive(intent: String, weight: float) -> void:
+	if intent == "FIGHT":   # RETIRED (R5): combat steering is the FUNDED bounty now — see set_bounty
+		incentives.erase(intent)
+		return
 	var w: float = clampf(weight, 0.0, Config.INCENTIVE_MAX)
 	if w <= 0.0:
 		incentives.erase(intent)
 	else:
 		incentives[intent] = w
+
+## Average coin drop of a monster AS THE LIVE FIGHT PAYS IT (rats use the re-tuned Config range, the
+## rest the catalog) — the unit the bounty range is denominated in (R5: 0–3× avg drop).
+func avg_coin_drop(mon: Monster) -> float:
+	if mon.id == "rat":
+		return Config.RAT_DROP_MIN + Config.RAT_DROP_RANGE * 0.5
+	return (mon.coin_drop_min + mon.coin_drop_max) * 0.5
+
+func bounty_cap(mon: Monster) -> float:
+	return 3.0 * avg_coin_drop(mon)
+
+## Post (or clear, at ≤0) a treasury-funded per-kill bounty on a monster. Clamped to 0–3× the
+## monster's average coin drop (R5's endorsed translation of the reference's 0–100g range).
+func set_bounty(mon_id: String, per_kill: float) -> void:
+	var mon: Monster = content.monster(mon_id)
+	if mon == null:
+		return
+	var b: float = clampf(per_kill, 0.0, bounty_cap(mon))
+	if b <= 0.0:
+		if bounties.has(mon_id):
+			bounties.erase(mon_id)
+			log_event("The bounty on %ss is withdrawn." % mon.name, "gold", 1)
+	else:
+		bounties[mon_id] = b
+		log_event("You post a bounty — %dg per %s, paid from the treasury." % [int(round(b)), mon.name], "gold", 1)
+
+## The bounty the treasury can actually pay for ONE kill right now (0 if none posted or unaffordable).
+## Used by BOTH the payment and the brain's attraction — the affordability gate is one rule (R5/B2).
+func bounty_affordable(mon_id: String) -> float:
+	var b: float = float(bounties.get(mon_id, 0.0))
+	return b if (b > 0.0 and economy.treasury >= b) else 0.0
 
 func clear_incentive(intent: String) -> void:
 	incentives.erase(intent)
@@ -463,6 +518,14 @@ func _assign_slayer_task(h: Hero) -> void:
 ## kill also earns bonus slayer XP (≈0.9×HP, B2) and advances the task; completion pays slayer points.
 func _record_kill(h: Hero, r: MonsterInstance, mon: Monster) -> void:
 	kill_counts[r.type_id] = int(kill_counts.get(r.type_id, 0)) + 1
+	if mon != null and mon.is_boss:   # a boss kill is town news (§17) and a saga line (#1d)
+		_milestone(h, "Slew %s!" % mon.name)
+		log_event("%s has slain %s! The colony erupts in celebration." % [h.hero_name, mon.name], "boss", 3)
+	# funded bounty payout (R5): per-kill, affordability-checked — the treasury can never overdraw
+	var b := bounty_affordable(r.type_id)
+	if b > 0.0:
+		economy.treasury -= b
+		h.gold += b
 	if h.slayer_task.is_empty() or String(h.slayer_task.get("mon", "")) != r.type_id:
 		return
 	if mon != null:
@@ -623,6 +686,7 @@ func tick(dt: float) -> void:
 	if paused:
 		return
 	for h in heroes:
+		h.tol_t += dt   # aggression-tolerance clock (#1d) — resets each new trip in _start_activity
 		_move_step(h, dt)
 	_tick_monsters(dt)
 	_work_acc += dt
@@ -630,8 +694,14 @@ func tick(dt: float) -> void:
 		_work_acc -= _ACTION_SECONDS
 		var prev_day := sim_day
 		_advance_clock()
+		# canon passive regen (1 HP/min, OSRS): pulsed off the serialized action counter — the
+		# recovery half of #1d (aggro chips heroes down; without regen a foodless worker death-loops)
+		if action_n % Config.REGEN_EVERY_ACTIONS == 0:
+			for h in heroes:
+				h.hp = mini(h.max_hp(), h.hp + 1)
 		for h in heroes:
 			_work_action(h)
+		_check_boss_unlock()   # Scurrius kill-count gate (#1d); no-op once unlocked
 		economy.economy_tick(_DD_PER_ACTION, heroes)
 		if social != null:
 			social.tick(self, _DD_PER_ACTION)
@@ -849,7 +919,13 @@ func _route_river(from: Vector2, to: Vector2) -> Vector2:
 	return to
 
 # ---------------------------------------------------------------------------
-# Monsters (§10): idle wander + respawn. Continuous (dt-based), like hero movement.
+# Monsters (§10): idle wander + respawn, and (#1d) AGGRESSIVE types chase & strike nearby heroes —
+# the live risk source that makes deaths (→ gravestone grudges, reputation dents) actually happen.
+# Continuous (dt-based), like hero movement.
+const AGGRO_RADIUS: float = 2.4   # an aggressive monster notices heroes within this many tiles
+const AGGRO_REACH: float = 1.05   # ...and strikes when adjacent
+const BOSS_RESPAWN_S: float = 240.0
+
 func _tick_monsters(dt: float) -> void:
 	for r: MonsterInstance in monsters:
 		if not r.alive:
@@ -857,16 +933,84 @@ func _tick_monsters(dt: float) -> void:
 			if r.respawn <= 0.0:
 				_respawn_monster(r)
 			continue
-		r.wander -= dt
-		if r.wander <= 0.0:
-			var c: Vector2 = location_tile(r.camp)
-			r.wander = 1.0 + rng.randf() * 2.0
-			r.move_target = c + Vector2(rng.randf_range(-1.8, 1.8), rng.randf_range(-1.8, 1.8))
+		r.atk_cd = maxf(0.0, r.atk_cd - dt)
+		# aggressive chase (#1d): the nearest hero in radius becomes the move target; strike on reach.
+		# Monsters are slower than heroes (0.7 vs 3.4 tiles/s) → harassment, not a death sentence.
+		var chasing := false
+		var mt: Monster = content.monster(r.type_id)
+		if mt != null and mt.aggressive:
+			var prey: Hero = null
+			var pd := AGGRO_RADIUS
+			for h in heroes:
+				# a hero FIGHTING at this camp is already in the fight loop's exchange (retaliation
+				# rolls) — aggro-striking them too would double the same monster's damage. Aggro
+				# threatens everyone ELSE: workers, passers-by, the fled and the unarmed.
+				if h.act.get("phase", "") == "fight" and h.act.get("loc", "") == r.camp:
+					continue
+				# a BOSS is lair-bound: he punishes trespassers who came for him, never passers-by —
+				# else Scurrius farms the adjacent rat pit (measured: ~800 boss kills of heroes/24k ticks)
+				if mt.is_boss and String(h.act.get("loc", "")) != r.camp:
+					continue
+				# canon aggression tolerance: a hero settled into their trip is left alone (bosses
+				# excepted — a lair never tolerates trespassers). The arrival-tax rule that stops
+				# shared-workplace aggro from out-damaging regen (#1d death-loop fix).
+				if not mt.is_boss and h.tol_t > Config.AGGRO_TOLERANCE_S:
+					continue
+				var hd := r.pos.distance_to(h.pos)
+				if hd < pd:
+					pd = hd
+					prey = h
+			if prey != null:
+				chasing = true
+				r.move_target = prey.pos
+				if pd <= AGGRO_REACH and r.atk_cd <= 0.0:
+					r.atk_cd = r.attack_speed * Config.TICK
+					_monster_strike_hero(r, mt, prey)
+		if not chasing:
+			r.wander -= dt
+			if r.wander <= 0.0:
+				var c: Vector2 = location_tile(r.camp)
+				r.wander = 1.0 + rng.randf() * 2.0
+				r.move_target = c + Vector2(rng.randf_range(-1.8, 1.8), rng.randf_range(-1.8, 1.8))
 		if r.move_target != null:
 			var target: Vector2 = r.move_target
 			var d := r.pos.distance_to(target)
 			if d > 0.05:
 				r.pos += (target - r.pos) * minf(1.0, 0.7 * dt / d)
+
+## An aggressive monster's strike (#1d): same damage/mitigation as fight-phase retaliation. A
+## NON-fighting victim reacts the way the fight loop would — eat when low, abandon work when hurt.
+func _monster_strike_hero(r: MonsterInstance, mt: Monster, h: Hero) -> void:
+	var mit := 1.0 - 0.06 * (int(Config.GEAR_TIER.get(h.equipped.get("head", ""), 0)) + int(Config.GEAR_TIER.get(h.equipped.get("torso", ""), 0)))
+	if h.equipped.has("off"):
+		mit -= 0.12
+	var raw := rng.randi_range(0, r.monster_max_hit)
+	h.hp -= int(ceil(raw * maxf(0.4, mit)))
+	h.flash = 0.35
+	if h.hp <= 0:
+		_hero_death(h, mt.name if mt.is_boss else "a %s" % mt.name)
+		return
+	if String(h.act.get("intent", "")) != "FIGHT":
+		if h.hp < int(h.max_hp() * Config.EAT_THRESHOLD) and int(h.inv.get("cooked_fish", 0)) > 0:
+			h.inv["cooked_fish"] = int(h.inv["cooked_fish"]) - 1
+			h.hp = mini(h.max_hp(), h.hp + Config.FOOD_HEAL)
+		elif h.hp < int(h.max_hp() * 0.6):
+			h.act = {}
+			_set_move(h, "shop")
+			h.thought = "Harassed by a %s — falling back to town!" % mt.name
+
+## Scurrius kill-count gate (#1d): the sewers boss emerges once the colony has culled enough rats.
+## The same kill_counts knowledge that gates the Slayer pool drives it — one mechanism, two doors.
+func _check_boss_unlock() -> void:
+	if scurrius_unlocked or int(kill_counts.get("rat", 0)) < Config.SCURRIUS_UNLOCK_KILLS:
+		return
+	scurrius_unlocked = true
+	var mt: Monster = content.monster("scurrius")
+	if mt != null:
+		var mi := MonsterInstance.from_type(mt, _combat_scatter("scurrius"))
+		mi.camp = "scurrius"
+		monsters.append(mi)
+	log_event("The sewers shudder — SCURRIUS, the giant rat of legend, emerges by the Rat Pit!", "boss", 3)
 
 func _respawn_monster(r: MonsterInstance) -> void:
 	var rat: Monster = content.monster(r.type_id)
@@ -916,6 +1060,28 @@ func _gear_drop(h: Hero) -> void:
 		h.inv[String(d["item"])] = int(h.inv.get(String(d["item"]), 0)) + 1   # CARRIED — sellable/swappable
 	else:
 		h.gold += float(d["value"]) * 0.5   # no space → salvage
+
+## Hero death (§14, live-only): counters, reputation dent (§8), gravestone-loot grab (§16.3 grudge),
+## respawn at town. Shared by the fight loop and aggressive-monster strikes (#1d).
+func _hero_death(h: Hero, killer: String) -> void:
+	deaths += 1
+	if population != null:
+		population.recent_deaths += 1.0   # dents reputation (§8), decays over the next days
+	# §14 gravestone-loot: the dropped gold is grabbed by the nearest fellow, and the fallen hero
+	# resents the looter (§16.3 negative delta). Gold-neutral transfer between heroes.
+	var dropped: float = h.gold * 0.1
+	var looter := _nearest_other_hero(h)
+	if looter != null and dropped >= 1.0:
+		looter.gold += dropped
+		if social != null:
+			social.record_graveloot(h.id, looter.id, sim_day)
+		log_event("%s looted %s's grave (+%dg) — a grudge is born." % [looter.hero_name, h.hero_name, int(dropped)], "die")
+	h.gold = h.gold - dropped
+	log_event("%s was slain by %s! Respawns shortly." % [h.hero_name, killer], "die")
+	h.hp = h.max_hp()
+	h.act = {}
+	h.pos = location_tile("shop")
+	_set_move(h, "shop")
 
 ## Nearest living hero other than `h` (used by the dormant gravestone-loot grab). null if alone.
 func _nearest_other_hero(h: Hero) -> Hero:
@@ -1006,7 +1172,7 @@ func _fight_round(h: Hero) -> void:
 	# kill
 	if r.hp <= 0:
 		r.alive = false
-		r.respawn = MONSTER_RESPAWN_S
+		r.respawn = BOSS_RESPAWN_S if (mon != null and mon.is_boss) else MONSTER_RESPAWN_S
 		total_kills += 1
 		_record_kill(h, r, mon)   # Slayer: colony knowledge + on-task progress (Unit 0)
 		h.act["kills"] = int(h.act.get("kills", 0)) + 1   # §18.6 combat-trip progress
@@ -1019,27 +1185,9 @@ func _fight_round(h: Hero) -> void:
 			_gear_drop(h)
 		if total_kills % 15 == 0:
 			log_event("%s felled a giant rat — %d slain in all." % [h.hero_name, total_kills], "boss", 0)
-	# hero death (§14, live-only) — respawn at the bank/shop, drop 10% gold
+	# hero death (§14, live-only) — shared handler (#1d: aggressive strikes kill the same way)
 	if h.hp <= 0:
-		deaths += 1
-		if population != null:
-			population.recent_deaths += 1.0   # dents reputation (§8), decays over the next days
-		# §14 gravestone-loot (DORMANT — deaths≈0 at current survival tuning): the dropped gold is grabbed
-		# by the nearest fellow at the pit, and the fallen hero resents the looter (§16.3 negative delta).
-		# Gold-neutral transfer (was a 10% sink; with deaths≈0 the economy is unaffected — verified).
-		var dropped: float = h.gold * 0.1
-		var looter := _nearest_other_hero(h)
-		if looter != null and dropped >= 1.0:
-			looter.gold += dropped
-			if social != null:
-				social.record_graveloot(h.id, looter.id, sim_day)
-			log_event("%s looted %s's grave (+%dg) — a grudge is born." % [looter.hero_name, h.hero_name, int(dropped)], "die")
-		h.gold = h.gold - dropped
-		log_event("%s was slain by a rat! Respawns shortly." % h.hero_name, "die")
-		h.hp = h.max_hp()
-		h.act = {}
-		h.pos = location_tile("shop")
-		_set_move(h, "shop")
+		_hero_death(h, (mon.name if mon.is_boss else "a %s" % mon.name) if mon != null else "a rat")
 		return
 	# disengage to re-provision if low on food and hurt
 	if int(h.inv.get("cooked_fish", 0)) <= 0 and h.hp < int(h.max_hp() * 0.6):
@@ -1082,6 +1230,7 @@ func _maybe_pick_goal(h: Hero) -> void:
 	h.goal = {"skill": skill, "level": mini(99, h.skill_level(skill) + rng.randi_range(4, 12))}
 
 func _start_activity(h: Hero) -> void:
+	h.tol_t = 0.0   # fresh trip → fresh aggression window (canon: leaving the area resets tolerance)
 	_maybe_pick_goal(h)
 	# autonomous RUN roll (skipped while seized — the player drives run manually): only when the
 	# cooldown has expired; FAILED rolls re-trigger the cooldown before run can be rolled again.

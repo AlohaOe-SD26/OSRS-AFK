@@ -70,3 +70,27 @@
   commit (`5fd5d97`) and pushed to origin/main; added Godot-cache and
   archive ignores first so `.godot/` never enters history. Per-item commit
   discipline (Project Kit DoD) applies from here on.
+
+## 2026-06-12 — Live-aggro survival: canon mechanics over knob-tuning (punch-list #1d)
+- **Decision:** The aggressive-monster death-loop (workers chipped faster
+  than they could ever recover) is solved with three CANON OSRS mechanics —
+  passive regen (1 HP/min), aggression tolerance (monsters ignore heroes
+  settled >8s into a trip; harassment = arrival tax), and lair-bound bosses
+  (strike trespassers only) — plus one brain term (danger = −threat ×
+  frailty on gather candidates at aggro-shared camps). Deaths fell
+  2,096 → 4 per 24k ticks; reputation recovered 0 → 61; goblin culling
+  and the Scurrius fight both became functional for the first time.
+- **Why this shape:** the bug-class rule (every force needs a counter-force)
+  said the fix belongs at the SOURCE (exposure time) and in the BRAIN
+  (priced risk), not in the damage numbers. Tolerance also fixed a second-
+  order failure for free: perma-chasing goblins never stood still, so
+  fighters stopped culling them (kills 96 → 3,730 once they wander again).
+- **Alternatives rejected:** scaling the danger term alone (measured
+  insufficient — favorite bias +14 outbids any sane penalty at full HP, and
+  at low HP the worker is already in the loop); softening REP_PER_DEATH
+  (treats the symptom, keeps the meat grinder); nerfing aggro damage
+  (makes aggression cosmetic); per-pair tolerance state (canon-truer but
+  save-shape-heavy; per-hero trip clock captures the same behavior).
+- **Note:** per-capita gold drifted above the validated 1,065–1,211 band
+  (~1,485 at day 23 — fewer deaths/flees = more productive hours). Formal
+  re-baseline belongs to the #1e instrumented sweep, not a knob reaction.

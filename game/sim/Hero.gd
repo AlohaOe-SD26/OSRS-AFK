@@ -35,6 +35,11 @@ var run_energy: float = 100.0
 # then a rolled 15–120s cooldown gates the next roll (failed rolls re-trigger the cooldown).
 var run_stop_at: float = 0.0     # energy level at which this run ends (random per roll)
 var run_cd_left: float = 0.0     # seconds until running may be rolled again
+# canon OSRS aggression tolerance (#1d): seconds spent on the CURRENT trip. Once past
+# Config.AGGRO_TOLERANCE_S, aggressive monsters ignore this hero (harassment is an arrival
+# tax, not sustained DPS — the canon rule that lets players skill near aggressive mobs).
+# Resets at every new decision/trip. Serialized — aggro choices feed determinism.
+var tol_t: float = 0.0
 # pathfinding (grid BFS): waypoints to the current move_target. Serialized (a fresh BFS mid-trip
 # could tie-break differently → save/load determinism requires persisting the exact path).
 var path: Array = []
