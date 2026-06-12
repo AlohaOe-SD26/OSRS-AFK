@@ -5,18 +5,30 @@
 > Item format: `- [ ] #N — description` (N never reused; completed items move
 > to Done with the date).
 
-## Now (active focus) — Unit 2 (shop economy v2, punch #3) is next up
-
-## Next
-- [ ] #3 — Unit 2: shop economy v2 (rulings R1/R3): per-good dynamic buy
-  pricing, player price-bias lever (swept clamp, expect narrower than
-  50–150%), ambient imports/restock-to-baseline (C5), tier-up stock unlocks,
-  shop roster expansion — **Horvik, Lowe, Zaff, Aubury, Swordshop greenlit**
-  (Apothecary/Thessalia deferred; stagger openings optional),
-  **purchase→treasury routing at 40%** (tune 30–50% band; one ledger unit
-  with city-buy outflow — sweep once, re-center once; add treasury
-  inflow/outflow telemetry lines). NOTE: design the KI-4 fix (combat reward
-  saturation / price coupling) into this unit while pricing files are open.
+## Now (active focus) — Unit 2: shop economy v2 (punch #3)
+- [ ] #3 — Unit 2: shop economy v2 (rulings R1/R3). Sub-items in build order:
+  - [x] #3a — Supply side SHIPPED: 7-shop roster via new `data/shops.json`
+    (R3 cast), gear re-routed to specialist shops, dynamic buy pricing
+    (`charge_price`, anchored to the validated flat costs at baseline
+    fill), stock-gated purchases, C5 ambient imports (ammo baselines tuned
+    8→60 after a measured supply cliff: kills −25% — the R3 anti-pattern,
+    caught and fixed), tier-up unlocks (buy-side only), save v4 + v3→v4
+    upgrader. Offline-gate criterion v2 (re-entry + runaway guard —
+    endpoint-only Δ was decoupled-run noise). (2026-06-12)
+  - [x] #3b — Ledger SHIPPED: `PURCHASE_TREASURY_ROUTE` 0.40 (all hero
+    shop spend incl. food; hero-side sink unchanged), 5 treasury
+    inflow/outflow counters wired/serialized + telemetry line (day-23:
+    treasury 78k = tax 28k + routing 50k, outflows 0 until player acts);
+    band verified: drift −2%, kills 20.8k vs 21.8k pre-Unit-2, g/cap
+    ~1,829 (band edge — formal re-baseline at #3d closing report).
+    Suite 169/169; 3 gates PASS. (2026-06-12)
+  - [ ] #3c — Player price-bias lever (per-good sell-price multiplier),
+    swept clamp (expect narrower than 50–150%), Town-tab UI row.
+  - [ ] #3d — KI-4 counter-force experiment (designed into this unit per
+    #1e): sweep COMBAT_CONGESTION_MULT {0.5 current, 0.75, 1.0} ±
+    gear-drop reward coupling through the now-real gear-board price;
+    two-sided criterion (monoculture must drop from ~44%, combat must not
+    crater). Lock the winner; closing band report.
 - [ ] #4 — Unit 3: C1 parameterized nudge popups (+ B4 disabled-with-tooltip
   gating). UI tech RULED (R11): Control nodes for new popups only, shared
   visual constants, render-layer only, decisions-log entry on the paradigm

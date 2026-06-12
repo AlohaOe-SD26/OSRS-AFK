@@ -10,6 +10,7 @@ extends RefCounted
 var items: Dictionary = {}      # id -> ItemType
 var monsters: Dictionary = {}   # id -> Monster
 var map_data: Dictionary = {}   # raw varrock_map.json
+var shop_defs: Array = []       # raw shops.json (Unit 2: the data-driven shop roster)
 
 func load_all(base_path: String = "res://data") -> bool:
 	var ok := true
@@ -17,7 +18,15 @@ func load_all(base_path: String = "res://data") -> bool:
 	ok = _load_items(_prefer(base_path, "items")) and ok
 	ok = _load_monsters(_prefer(base_path, "monsters")) and ok
 	ok = _load_map(base_path + "/varrock_map.json") and ok
+	ok = _load_shops(base_path + "/shops.json") and ok
 	return ok
+
+func _load_shops(path: String) -> bool:
+	var data: Variant = _read_json(path)
+	if not (data is Array):
+		return false
+	shop_defs = data
+	return true
 
 func _prefer(base_path: String, name: String) -> String:
 	var generated := "%s/%s.generated.json" % [base_path, name]

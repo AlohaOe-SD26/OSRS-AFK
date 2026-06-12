@@ -82,7 +82,13 @@ static func _score_fight(hero: Hero, world, camp: String = "combat", mon_id: Str
 	# combat requires a MAIN-HAND weapon equipped; without one, the option is to BUY one (if affordable).
 	# Buy-candidates emit once (on the rat-camp pass) so the camp loop doesn't duplicate them.
 	if not hero.equipped.has("main"):
-		if camp == "combat" and hero.gold >= Config.WEAPON_COST + 10:
+		# Unit 2: affordability reads the LIVE shop price (dynamic, scarcity-priced); the old flat
+		# const survives only as the bare-rig fallback (legacy roster has no charge anchors).
+		var wid: String = {"sword": "bronze_sword", "bow": "shortbow", "staff": "apprentice_staff"}[hero.weapon]
+		var wcost: int = world.economy.buy_cost(wid)
+		if wcost <= 0:
+			wcost = Config.WEAPON_COST
+		if camp == "combat" and hero.gold >= wcost + 10:
 			return _finish({"intent": "BUY_WEAPON", "loc": "shop", "skill": "strength", "res": ""},
 				[["base", 11.0], ["goal", Config.GOAL_BIAS if String(hero.goal.get("skill", "")) == "strength" else 0.0]])
 		return {}
@@ -137,7 +143,10 @@ static func _score(hero: Hero, world, intent: String) -> Dictionary:
 	# TOOL GATE: no tool in inventory → the candidate becomes "go BUY the tool" (same desire, −2 — the
 	# acquisition step a real player takes; prevents tool-gating from locking heroes to their favorite)
 	if Config.TOOL_FOR.has(skill) and int(hero.inv.get(Config.TOOL_FOR[skill], 0)) <= 0:
-		if hero.gold < Config.TOOL_COST + 5:
+		var tcost: int = world.economy.buy_cost(String(Config.TOOL_FOR[skill]))
+		if tcost <= 0:
+			tcost = Config.TOOL_COST   # bare-rig fallback (legacy roster has no charge anchors)
+		if hero.gold < tcost + 5:
 			return _finish({"intent": intent, "loc": loc_key, "skill": skill, "res": ""}, [["unaffordable", -999.0]])
 		var bt := _score_inner(hero, world, intent, skill, loc_key)
 		bt["intent"] = "BUY_TOOL"

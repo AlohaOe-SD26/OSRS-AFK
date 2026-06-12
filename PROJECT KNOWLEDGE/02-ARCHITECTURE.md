@@ -33,11 +33,12 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 153-check headless gate suite
+  tests/test_sim.gd   # 169-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
   data/               # items.json (23 — THE item truth: ids/values/tiers/
-                      # styles/recipes/tradeable, Unit 1) · monsters.json (10)
-                      # · varrock_map.json
+                      # styles/recipes/tradeable, Unit 1) · shops.json (7-shop
+                      # roster + charge/baseline/unlock defs, Unit 2) ·
+                      # monsters.json (10) · varrock_map.json
 ```
 Root: 6 original design docs (unmodified), `prototype.html`,
 `STEP3_HANDOFF.md`, `sweep_out.txt`, `ANALYSIS REPORT/`, this folder.

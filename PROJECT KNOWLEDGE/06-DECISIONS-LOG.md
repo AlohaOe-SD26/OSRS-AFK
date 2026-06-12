@@ -155,3 +155,35 @@
   the combat-side counter-force (reward saturation / price coupling on the
   combat base) belongs in the shop-economy-v2 unit while pricing files are
   open — recorded on punch #3.
+
+## 2026-06-12 — Unit-2 #3a/#3b decisions
+- **Roster-as-data (`data/shops.json`)** over code-built shops: Unit 4+
+  (GE/city orders) keeps editing shop defs; data is the natural home and
+  matches the catalog-as-truth direction. Charge anchors live in shops.json
+  (they are SHOP pricing policy), base values stay in items.json (item
+  truth) — two files, two concerns, no duplication.
+- **Charge-price normalization**: dynamic buy prices anchored so baseline
+  fill reproduces the validated flat costs exactly (12/30/35/12). Why:
+  continuity with the proven attractor at equilibrium while letting real
+  scarcity move prices. Alternative rejected: re-tuning costs from scratch
+  (needless re-validation of the whole sink stack).
+- **Ammo supply sizing is throughput-driven, not flavor-driven**: first cut
+  (baseline 8 bundles) caused a measured supply cliff (kills −25%, g/cap
+  −24% — dry-punch fallback dominating). Demand math: ~700–950 kills/day
+  at pop 40, ~1/3 each style, ~4–6 attacks/kill ≈ 23 bundles/day/type;
+  baseline 60 gives max import inflow 30/day + a 60-bundle buffer.
+  Scarcity pricing still spikes during bursts — supply-gating without
+  style starvation (the R3 lesson, learned twice now).
+- **Offline-gate criterion v2** (instrument fix, not goalpost move): the
+  endpoint-only re-convergence Δ compared two RNG-decoupled runs; once the
+  batch is absorbed their gap is run noise (measured: Δ5% mid-window →
+  Δ29% endpoint on beef01). v2 = closest-tail re-entry ≤ 25% + endpoint
+  runaway guard ≤ 50%. The two-sided intent (absorbed + no permanent
+  shift) is preserved.
+- **Food purchases route too**: R1''s "purchase routing" reads naturally as
+  ALL hero shop spend; food is the dominant flow and the treasury pulse is
+  the point. Hero-side sink unchanged (they pay the same price).
+- **unlockLevel gates buying only**: a level-gated vendor side would
+  re-break Unit-1 drop vendoring (unsellable carried tier-2 gear).
+- **Shop leveling does NOT scale import baselines yet** (leveling buys
+  breadth via unlocks, not import depth) — revisit with C5 crafting queues.

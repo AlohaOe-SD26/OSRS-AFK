@@ -28,20 +28,45 @@ const FOOD_BUY_BASE: float = 22.0   # what the shop charges heroes for cooked fi
 var shops: Array = []               # Array[Shop] — inspectable (hero panel / shop UI, §20 / §19.2)
 var _by_good: Dictionary = {}       # good -> Shop (routing index)
 var tax_collected: float = 0.0      # cumulative SHOP_TAX skim (the §5 wealth-scaling sink, tracked)
-# Town treasury (§19): the SPENDABLE pool the player builds from. Fed by the shop tax — i.e. gold the
-# §5 sink ALREADY removed from hero circulation, so banking it here changes nothing about total_gold()
-# or the validated attractor; it just gives the skimmed gold a tycoon purpose. Drained by build/upkeep.
+# Town treasury (§19): the SPENDABLE pool the player builds from. Fed by the shop tax + the Unit-2
+# purchase routing — gold the §6 sinks ALREADY removed from hero circulation, so banking it here
+# changes nothing about total_gold() or the validated attractor. Drained by bounties/build/upkeep.
 var treasury: float = 0.0
+# Unit 2 (R1) — treasury LEDGER counters (telemetry; serialized so the ledger survives load):
+var treasury_in_tax: float = 0.0       # inflow: SHOP_TAX skim on hero sales
+var treasury_in_routing: float = 0.0   # inflow: PURCHASE_TREASURY_ROUTE share of hero purchases
+var treasury_out_bounty: float = 0.0   # outflow: funded per-kill bounty payouts
+var treasury_out_upgrade: float = 0.0  # outflow: shop level-ups
+var treasury_out_building: float = 0.0 # outflow: building costs + daily building upkeep
+var _content: ContentDB = null         # catalog reference (tradeable gate in sell_goods)
 
 func _init(content: ContentDB = null) -> void:
-	# Two canon Varrock vendors (GDD §7). Stock/max/consume = the validated tune (Config.SHOP_CONSUME
-	# stays the single tuning home); BASE values are catalog-sourced (Unit 1 / KI-8).
+	_content = content
+	# Unit 2: the roster is DATA (data/shops.json — 7 shops per ruling R3); base values stay
+	# catalog-sourced (Unit 1 / KI-8). The legacy 2-shop fallback keeps bare unit tests
+	# (Economy.new()) and shops.json-less rigs meaningful.
+	if content != null and not content.shop_defs.is_empty():
+		for sd in content.shop_defs:
+			var defs := {}
+			for g in sd["goods"]:
+				var iid := String(g["item"])
+				defs[iid] = {"stock": float(g.get("stock", 0.0)), "max": float(g.get("max", 1.0)),
+					"base": _bv(content, iid, 1.0), "consume": float(g.get("consume", 0.0)),
+					"baseline": float(g.get("baseline", 0.0)), "charge": float(g.get("charge", 0.0)),
+					"unlockLevel": int(g.get("unlockLevel", 1))}
+			shops.append(Shop.make(String(sd["id"]), String(sd["name"]), defs))
+	else:
+		shops = _legacy_roster(content)
+	for s: Shop in shops:
+		for good in s.goods:
+			_by_good[good] = s
+
+## The pre-Unit-2 two-shop roster (general store + gear board, fishmonger) — fallback only.
+static func _legacy_roster(content: ContentDB) -> Array:
 	var general_defs := {
 		"iron_ore": {"stock": 20.0, "max": 120.0, "base": _bv(content, "iron_ore", 16.0), "consume": Config.SHOP_CONSUME["iron_ore"]},
 		"logs": {"stock": 20.0, "max": 120.0, "base": _bv(content, "logs", 12.0), "consume": Config.SHOP_CONSUME["logs"]},
 	}
-	# Unit 1 — SHOPS TRADE GEAR: every tradeable catalog item with a gear tier joins the board
-	# (catalog file order — deterministic). The roster split (Horvik/Lowe/...) arrives with Unit 2.
 	if content != null:
 		for iid in content.items:
 			var it: ItemType = content.items[iid]
@@ -53,10 +78,7 @@ func _init(content: ContentDB = null) -> void:
 		"raw_trout": {"stock": 10.0, "max": 80.0, "base": _bv(content, "raw_trout", 7.0), "consume": Config.SHOP_CONSUME["raw_trout"]},
 		"trout": {"stock": 14.0, "max": 80.0, "base": _bv(content, "trout", 9.0), "consume": Config.SHOP_CONSUME["trout"]},
 	})
-	shops = [general, market]
-	for s: Shop in shops:
-		for good in s.goods:
-			_by_good[good] = s
+	return [general, market]
 
 ## Catalog base value with a legacy fallback (bare-test construction only — see the _init note).
 static func _bv(content: ContentDB, id: String, fallback: float) -> float:
@@ -82,6 +104,7 @@ func _pay_for(hero: Hero, good: String, qty: int, s: Shop) -> int:
 	var tax := gross * Config.SHOP_TAX
 	tax_collected += tax
 	treasury += tax        # the skim becomes the player's spendable town fund (§19); see `treasury` note
+	treasury_in_tax += tax
 	var net := int(round(gross - tax))
 	hero.gold += net
 	s.stock[good] += qty
@@ -98,6 +121,12 @@ func sell_goods(hero: Hero) -> int:
 		var item := String(k)
 		if item == "trout" or item == "raw_trout":
 			continue
+		# Unit 2: tools/ammo are STOCKED shop goods now (buy-side) but stay untradeable on the
+		# vendor side — the catalog flag is the gate (a carried pickaxe is kit, not merchandise).
+		if _content != null:
+			var it: ItemType = _content.item(item)
+			if it != null and not it.tradeable:
+				continue
 		var s: Shop = _by_good.get(item, null)
 		if s == null:
 			continue
@@ -123,17 +152,51 @@ func sell_food(hero: Hero, keep: int = 0) -> int:
 		return pay
 	return 0
 
-## Hero buys cooked fish from the shop (a gold sink). Returns units bought.
+## Hero buys cooked fish from the shop (a gold sink). Returns units bought. Unit 2 (R1): a routed
+## share of the spend funds the treasury; the rest burns (hero-side sink identical either way).
 func buy_food(hero: Hero, want: int) -> int:
 	var bought := 0
 	var p := food_price()
 	var s: Shop = _by_good["trout"]
 	while bought < want and hero.gold >= p and s.stock["trout"] >= 1.0 and not hero.inv_full():
 		hero.gold -= p
+		_route_purchase(float(p))
 		s.stock["trout"] -= 1.0
 		hero.inv["trout"] = int(hero.inv.get("trout", 0)) + 1
 		bought += 1
 	return bought
+
+## Unit 2: hero BUYS `qty` units of a stocked, unlocked good at the per-good dynamic charge price.
+## Decrements real stock (purchases are SUPPLY-GATED — the R3 lesson; ambient imports replenish),
+## routes the R1 treasury share, burns the rest. Returns units bought; the CALLER applies the
+## inventory/equip effect (ammo bundles, tools, weapons all differ). Food goes through buy_food.
+func buy_item(hero: Hero, good: String, qty: int = 1) -> int:
+	var s: Shop = _by_good.get(good, null)
+	if s == null:
+		return 0
+	var bought := 0
+	while bought < qty and s.can_buy(good):
+		var p := s.charge_price(good)
+		if hero.gold < float(p):
+			break
+		hero.gold -= float(p)
+		_route_purchase(float(p))
+		s.stock[good] -= 1.0
+		bought += 1
+	return bought
+
+## What a hero would pay for one unit right now (affordability checks; 0 = not purchasable here).
+func buy_cost(good: String) -> int:
+	var s: Shop = _by_good.get(good, null)
+	if s == null or float(s.charge.get(good, 0.0)) <= 0.0:
+		return 0
+	return s.charge_price(good)
+
+## R1 purchase→treasury routing: 40% of every hero purchase funds the treasury, 60% burns.
+func _route_purchase(spend: float) -> void:
+	var routed: float = spend * Config.PURCHASE_TREASURY_ROUTE
+	treasury += routed
+	treasury_in_routing += routed
 
 ## Per-work-action economy step. `dd` = fraction of a sim-day elapsed.
 ##  - per-shop town consumption drains stock (bounds the gather faucet)
@@ -145,6 +208,7 @@ func economy_tick(dd: float, heroes: Array) -> float:
 	var pop_scale: float = float(heroes.size()) / float(Config.POP_BASELINE)
 	for s: Shop in shops:
 		s.consume_tick(dd, pop_scale)
+		s.import_tick(dd)   # Unit 2 (C5): ambient imports restock purchasables toward baseline
 	var burned := 0.0
 	for hero in heroes:
 		var drain: float = (Config.UPKEEP_FLAT + Config.UPKEEP_RATE * hero.gold) * dd
@@ -172,5 +236,6 @@ func try_upgrade_shop(s: Shop) -> bool:
 	if treasury < float(cost):
 		return false
 	treasury -= float(cost)
+	treasury_out_upgrade += float(cost)
 	s.level_up()
 	return true

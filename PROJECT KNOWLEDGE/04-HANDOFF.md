@@ -23,34 +23,38 @@ telemetry now reads ~1,790, +4% drift — within 1σ). M2 BRAIN_V2
 default-OFF (4th test failed it — see KI-4).
 
 ## What was just done (this session, 2026-06-12)
-- **Unit 1 — catalog migration SHIPPED** (punch #2, KI-8 RESOLVED):
-  canon-id rename across ~81 sites (ore→iron_ore, cooked_fish→trout,
-  display-name gear/tools/ammo→catalog ids); Economy.new(content) sources
-  bases from the catalog; GEAR_DROPS/GEAR_TIER retired into items.json
-  (dropPool/tier/style); recipes-as-data (`ContentDB.craft_output` powers
-  cook + smith); **shops trade gear** (General-Store board, fill-0.5 open
-  ≈ the old half-value anchor, flat vendoring retired); `GE_TAX`→
-  `SHOP_TAX` (R8); save v3 + v2→v3 upgrader (id remap + gear-board
-  injection — frozen inline values). +12 suite checks.
-- Earlier today: **#1e closing sweep + BRAIN_V2 4th test → Unit 0 closed**
-  (on-task locked +20; §18 split verdict — KI-5 resolved, KI-4 confirmed
-  structural; BRAIN_V2 stays OFF; band re-baselined 1,460±332).
+- **Unit 2 #3a+#3b SHIPPED** (punch #3, rulings R1/R3): 7-shop roster as
+  data (`data/shops.json` — Horvik/Lowe/Zaff/Aubury/Swordshop + the 2
+  incumbents; gear re-routed to specialists), per-good dynamic buy pricing
+  (`Shop.charge_price` anchored to the validated flat costs), stock-gated
+  purchases via `Economy.buy_item`, C5 ambient imports (`import_tick`,
+  K=0.5/day; **ammo baselines tuned 8→60** after a measured supply cliff —
+  kills −25%, the R3 anti-pattern), tier-up unlocks (buy-side only),
+  **40% purchase→treasury routing + 5-counter ledger + telemetry line**,
+  save v4 + v3→v4 upgrader. **Offline-gate criterion v2** (re-entry +
+  runaway guard; endpoint-only Δ was decoupled-run noise — see decisions).
+  Suite **169/169**; 3 gates PASS; drift −2%, kills 20.8k.
+- Earlier today: **Unit 1 (catalog migration, #2) SHIPPED** — KI-8
+  resolved, canon ids everywhere, save v3; and **Unit 0 closed** (#1e
+  sweep: on-task +20 locked, §18 split verdict, BRAIN_V2 stays OFF, band
+  1,460±332).
 
 ## In progress (and how far along)
-- Nothing mid-flight. Units 0 and 1 fully closed.
+- **Unit 2 (punch #3): #3a ✅ #3b ✅ — #3c and #3d remain.**
+  - #3c: player price-bias lever (per-good sell-price multiplier) +
+    swept clamp (expect narrower than 50–150%) + Town-tab UI row.
+  - #3d: KI-4 counter-force sweep (COMBAT_CONGESTION_MULT {0.5/0.75/1.0}
+    ± gear-drop reward coupling; two-sided criterion: monoculture must
+    drop from ~44%, combat must not crater) + closing band re-baseline.
 
 ## Next steps (in order)
-1. **Unit 2 (shop economy v2, punch #3)** per rulings R1/R3: per-good
-   dynamic buy pricing, price-bias lever (swept clamp), ambient imports/
-   restock, tier-up stock unlocks, roster expansion (Horvik/Lowe/Zaff/
-   Aubury/Swordshop), purchase→treasury routing at 40% (tune 30–50%).
-   **Design the KI-4 fix into this unit** (combat reward saturation /
-   price coupling) while pricing files are open.
-2. Unit 3 (C1 nudge popups + B4 gating, punch #4) per R11/R7.
+1. **#3c** price-bias lever (see punch list for spec).
+2. **#3d** KI-4 sweep + lock + Unit-2 closing band report.
+3. Unit 3 (C1 nudge popups + B4 gating, punch #4) per R11/R7.
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 153 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 169 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

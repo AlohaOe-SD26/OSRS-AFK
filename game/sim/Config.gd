@@ -113,9 +113,20 @@ static var PRICE_FLOOR_FRAC: float = 0.12
 # Unit 1 — the gear arm of the shop board (shops trade gear; replaces the flat half-value
 # vendoring). Initial fill 0.5 makes the open price ≈ 0.5×base (the old anchor, by construction:
 # f = 1.2 − 0.5×1.4 = 0.5); the small town demand absorbs gear so the arm can't saturate forever.
+# Unit 2: these now only back the LEGACY fallback roster (bare tests without shops.json).
 const GEAR_SHOP_STOCK: float = 4.0
 const GEAR_SHOP_MAX: float = 8.0
 const GEAR_SHOP_CONSUME: float = 0.25
+
+# ---- Unit 2 — shop economy v2 (rulings R1/R3) ----
+# Ambient-import convergence rate (C5): stock closes (baseline − stock) at this fraction/sim-day —
+# 0.5 ≈ a 1.4-day half-life, fast enough that purchasables never stay dry, slow enough that a
+# buying spree leaves a visible scarcity dent (and a price spike via charge_price).
+const SHOP_IMPORT_K: float = 0.5
+# R1: purchase→treasury routing — this fraction of every hero shop purchase funds the treasury
+# (the player's bounty/buy-order pulse); the rest burns (the dominant §6 sink). Ruled 40%,
+# tunable 30–50% within sweep gates. static var so the #3b ledger sweep can arm it.
+static var PURCHASE_TREASURY_ROUTE: float = 0.40
 
 # town demand: whole units/sim-day the NPC town absorbs (bounds the gather faucet, §6).
 # cooked_fish is low because in the combat economy the real food sink is FIGHTERS buying food

@@ -40,9 +40,10 @@ func _initialize() -> void:
 	_test_aggro_and_boss()
 	_test_saveload()
 	_test_unit1_catalog()
+	_test_unit2_shops()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 153
+	const EXPECTED := 169
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -782,9 +783,9 @@ func _test_unit1_catalog() -> void:
 	_check(absf(float(eco.shop_for("iron_ore").base["iron_ore"]) - float(content.base_value("iron_ore"))) < 0.01
 		and content.base_value("iron_ore") == 17,
 		"shop base values are catalog-sourced (KI-8: iron_ore 17, not the old hardcoded 16)")
-	# shops trade gear: the General Store board lists tradeable tiered items
+	# shops trade gear: since Unit 2 the specialist roster owns the boards (R3 — swordshop trades swords)
 	var gshop: Shop = eco.shop_for("iron_sword")
-	_check(gshop != null and gshop.npc_id == "general_store", "shops trade gear (iron_sword routed to the General Store)")
+	_check(gshop != null and gshop.npc_id == "swordshop", "shops trade gear (iron_sword routed to the Swordshop)")
 	_check(eco.sell_price("iron_sword") == int(round(content.base_value("iron_sword") * 0.5)),
 		"gear board opens at the old half-value anchor (fill 0.5 → f 0.5 → %dg)" % eco.sell_price("iron_sword"))
 	var gh := Hero.new()
@@ -810,19 +811,22 @@ func _test_unit1_catalog() -> void:
 	var h0: Dictionary = v2s["heroes"][0]
 	h0["inv"] = {"ore": 3, "cooked_fish": 2, "Iron sword": 1}
 	h0["equipped"] = {"main": "Bronze sword"}
-	for sd in v2s["shops"]:
-		if String(sd["npc_id"]) == "general_store":
-			sd["stock"] = {"ore": 20.0, "logs": 20.0}
-			sd["maximum"] = {"ore": 120.0, "logs": 120.0}
-			sd["base"] = {"ore": 16.0, "logs": 12.0}
-			sd["consume"] = {"ore": 350.0, "logs": 350.0}
-		else:
-			sd["stock"] = {"raw_fish": 10.0, "cooked_fish": 14.0}
-			sd["maximum"] = {"raw_fish": 80.0, "cooked_fish": 80.0}
-			sd["base"] = {"raw_fish": 7.0, "cooked_fish": 9.0}
-			sd["consume"] = {"raw_fish": 0.0, "cooked_fish": 60.0}
+	# a TRUE v2 shops array: exactly the two pre-roster shops with legacy ids (the current save has
+	# 7 shops — leaving extras in would defeat the v4 upgrader's append-by-npc_id and fake the test)
+	v2s["shops"] = [
+		{"npc_id": "general_store",
+			"stock": {"ore": 20.0, "logs": 20.0}, "maximum": {"ore": 120.0, "logs": 120.0},
+			"base": {"ore": 16.0, "logs": 12.0}, "consume": {"ore": 350.0, "logs": 350.0}, "level": 1},
+		{"npc_id": "fishmonger",
+			"stock": {"raw_fish": 10.0, "cooked_fish": 14.0}, "maximum": {"raw_fish": 80.0, "cooked_fish": 80.0},
+			"base": {"raw_fish": 7.0, "cooked_fish": 9.0}, "consume": {"raw_fish": 0.0, "cooked_fish": 60.0},
+			"level": 1},
+	]
+	for c in ["treasury_in_tax", "treasury_in_routing", "treasury_out_bounty",
+			"treasury_out_upgrade", "treasury_out_building"]:
+		v2s.erase(c)
 	var v3: Dictionary = SaveLoad.migrate(v2s)
-	_check(int(v3.get("version", -1)) == 3, "v2 save migrates to v3 via the production chain")
+	_check(int(v3.get("version", -1)) == SaveLoad.SAVE_VERSION, "v2 save migrates to v%d via the production chain" % SaveLoad.SAVE_VERSION)
 	var h0m: Dictionary = v3["heroes"][0]
 	_check(int(h0m["inv"].get("iron_ore", 0)) == 3 and int(h0m["inv"].get("trout", 0)) == 2
 		and int(h0m["inv"].get("iron_sword", 0)) == 1 and not h0m["inv"].has("ore"),
@@ -830,9 +834,109 @@ func _test_unit1_catalog() -> void:
 	_check(String(h0m["equipped"]["main"]) == "bronze_sword", "v3 upgrader renames equipped item ids")
 	var w3: SimWorld = SaveLoad.load_world(content, v3)
 	var gen3: Shop = w3.economy.shop_for("iron_ore")
+	var sw3: Shop = w3.economy.shop_for("iron_sword")
 	_check(w3 != null and gen3 != null and absf(float(gen3.base["iron_ore"]) - 17.0) < 0.01
-		and w3.economy.shop_for("iron_sword") != null and float(w3.economy.shop_for("iron_sword").stock["iron_sword"]) == 4.0,
-		"migrated v2 world loads with the catalog iron_ore base AND the gear board open at fill 0.5")
+		and sw3 != null and float(sw3.stock.get("iron_sword", -1.0)) == 4.0,
+		"migrated v2 world loads with the catalog iron_ore base AND gear stocked on the v4 roster")
+
+func _test_unit2_shops() -> void:
+	print("\n[Unit 2 — shop economy v2: roster, dynamic buy pricing, imports, unlocks, treasury ledger]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var eco := Economy.new(content)
+	_check(eco.shops.size() == 7 and eco.shop_for("arrows").npc_id == "lowe"
+		and eco.shop_for("runes").npc_id == "aubury" and eco.shop_for("bronze_sword").npc_id == "swordshop"
+		and eco.shop_for("wooden_shield").npc_id == "horvik" and eco.shop_for("bronze_pickaxe").npc_id == "general_store",
+		"7-shop roster loads from shops.json with R3 routing (Lowe/Aubury/Swordshop/Horvik/General)")
+	_check(eco.buy_cost("bronze_sword") == 30 and eco.buy_cost("bronze_pickaxe") == 12
+		and eco.buy_cost("arrows") == 12 and eco.buy_cost("wooden_shield") == 35,
+		"dynamic charge prices reproduce the validated flat costs at baseline fill (30/12/12/35)")
+	var lowe: Shop = eco.shop_for("arrows")
+	lowe.stock["arrows"] = 1.0
+	var scarce := eco.buy_cost("arrows")
+	lowe.stock["arrows"] = lowe.maximum["arrows"]
+	var glut := eco.buy_cost("arrows")
+	lowe.stock["arrows"] = 60.0
+	_check(scarce > 12 and glut < 12, "buy price rises when scarce (%dg) and falls when glutted (%dg)" % [scarce, glut])
+	var buyer := Hero.new()
+	buyer.gold = 1000.0
+	var t0: float = eco.treasury
+	var p0 := eco.buy_cost("bronze_sword")
+	var got := eco.buy_item(buyer, "bronze_sword", 1)
+	_check(got == 1 and absf(eco.treasury - t0 - p0 * Config.PURCHASE_TREASURY_ROUTE) < 0.01
+		and absf(eco.treasury_in_routing - p0 * Config.PURCHASE_TREASURY_ROUTE) < 0.01
+		and absf(buyer.gold - (1000.0 - p0)) < 0.01,
+		"purchase draws real stock; hero pays full price; 40%% routes to the treasury (R1)")
+	eco.shop_for("bronze_sword").stock["bronze_sword"] = 0.0
+	_check(eco.buy_item(buyer, "bronze_sword", 1) == 0, "out-of-stock goods cannot be bought (supply-gated, R3)")
+	_check(eco.buy_item(buyer, "iron_sword", 1) == 0, "tier-2 stock is locked behind shop level (unlockLevel 2)")
+	eco.shop_for("iron_sword").level_up()
+	_check(eco.buy_item(buyer, "iron_sword", 1) == 1, "leveling the shop unlocks tier-2 stock for purchase")
+	var vendor := Hero.new()
+	vendor.inv = {"iron_sword": 1}
+	var eco2 := Economy.new(content)
+	_check(eco2.sell_goods(vendor) > 0, "vendoring is NOT level-gated (a dropped iron sword sells at level 1)")
+	var eco3 := Economy.new(content)
+	var l3: Shop = eco3.shop_for("arrows")
+	l3.stock["arrows"] = 0.0
+	eco3.shop_for("iron_ore").stock["iron_ore"] = 0.0
+	for i in range(40):
+		eco3.economy_tick(0.1, [])
+	_check(float(l3.stock["arrows"]) > 45.0,
+		"ambient imports restock purchasables toward baseline (C5: %.1f/60 after 4 days)" % float(l3.stock["arrows"]))
+	_check(float(eco3.shop_for("iron_ore").stock["iron_ore"]) == 0.0,
+		"hero-supplied goods (baseline 0) never import — the gather faucet stays the sole supply")
+	var feed := Hero.new()
+	feed.gold = 100.0
+	var eco4 := Economy.new(content)
+	var fr0: float = eco4.treasury
+	var fb := eco4.buy_food(feed, 1)
+	_check(fb == 1 and eco4.treasury > fr0 and eco4.treasury_in_routing > 0.0,
+		"food purchases route the R1 treasury share too")
+	var seller := Hero.new()
+	seller.inv = {"iron_ore": 10}
+	eco4.sell_goods(seller)
+	_check(eco4.treasury_in_tax > 0.0, "treasury ledger tracks tax inflow")
+	eco4.treasury = 100000.0
+	eco4.try_upgrade_shop(eco4.shop_for("iron_ore"))
+	_check(eco4.treasury_out_upgrade > 0.0, "treasury ledger tracks upgrade outflow")
+	# --- the REAL v3→v4 upgrader: a v3-shaped save (gear on the General-Store board) walks the chain
+	var world := SimWorld.new()
+	world.setup(content, 4, Config.DEFAULT_SEED)
+	var v3s: Dictionary = SaveLoad.save_world(world)
+	v3s["version"] = 3
+	for c in ["treasury_in_tax", "treasury_in_routing", "treasury_out_bounty",
+			"treasury_out_upgrade", "treasury_out_building"]:
+		v3s.erase(c)
+	v3s["shops"] = [
+		{"npc_id": "general_store",
+			"stock": {"iron_ore": 25.0, "logs": 20.0, "iron_sword": 7.0, "bronze_sword": 4.0},
+			"maximum": {"iron_ore": 120.0, "logs": 120.0, "iron_sword": 8.0, "bronze_sword": 8.0},
+			"base": {"iron_ore": 17.0, "logs": 12.0, "iron_sword": 60.0, "bronze_sword": 26.0},
+			"consume": {"iron_ore": 350.0, "logs": 350.0, "iron_sword": 0.25, "bronze_sword": 0.25},
+			"level": 1},
+		{"npc_id": "fishmonger",
+			"stock": {"raw_trout": 10.0, "trout": 14.0}, "maximum": {"raw_trout": 80.0, "trout": 80.0},
+			"base": {"raw_trout": 7.0, "trout": 9.0}, "consume": {"raw_trout": 0.0, "trout": 60.0},
+			"level": 2},
+	]
+	var v4: Dictionary = SaveLoad.migrate(v3s)
+	_check(int(v4.get("version", -1)) == 4 and v4["shops"].size() == 7, "v3 save migrates to v4 (7-shop roster)")
+	var sw: Dictionary = {}
+	var genm: Dictionary = {}
+	for sd in v4["shops"]:
+		if String(sd["npc_id"]) == "swordshop":
+			sw = sd
+		elif String(sd["npc_id"]) == "general_store":
+			genm = sd
+	_check(not sw.is_empty() and absf(float(sw["stock"]["iron_sword"]) - 7.0) < 0.01
+		and not genm["stock"].has("iron_sword") and genm["stock"].has("bronze_pickaxe")
+		and float(v4.get("treasury_in_routing", -1.0)) == 0.0,
+		"v4 upgrader transplants evolved gear stock to its new shop, strips the old board, adds tools + ledger")
+	var w4: SimWorld = SaveLoad.load_world(content, v4)
+	_check(w4 != null and w4.economy.shop_for("iron_sword").npc_id == "swordshop"
+		and w4.economy.shops.size() == 7 and (w4.economy.shops[1] as Shop).level == 2,
+		"migrated v3 world loads on the v4 roster (fishmonger keeps its evolved level)")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

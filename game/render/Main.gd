@@ -1076,11 +1076,21 @@ func _draw_commands(h: Hero, pad: float, y: float) -> float:
 ## Town-building & incentive controls (§19 / §18.4): shop upgrades, build buttons, and the bounty row.
 func _draw_town(pad: float, y: float) -> float:
 	_hud_line("TOWN  ·  treasury %dg" % int(world.economy.treasury), pad, y, Color("#c9a24b"), 12); y += 16
+	# Unit 2: the roster is 7 shops — short labels, wrapped into rows so the buttons stay on-panel
+	const _SHOP_SHORT := {"general_store": "Gen", "fishmonger": "Fish", "swordshop": "Swrd",
+		"lowe": "Lowe", "zaff": "Zaff", "aubury": "Aub", "horvik": "Horv"}
 	var bx := pad
+	var per_row := 0
 	for s: Shop in world.economy.shops:
-		var short := "Gen" if s.npc_id == "general_store" else "Fish"
+		var short: String = _SHOP_SHORT.get(s.npc_id, s.npc_id.left(4))
 		bx = _button("%s Lv%d  up %dg" % [short, s.level, world.economy.shop_upgrade_cost(s)], bx, y, "upgrade_shop", s, false)
-	y += 19
+		per_row += 1
+		if per_row == 4:   # wrap after 4 buttons
+			per_row = 0
+			bx = pad
+			y += 19
+	if per_row > 0:
+		y += 19
 	bx = pad
 	for kind in Config.BUILDINGS:
 		var spec: Dictionary = Config.BUILDINGS[kind]

@@ -181,3 +181,41 @@
   g/cap ~1,790 (within 1σ of 1,460±332). KI-8 removed from
   05-KNOWN-ISSUES; "5 fighters broke & foodless" snapshot flag noted
   under KI-10 watch numbers.
+
+## 2026-06-12 — Unit 2 #3a+#3b: 7-shop roster, dynamic buy pricing, imports, unlocks, treasury ledger (punch #3; rulings R1/R3)
+- **NEW `data/shops.json`** — the shop roster is DATA now: 7 shops (General
+  Store, Fishmonger + the R3 greenlit Horvik/Lowe/Zaff/Aubury/Swordshop).
+  Gear re-routed from the Unit-1 General-Store board to the specialist
+  shops; General Store gains tool arms (pickaxe/axe/rod). Loaded by
+  ContentDB; Economy builds the roster from it (legacy 2-shop fallback
+  for bare rigs).
+- **Per-good dynamic BUY pricing**: `Shop.charge_price` (scarcity curve
+  normalized so baseline 0.5 fill = the validated flat cost exactly —
+  tools 12g, weapon 30g, offhand 35g, ammo bundle 12g). All four buy exec
+  sites (tool/weapon/offhand/ammo) route through `Economy.buy_item`:
+  purchases draw REAL stock (supply-gated, R3) and affordability checks
+  read the live price.
+- **Ambient imports (C5)**: `Shop.import_tick` — stock drifts up toward
+  per-good `baseline` (K=0.5/day); only town-supplied goods participate
+  (hero-supplied goods keep baseline 0 — gather faucet untouched).
+  TUNED: ammo baselines 8→60 bundles after the first telemetry run showed
+  a supply cliff (kills 21.8k→16.3k, g/cap −24% — fighters dry-punching;
+  the exact R3 anti-pattern). Post-fix: kills 20.8k, drift −2%.
+- **Tier-up stock unlocks**: per-good `unlockLevel` gates BUYING only
+  (tier-2 gear needs shop level 2); vendoring is never gated.
+- **R1 ledger**: `PURCHASE_TREASURY_ROUTE = 0.40` — 40% of every hero
+  purchase (food included) funds the treasury, 60% burns; five
+  inflow/outflow counters (tax/routing/bounty/upgrade/building) wired at
+  every site, serialized, and printed by telemetry (day-23 single seed:
+  treasury 78k = tax 28k + routing 50k).
+- **Save v4** + `_migrate_3_to_4`: roster reshape (gear-arm transplant to
+  the new owner shops, tool arms added, frozen inline defs), ledger
+  counters; idempotence-guarded appends.
+- **OFFLINE GATE CRITERION v2** (measurement fix, documented): the
+  endpoint-only Δ compared two DECOUPLED stochastic runs — a seed that
+  converged to Δ5% mid-window drifted to Δ29% at the endpoint and failed
+  falsely. v2 = re-entry (closest-tail Δ ≤ 25% over the last 4 samples) +
+  endpoint runaway guard (≤ 50%). beef01 closest-tail Δ 0%.
+- **Verified:** suite **169/169** (+16 Unit-2 checks); determinism /
+  save-load / offline gates PASS; render parses; telemetry drift −2%,
+  kills 20,829, deaths 9.

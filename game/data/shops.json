@@ -1,0 +1,58 @@
+[
+  {
+    "id": "general_store", "name": "Varrock General Store",
+    "goods": [
+      {"item": "iron_ore", "stock": 20, "max": 120, "consume": 350, "baseline": 0},
+      {"item": "logs", "stock": 20, "max": 120, "consume": 350, "baseline": 0},
+      {"item": "bronze_pickaxe", "stock": 6, "max": 12, "consume": 0, "baseline": 6, "charge": 12},
+      {"item": "bronze_axe", "stock": 6, "max": 12, "consume": 0, "baseline": 6, "charge": 12},
+      {"item": "fishing_rod", "stock": 6, "max": 12, "consume": 0, "baseline": 6, "charge": 12}
+    ]
+  },
+  {
+    "id": "fishmonger", "name": "Varrock Fishmonger",
+    "goods": [
+      {"item": "raw_trout", "stock": 10, "max": 80, "consume": 0, "baseline": 0},
+      {"item": "trout", "stock": 14, "max": 80, "consume": 60, "baseline": 0}
+    ]
+  },
+  {
+    "id": "swordshop", "name": "Varrock Swordshop",
+    "goods": [
+      {"item": "bronze_sword", "stock": 4, "max": 8, "consume": 0.25, "baseline": 4, "charge": 30},
+      {"item": "iron_sword", "stock": 4, "max": 8, "consume": 0.25, "baseline": 2, "charge": 66, "unlockLevel": 2},
+      {"item": "iron_scimitar", "stock": 2, "max": 6, "consume": 0.25, "baseline": 1, "charge": 120, "unlockLevel": 2}
+    ]
+  },
+  {
+    "id": "lowe", "name": "Lowe's Archery Emporium",
+    "goods": [
+      {"item": "shortbow", "stock": 4, "max": 8, "consume": 0.25, "baseline": 4, "charge": 30},
+      {"item": "oak_shortbow", "stock": 4, "max": 8, "consume": 0.25, "baseline": 2, "charge": 55, "unlockLevel": 2},
+      {"item": "arrows", "stock": 60, "max": 120, "consume": 0, "baseline": 60, "charge": 12}
+    ]
+  },
+  {
+    "id": "zaff", "name": "Zaff's Superior Staffs",
+    "goods": [
+      {"item": "apprentice_staff", "stock": 4, "max": 8, "consume": 0.25, "baseline": 4, "charge": 30},
+      {"item": "battlestaff", "stock": 4, "max": 8, "consume": 0.25, "baseline": 2, "charge": 77, "unlockLevel": 2}
+    ]
+  },
+  {
+    "id": "aubury", "name": "Aubury's Rune Shop",
+    "goods": [
+      {"item": "runes", "stock": 60, "max": 120, "consume": 0, "baseline": 60, "charge": 12}
+    ]
+  },
+  {
+    "id": "horvik", "name": "Horvik's Armour Shop",
+    "goods": [
+      {"item": "wooden_shield", "stock": 4, "max": 8, "consume": 0.25, "baseline": 4, "charge": 35},
+      {"item": "leather_cowl", "stock": 4, "max": 8, "consume": 0.25, "baseline": 2, "charge": 18},
+      {"item": "leather_body", "stock": 4, "max": 8, "consume": 0.25, "baseline": 2, "charge": 24},
+      {"item": "iron_helm", "stock": 4, "max": 8, "consume": 0.25, "baseline": 1, "charge": 48, "unlockLevel": 2},
+      {"item": "iron_platebody", "stock": 4, "max": 8, "consume": 0.25, "baseline": 1, "charge": 99, "unlockLevel": 2}
+    ]
+  }
+]

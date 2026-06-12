@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 3   # v3: Unit-1 catalog migration (canon item ids as inv/equip/shop keys; gear on the shop board)
+const SAVE_VERSION := 4   # v4: Unit-2 shop economy v2 (7-shop roster — gear on specialist shops; treasury ledger counters)
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,7 @@ const SAVE_VERSION := 3   # v3: Unit-1 catalog migration (canon item ids as inv/
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {1: _migrate_1_to_2, 2: _migrate_2_to_3}
+	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4}
 
 ## v1 → v2 (Unit 0, Slayer): pre-Slayer worlds know nothing and hold no tasks; heroes gain the
 ## slayer skill at 1 (matching _new_hero's init so v2 worlds hash-shape consistently).
@@ -89,6 +89,77 @@ static func _remap_keys(src: Dictionary) -> Dictionary:
 		out[_V3_ID_MAP.get(String(k), k)] = src[k]
 	return out
 
+## v3 → v4 (Unit 2, shop economy v2): the roster splits — gear leaves the General-Store board for
+## the five specialist shops (R3), the General Store gains tool arms, and the treasury ledger
+## counters appear. Evolved values carry over where a good already existed (gear STOCK moves to its
+## new owner shop); everything else opens at frozen v4 defs (the live defs live in shops.json, but
+## an upgrader must replay identically forever, so these are inlined). Per-good arrays = [stock,
+## maximum, base, consume].
+const _V4_ROSTER := {
+	"swordshop": {"name": "Varrock Swordshop", "goods": {
+		"bronze_sword": [4.0, 8.0, 26.0, 0.25], "iron_sword": [4.0, 8.0, 60.0, 0.25],
+		"iron_scimitar": [2.0, 6.0, 112.0, 0.25]}},
+	"lowe": {"name": "Lowe's Archery Emporium", "goods": {
+		"shortbow": [4.0, 8.0, 23.0, 0.25], "oak_shortbow": [4.0, 8.0, 50.0, 0.25],
+		"arrows": [60.0, 120.0, 1.0, 0.0]}},
+	"zaff": {"name": "Zaff's Superior Staffs", "goods": {
+		"apprentice_staff": [4.0, 8.0, 25.0, 0.25], "battlestaff": [4.0, 8.0, 70.0, 0.25]}},
+	"aubury": {"name": "Aubury's Rune Shop", "goods": {
+		"runes": [60.0, 120.0, 1.0, 0.0]}},
+	"horvik": {"name": "Horvik's Armour Shop", "goods": {
+		"wooden_shield": [4.0, 8.0, 20.0, 0.25], "leather_cowl": [4.0, 8.0, 16.0, 0.25],
+		"leather_body": [4.0, 8.0, 21.0, 0.25], "iron_helm": [4.0, 8.0, 44.0, 0.25],
+		"iron_platebody": [4.0, 8.0, 90.0, 0.25]}},
+}
+const _V4_GENERAL_TOOLS := {"bronze_pickaxe": [6.0, 12.0, 1.0, 0.0],
+	"bronze_axe": [6.0, 12.0, 1.0, 0.0], "fishing_rod": [6.0, 12.0, 1.0, 0.0]}
+
+static func _migrate_3_to_4(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	# capture the old General-Store board's evolved gear stock before stripping it
+	var old_gear_stock: Dictionary = {}
+	for sd in nd["shops"]:
+		if String(sd["npc_id"]) == "general_store":
+			for k in sd["stock"]:
+				if not (String(k) in ["iron_ore", "logs"]):
+					old_gear_stock[String(k)] = float(sd["stock"][k])
+			# keep only ore/logs evolved values, then add the frozen tool arms
+			for field in ["stock", "maximum", "base", "consume"]:
+				var src: Dictionary = sd[field]
+				var keep := {}
+				for g in ["iron_ore", "logs"]:
+					if src.has(g):
+						keep[g] = src[g]
+				sd[field] = keep
+			for gid in _V4_GENERAL_TOOLS:
+				sd["stock"][gid] = _V4_GENERAL_TOOLS[gid][0]
+				sd["maximum"][gid] = _V4_GENERAL_TOOLS[gid][1]
+				sd["base"][gid] = _V4_GENERAL_TOOLS[gid][2]
+				sd["consume"][gid] = _V4_GENERAL_TOOLS[gid][3]
+	# specialist shops: frozen defs, with evolved gear stock transplanted from the old board.
+	# Skip any npc_id already present (defensive idempotence — synthetic test saves may carry them).
+	var existing := {}
+	for sd in nd["shops"]:
+		existing[String(sd["npc_id"])] = true
+	for npc_id in _V4_ROSTER:
+		if existing.has(npc_id):
+			continue
+		var spec: Dictionary = _V4_ROSTER[npc_id]
+		var entry := {"npc_id": npc_id, "stock": {}, "maximum": {}, "base": {}, "consume": {}, "level": 1}
+		for gid in spec["goods"]:
+			var a: Array = spec["goods"][gid]
+			entry["stock"][gid] = minf(float(old_gear_stock.get(gid, a[0])), float(a[1]))
+			entry["maximum"][gid] = a[1]
+			entry["base"][gid] = a[2]
+			entry["consume"][gid] = a[3]
+		nd["shops"].append(entry)
+	# treasury ledger counters (R1 telemetry) open at zero
+	for c in ["treasury_in_tax", "treasury_in_routing", "treasury_out_bounty",
+			"treasury_out_upgrade", "treasury_out_building"]:
+		nd[c] = 0.0
+	nd["version"] = 4
+	return nd
+
 ## Walk `d` up the chain until it reaches SAVE_VERSION. Returns {} when the save cannot be brought
 ## current (future/unknown version, or a gap in the chain) — callers treat {} as "unloadable", which
 ## preserves the old strict-version rejection for anything the chain can't reach.
@@ -135,6 +206,10 @@ static func save_world(w) -> Dictionary:
 		"heroes": heroes, "monsters": monsters,
 		# economy
 		"treasury": w.economy.treasury, "tax_collected": w.economy.tax_collected, "shops": shops,
+		# treasury ledger (Unit 2 / R1)
+		"treasury_in_tax": w.economy.treasury_in_tax, "treasury_in_routing": w.economy.treasury_in_routing,
+		"treasury_out_bounty": w.economy.treasury_out_bounty, "treasury_out_upgrade": w.economy.treasury_out_upgrade,
+		"treasury_out_building": w.economy.treasury_out_building,
 		# population
 		"pop": {"enabled": p.enabled, "reputation": p.reputation, "recent_deaths": p.recent_deaths,
 			"recent_kicks": p.recent_kicks, "immig_accum": p._immig_accum, "arrivals": p.arrivals,
@@ -195,6 +270,11 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 	w.economy = Economy.new(content)
 	w.economy.treasury = float(d["treasury"])
 	w.economy.tax_collected = float(d["tax_collected"])
+	w.economy.treasury_in_tax = float(d.get("treasury_in_tax", 0.0))
+	w.economy.treasury_in_routing = float(d.get("treasury_in_routing", 0.0))
+	w.economy.treasury_out_bounty = float(d.get("treasury_out_bounty", 0.0))
+	w.economy.treasury_out_upgrade = float(d.get("treasury_out_upgrade", 0.0))
+	w.economy.treasury_out_building = float(d.get("treasury_out_building", 0.0))
 	for sd in d["shops"]:
 		for s in w.economy.shops:
 			if s.npc_id == sd["npc_id"]:

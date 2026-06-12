@@ -525,6 +525,7 @@ func _record_kill(h: Hero, r: MonsterInstance, mon: Monster) -> void:
 	var b := bounty_affordable(r.type_id)
 	if b > 0.0:
 		economy.treasury -= b
+		economy.treasury_out_bounty += b
 		h.gold += b
 	if h.slayer_task.is_empty() or String(h.slayer_task.get("mon", "")) != r.type_id:
 		return
@@ -562,6 +563,7 @@ func build(kind: String) -> bool:
 	if economy.treasury < cost:
 		return false
 	economy.treasury -= cost
+	economy.treasury_out_building += cost
 	buildings.append({"kind": kind, "name": spec["name"], "rep": float(spec["rep"]),
 		"sat": float(spec["sat"]), "upkeep": float(spec["upkeep"])})
 	log_event("Built a %s (−%dg). Varrock grows." % [spec["name"], int(cost)], "lv")
@@ -591,6 +593,7 @@ func _town_daily() -> void:
 		upkeep += float(b["upkeep"])
 	if upkeep > 0.0:
 		economy.treasury -= upkeep   # may go negative (a deficit blocks new builds until tax refills it)
+		economy.treasury_out_building += upkeep
 
 # ---------------------------------------------------------------------------
 # CIVIC KICK VOTES (GDD §16.2) — the colony's self-governance + the player's failsafe. God initiates a
@@ -1297,7 +1300,7 @@ func _apply_choice(h: Hero, c: Dictionary) -> void:
 		h.act["target"] = "shop"
 		h.act["then"] = "buyfood"
 	# pre-fight ammo restock (bow/staff): 30 for 12g — cheap per-kill margin (anti-poverty-trap)
-	elif c["intent"] == "FIGHT" and h.weapon != "sword" and int(h.inv.get("arrows" if h.weapon == "bow" else "runes", 0)) < 10 and h.gold >= 12.0:
+	elif c["intent"] == "FIGHT" and h.weapon != "sword" and int(h.inv.get("arrows" if h.weapon == "bow" else "runes", 0)) < 10 and h.gold >= maxi(12, economy.buy_cost("arrows" if h.weapon == "bow" else "runes")):
 		h.act["target"] = "shop"
 		h.act["then"] = "buyammo"
 	# pre-fight Slayer check-in (Unit 0): an eligible, taskless fighter detours via Vannaka — chained
@@ -1374,9 +1377,10 @@ func _work_action(h: Hero) -> void:
 					_narrate(h)
 					return
 				"buyammo":
+					# Unit 2: ammo is real shop stock now (1 stock unit = a 60-shot bundle from
+					# Lowe/Aubury) — dynamically priced, supply-gated, import-replenished (R3).
 					var ak := "arrows" if h.weapon == "bow" else "runes"
-					if h.gold >= 12.0:
-						h.gold -= 12.0   # burned supply sink (the ranged/magic counterpart of the food sink)
+					if economy.buy_item(h, ak, 1) == 1:
 						h.inv[ak] = int(h.inv.get(ak, 0)) + 60   # bigger bundle = fewer restock trips
 					a["phase"] = "goto"
 					a["target"] = a["loc"]   # return to THIS trip's camp (multi-camp world)
@@ -1386,22 +1390,20 @@ func _work_action(h: Hero) -> void:
 					return
 				"buytool":
 					var tool := String(Config.TOOL_FOR.get(a.get("skill", ""), ""))
-					if tool != "" and h.gold >= Config.TOOL_COST:
-						h.gold -= Config.TOOL_COST   # burned: the tool-purchase gold sink
+					if tool != "" and economy.buy_item(h, tool, 1) == 1:
 						h.inv[tool] = int(h.inv.get(tool, 0)) + 1
 						log_event("%s bought a %s — taking up %s." % [h.hero_name, item_name(tool), String(a.get("skill", ""))], "gold", 0)
 					h.act = {}
 					return
 				"buyweapon":
-					if h.gold >= Config.WEAPON_COST:
-						h.gold -= Config.WEAPON_COST
-						h.equipped["main"] = {"sword": "bronze_sword", "bow": "shortbow", "staff": "apprentice_staff"}[h.weapon]
-						_milestone(h, "Bought a %s" % item_name(String(h.equipped["main"])))
+					var wid: String = {"sword": "bronze_sword", "bow": "shortbow", "staff": "apprentice_staff"}[h.weapon]
+					if economy.buy_item(h, wid, 1) == 1:
+						h.equipped["main"] = wid
+						_milestone(h, "Bought a %s" % item_name(wid))
 					h.act = {}
 					return
 				"buyoffhand":
-					if h.gold >= 35.0 and not h.equipped.has("off"):
-						h.gold -= 35.0   # burned sink, like tools
+					if not h.equipped.has("off") and economy.buy_item(h, "wooden_shield", 1) == 1:
 						h.equipped["off"] = "wooden_shield"
 						_milestone(h, "Bought a %s" % item_name("wooden_shield"))
 					h.act = {}
