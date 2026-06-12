@@ -73,10 +73,12 @@ behavioral reference carrying the validated Step-1 economy tune.
 
 ## Where current direction deviates from the originals (and why)
 - **Merge plan (decided 2026-06-09):** a second concept prototype supplied
-  the desired look/UX, a richer brain (§18 rebalance = `BRAIN_V2`, built,
-  default-off pending activity breadth), and content tables as the post-MVP
-  roadmap. Order: M1 visual/UX (✅ done) → M2 brain v2 (measured, deferred)
-  → M3+ content waves (in progress).
+  the desired look/UX, a richer brain (§18 rebalance = `BRAIN_V2`), and
+  content tables as the post-MVP roadmap. Order: M1 visual/UX (✅ done) →
+  M2 brain v2 (4× measured, default-OFF — the 4th test post-Unit-0
+  falsified "breadth is the precondition": v2 worsens monoculture until
+  the combat base is price-coupled; see KI-4 and the 2026-06-12 decisions
+  entry) → M3+ content waves (in progress).
 - **Interim social negatives:** canon sources (PvP/death-loot) don't exist
   yet; scarcity-gated competition-friction bridges until content wave (e),
   then retires.

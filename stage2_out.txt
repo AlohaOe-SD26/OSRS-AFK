@@ -1,0 +1,14 @@
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+
+=== STAGE-2 SWEEP — 8 seeds, 23 days, immigration ON (mean ± SD). Social locked; vary combat. ===
+
+A baseline (brain v1, Unit-0 surface)
+    combat-share (non-fav fighting): 44% ± 5   [must drop from ~32%, not crater]
+    social:  Friend 3.5% ± 0.6 · Ally 0.4% · Rival 0.7% ± 0.6 · Nemesis 0.0%
+    per-capita gold: 1460 ± 332   [attractor should still bound; level may drop as loot faucet shrinks]
+
+B BRAIN V2 4th test (skillNeed, Unit-0 surface)
+    combat-share (non-fav fighting): 52% ± 3   [must drop from ~32%, not crater]
+    social:  Friend 3.3% ± 0.7 · Ally 0.0% · Rival 0.2% ± 0.2 · Nemesis 0.0%
+    per-capita gold: 1487 ± 84   [attractor should still bound; level may drop as loot faucet shrinks]
+

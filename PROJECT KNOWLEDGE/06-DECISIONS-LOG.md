@@ -94,3 +94,35 @@
 - **Note:** per-capita gold drifted above the validated 1,065–1,211 band
   (~1,485 at day 23 — fewer deaths/flees = more productive hours). Formal
   re-baseline belongs to the #1e instrumented sweep, not a knob reaction.
+
+## 2026-06-12 — #1e verdicts: on-task locked +20; §18 split; BRAIN_V2 stays OFF; band re-baselined
+- **SLAYER_ON_TASK locked at +20** (R6 — "the number is yours"). Sweep
+  (`tools/diag_unit0.gd`, 8 seeds × arms 0/10/20/35, 23d): engagement
+  saturates at +20 (tasks 14→59→68→68; on-task fighters 1→9→10→11%;
+  deaths/run 7.1→5.9→5.0→5.0). +35 buys nothing over +20; +0 collapses
+  the Slayer loop. Alternatives rejected: +10 (half the engagement for
+  the same monoculture level), +35 (no measurable return, stronger
+  standing attractor on principle).
+- **The banked §18 prediction held HALF-way** (R6 instrumentation):
+  - Rival-lean half HELD: the social web flipped friend-leaning
+    (Friend ≈ 3.5% vs Rival ≈ 0.7% of ordered pairs; KI-5-era lean was
+    Rival > Friend on stored edges — sign flip is denominator-invariant).
+    KI-5 RESOLVED and removed.
+  - Combat-share half FAILED: monoculture 39–44% across ALL arms — above
+    the bug-era 32%. Cause: the old ~8–20% "mitigation" was lethality;
+    the #1d survival triad removed that counterweight and the
+    price-independent combat base reasserted itself. Slayer tasks
+    ORGANIZE combat (feasible targets, fewer deaths); they do not shrink
+    it. KI-4 re-confirmed structural, fix path revised (combat-side
+    reward saturation / price coupling, natural home = Unit-1+ pricing).
+- **BRAIN_V2 default stays OFF** (4th test, `tools/diag_stage2.gd`, 8
+  seeds, v1 vs v2 on the Unit-0 surface): v2 WORSENS monoculture
+  (52±3 vs 44±5). Mechanism: saturating bases drain a gatherer's trained
+  favorite while untrained strength remains a maximal-need refuge —
+  breadth was never the missing precondition; a combat-side counter-force
+  is. Keep v2's measured win in mind (per-capita gold variance ±332→±84)
+  and salvage it once the combat base is price-coupled.
+- **Per-capita gold band re-baselined: 1,460 ± 332** (day-23, 8 seeds,
+  on-task +20; old band 1,065–1,211 was pre-survival-triad — fewer
+  deaths/flees = more productive hours; variance widened because rare
+  deaths now swing trajectories instead of truncating them).

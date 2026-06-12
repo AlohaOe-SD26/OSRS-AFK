@@ -6,8 +6,8 @@
 > to Done with the date).
 
 ## Now (active focus) — Unit 0, per DESIGN_RULINGS.md (2026-06-11)
-- [ ] #1 — **Unit 0: Slayer slice** (zones slice 2, absorbs B2; rulings
-  R4/R5/R6/R10 govern). Sub-items in build order:
+- [x] #1 — **Unit 0: Slayer slice** COMPLETE 2026-06-12 (zones slice 2,
+  absorbs B2; rulings R4/R5/R6/R10 govern). Sub-items in build order:
   - [x] #1a — Save-migration scaffold (R10, absorbs old #11): upgrader
     chain in `SaveLoad.migrate()` run before load; 5 new suite checks
     (106/106) incl. the ruled gate (migrated save loads validly + continues
@@ -34,9 +34,16 @@
     8s arrival-tax · brain danger term) measured: deaths 2,096→4 per 24k
     ticks, rep 0→61, goblin culling restored. Suite 141/141; 3 gates
     green. (2026-06-12)
-  - [ ] #1e — Unit-0 sweep instrumented with monoculture/rival-lean metrics
-    (R6 — verifies the banked §18 prediction); then BRAIN_V2 4th test
-    (activity breadth widened).
+  - [x] #1e — Unit-0 closing sweep DONE (`tools/diag_unit0.gd`, 8 seeds ×
+    4 arms): SLAYER_ON_TASK locked at +20 (response saturates — +0
+    collapses engagement to 1% on-task/14 tasks, +35 buys nothing over
+    +20). §18 prediction SPLIT: rival-lean half HELD (web flipped
+    friend-leaning; KI-5 resolved); combat-share half FAILED (39–44% all
+    arms — the survival triad removed lethality as the counterweight;
+    KI-4 re-confirmed structural). BRAIN_V2 4th test run: V2 WORSENS
+    monoculture (52±3 vs 44±5) though it collapses gold variance (±84 vs
+    ±332) — default stays OFF. Gold band re-baselined 1,460±332 (8 seeds,
+    23d). (2026-06-12)
 
 ## Next
 - [ ] #2 — Unit 1: catalog migration (prerequisite for all pricing work):

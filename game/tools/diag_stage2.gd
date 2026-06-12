@@ -12,15 +12,15 @@ const SEEDS := [0xA17F00D, 0xBEEF01, 0xC0FFEE, 0x1234567, 0xD00D42, 0x5EED99, 0x
 func _initialize() -> void:
 	print("=== STAGE-2 SWEEP — %d seeds, %d days, immigration ON (mean ± SD). Social locked; vary combat. ===\n" % [SEEDS.size(), DAYS])
 	# arm = {trip_rounds, weighted}.  trip_rounds 9999 = timer disabled (current). weighted = soften argmax.
-	# M2: A = RE-BASELINE on the canon map + ranged-reach (old numbers doubly stale); B = BRAIN V2
-	# (skillNeed-saturating symmetric bases + demand-responsive fishing) — the §18 prediction test.
+	# 4TH TEST (#1e, post-Unit-0): the activity surface BRAIN_V2 was waiting for is now live — slayer
+	# on-task pull, funded bounty, aggression danger term. A = brain v1 on this surface; B = BRAIN_V2.
+	# Decision point: if B holds the band and doesn't re-monoculture, the default flip goes to the user.
 	Config.COMBAT_TRIP_ROUNDS = 9999
 	Config.BRAIN_WEIGHTED_TIES = false
-	# BRAIN-V2 RETEST on the widened (10-skill) surface — the banked §18 prediction's fair test.
 	Config.BRAIN_V2 = false
-	_arm("A baseline (brain v1, styles+gear era)", 9999, false)
+	_arm("A baseline (brain v1, Unit-0 surface)", 9999, false)
 	Config.BRAIN_V2 = true
-	_arm("B BRAIN V2 retest (skillNeed, 10 skills)", 9999, false)
+	_arm("B BRAIN V2 4th test (skillNeed, Unit-0 surface)", 9999, false)
 	Config.BRAIN_V2 = false
 	quit(0)
 

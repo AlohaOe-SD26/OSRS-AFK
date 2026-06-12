@@ -10,22 +10,20 @@
   live `game/` build.
 
 ## KI-4 — §18 combat-utility asymmetry (opened ~2026-06-09, severity: med,
-  status: substantially mitigated, "leading-but-unconfirmed")
+  status: CONFIRMED structural by the #1e sweep, 2026-06-12)
 - **Symptom:** combat's base utility is price-independent (no reward
-  saturation) + congestion discounted ×0.5 → combat becomes the refuge when
-  gather markets glut. Historically 32–42% combat-share; now ~8–20% after
-  accumulated fixes (throughput, goals, tools, camps).
-- **Fix path:** `BRAIN_V2` (skillNeed-saturating bases) built, default-OFF —
-  three 8-seed tests show it needs ACTIVITY breadth; 4th test after
-  zones/Slayer.
-
-## KI-5 — Social web modestly rival-leaning (severity: low, diagnosed &
-  deferred)
-- **Symptom:** rivals ~10–13% vs friends ~8–9% of edges (near-balanced after
-  tool/goal units; nemeses ~0). Root cause = the combat residual (KI-4)
-  socially masked; interim competition-friction is a bridge.
-- **Fix path:** canon negative sources land with content wave (e) → retire
-  friction; re-measure.
+  saturation) + congestion discounted ×0.5 → combat is the standing refuge.
+  The old ~8–20% mitigation was lethality in disguise: once the #1d
+  survival triad made combat safe, combat-share rebounded to 39–44%
+  (8 seeds, all on-task arms — `tools/diag_unit0.gd`).
+- **Fix path REVISED by the BRAIN_V2 4th test (#1e):** V2 as built makes it
+  WORSE (52±3 vs 44±5) — saturating bases drain appeal from a gatherer's
+  trained favorite while untrained strength stays a maximal-need refuge for
+  everyone. V2 stays default-OFF. A real fix needs a combat-side
+  counter-force: reward saturation / price coupling on the combat base
+  (Unit-1+ catalog/pricing work is the natural home), not more breadth.
+  V2's one clear win — gold variance collapses ±332→±84 — is worth
+  salvaging when the base shape is fixed.
 
 ## KI-6 — Ammo economy feel-tuned only (severity: low)
 - **Symptom:** with consumption on, kills 812 vs 2634 free — bounded and

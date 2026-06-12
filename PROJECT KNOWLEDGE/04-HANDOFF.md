@@ -13,40 +13,41 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 `game/`; the `gielinor-tycoon-(*)` dirs are STALE snapshots.
 
 ## Current state
-**MVP COMPLETE** — build steps 0–6 all closed and green (101/101 suite +
-determinism/save-load/offline gates). Economy attractor validated; current
-day-12 per-capita band ~1,065–1,211, drift +2–6%. Post-MVP merge plan in
-progress: M1 visual port ✅ · M2 brain-v2 measured (default-off) · M3
-content waves underway (gear/equipment/smithing/zones-slice-1 done).
+**MVP COMPLETE; UNIT 0 (Slayer slice, punch #1) COMPLETE 2026-06-12** —
+suite 141/141 + determinism/save-load/offline gates green. Economy
+attractor validated; day-23 per-capita band re-baselined to **1,460 ± 332**
+(8 seeds — post-survival-triad; the old 1,065–1,211 band is stale).
+Post-MVP merge plan: M1 visual port ✅ · M2 BRAIN_V2 default-OFF (4th test
+failed it — see KI-4) · M3 content waves underway.
 
 ## What was just done (this session, 2026-06-12)
-- **#1c funded bounty SHIPPED** (R5): `set_bounty` 0–3× avg drop, one
-  affordability rule for payment AND attraction, per-kill treasury→hero
-  payout, utility FIGHT incentive retired, Town-tab bounty row.
-- **#1d aggressive monsters + Scurrius SHIPPED**: aggro chase/strike,
-  shared death handler (gravestone grudges + rep dents LIVE), Scurrius
-  behind 300 rat kills. First cut was a meat grinder (2,096 deaths/24k
-  ticks, rep pinned 0); fixed with the canon survival triad — passive
-  regen (1 HP/min off action_n), aggression tolerance (`tol_t` 8s
-  arrival-tax; also restored goblin culling 96→3,730), brain danger term,
-  lair-bound bosses. Measured: deaths 4/24k ticks, rep 61, Scurrius slain
-  16×. Suite 141/141; determinism/save-load/offline gates green; render
-  parses.
-- Fixed a malformed `.claude/settings.local.json` allow-entry
-  (`Bash(python -c ' *)`) that crashed the permission matcher.
+- **#1e closing sweep + BRAIN_V2 4th test DONE → Unit 0 closed.**
+  - NEW `game/tools/diag_unit0.gd` (8 seeds × on-task arms 0/10/20/35):
+    **SLAYER_ON_TASK locked at +20** (engagement saturates; +0 collapses
+    the Slayer loop, +35 buys nothing).
+  - **§18 prediction split:** rival-lean half HELD — social web flipped
+    friend-leaning, **KI-5 resolved/removed**. Combat-share half FAILED —
+    monoculture 39–44% in every arm (the survival triad removed lethality
+    as the hidden counterweight); **KI-4 re-confirmed structural**, fix
+    path revised to combat-side reward saturation (home: Unit-1+ pricing).
+  - **BRAIN_V2 4th test** (`diag_stage2.gd`, v1 vs v2 on the Unit-0
+    surface): v2 WORSENS monoculture 52±3 vs 44±5 (saturating bases make
+    untrained strength everyone's refuge) while collapsing gold SD
+    ±332→±84. **Default stays OFF**; salvage the variance win after the
+    combat base is price-coupled.
+  - Tools + docs only — no sim-code changes; #1d's verification verdicts
+    stand.
 
 ## In progress (and how far along)
-- **Punch #1 — Unit 0: Slayer slice**: #1a ✅ #1b ✅ #1c ✅ #1d ✅ — only
-  **#1e remains** (instrumented closing sweep + BRAIN_V2 4th test).
+- Nothing mid-flight. Unit 0 (#1a–#1e) fully closed.
 
 ## Next steps (in order)
-1. **#1e**: Unit-0 closing sweep with monoculture/rival-lean metrics (R6;
-   multi-seed — single-seed is RNG-confounded); record whether the §18
-   prediction held in the decisions log. NOTE: per-capita gold drifted to
-   ~1,485 (validated band was 1,065–1,211; fewer deaths/flees = more
-   productive hours) — re-baseline the band as part of this sweep.
-2. BRAIN_V2 4th test (activity breadth now widened — decision point).
-3. Unit 1 (catalog migration, punch #2) — resolves KI-8, renames GE_TAX.
+1. **Unit 1 (catalog migration, punch #2)** — resolves KI-8 first,
+   ContentDB-driven goods/prices, recipes-as-data, tradeable flags, shops
+   trade gear; rename `GE_TAX`→`SHOP_TAX` while files are open (R8).
+   While in pricing: this is the natural home for the KI-4 fix (combat
+   reward saturation / price coupling) — design it into the unit.
+2. Unit 2 (shop economy v2, punch #3) per rulings R1/R3.
 
 ## How to run / build / test
 ```
@@ -62,6 +63,8 @@ Godot binary path & GDScript 4.6 gotchas: agent memory `godot-environment`.
 
 ## Gotchas / unpushed work
 - Save-shape changes MUST bump SAVE_VERSION and append an upgrader to `SaveLoad._chain()` (the #1a scaffold) — never ship a schema change without one.
+- Fresh tree (no `game/.godot/`): run `godot --headless --path game
+  --import` once first, or headless scripts fail to parse `class_name`s.
 - Any new sim RNG draw perturbs the seed stream → re-baseline sweeps.
 - Don't chase the stale "600–900" gold band; the validated band moved
   (see `02-ARCHITECTURE.md`).

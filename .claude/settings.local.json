@@ -87,7 +87,14 @@
       "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/gate_saveload.gd\")",
       "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/gate_offline.gd\")",
       "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tools/diag_aggro.gd\")",
-      "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tests/test_sim.gd\")"
+      "Bash(\"/c/Users/Ripto/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path \"/c/Users/Ripto/Downloads/osrs_afk/game\" --script \"res://tests/test_sim.gd\")",
+      "PowerShell(if \\(Get-Command godot -ErrorAction SilentlyContinue\\) { \\(Get-Command godot\\).Source } else { \"not on PATH\" })",
+      "Bash(cmd //c \"where godot\")",
+      "Bash(ls /c/Users/Kinny/Downloads/Claude_Code_Githubzip/ ; find /c/Users/Kinny -maxdepth 3 -iname \"*godot*\" 2>/dev/null | head)",
+      "Bash(\"/c/Users/Kinny/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path game --script res://tools/diag_unit0.gd)",
+      "Bash(echo \"EXIT=$?\")",
+      "PowerShell(\"---\")",
+      "Bash(\"/c/Users/Kinny/Downloads/Godot_v4.6.3-stable_win64.exe/Godot_v4.6.3-stable_win64_console.exe\" --headless --path game --import)"
     ]
   }
 }

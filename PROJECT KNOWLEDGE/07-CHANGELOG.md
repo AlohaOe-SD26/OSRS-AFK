@@ -122,3 +122,24 @@
   16× vs 2 trespasser deaths; pop 42; economy bounded.
 - **Verified:** suite 141/141 (13 aggro/boss/bounty + 6 survival-triad
   checks); determinism / save-load / offline gates PASS; render parses.
+
+## 2026-06-12 — Unit-0 closing sweep + BRAIN_V2 4th test (punch-list #1e; ruling R6) — UNIT 0 COMPLETE
+- NEW `game/tools/diag_unit0.gd`: the instrumented Unit-0 sweep — 8 seeds ×
+  SLAYER_ON_TASK arms {0, 10, 20, 35} × 23 sim-days, reporting per arm:
+  monoculture (% non-favorite-fighting), full social-tier distribution +
+  rival-lean delta, per-capita gold (band re-baseline), deaths/run, tasks
+  assigned, % of fighters on-task.
+- `game/tools/diag_stage2.gd`: arms relabeled/repinned as the BRAIN_V2
+  4th test (v1 vs v2 on the post-Unit-0 surface).
+- **Results:** SLAYER_ON_TASK locked at +20 (saturation; see decisions
+  log). §18 prediction split — rival-lean half held (web friend-leaning;
+  **KI-5 resolved & removed**), combat-share half failed (39–44% all arms;
+  **KI-4 re-confirmed**, fix path revised to combat-side reward
+  saturation). **BRAIN_V2 4th test: v2 worsens monoculture 52±3 vs 44±5,
+  collapses gold SD ±332→±84 — default stays OFF.** Gold band
+  re-baselined to 1,460 ± 332 (day-23, 8 seeds).
+- No sim-code changes this item (tools + docs only) — suite/gates verdicts
+  from #1d (141/141, 3 gates green) remain the standing verification.
+- Note: `.godot/` editor cache was absent after the gitignore cleanup; the
+  first headless run on a fresh tree must rebuild it (`godot --headless
+  --path game --import`) or new tool scripts fail to parse class names.
