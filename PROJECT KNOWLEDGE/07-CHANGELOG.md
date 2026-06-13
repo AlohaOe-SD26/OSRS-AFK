@@ -310,3 +310,21 @@
 - **Verified:** suite **186/186** (+7 #4a checks); determinism / save-load / offline
   gates PASS (identical hashes — autonomous stream unperturbed). Next: #4b feasibility
   gating, then #4c the Control-node popups (needs F5 visual verification).
+
+## 2026-06-13 — #4b nudge feasibility gating (B4)
+- **Sim predicate** `SimWorld.nudge_feasible(h, intent) -> {ok, reason}`: a nudge
+  is feasible if the hero can act now, ALLOWING a cheap acquisition step they can
+  afford (buy the missing tool/weapon/food — matching the brain's own affordability
+  gates); it disables only when they categorically can't (no kit AND broke), or when
+  seized (use direct Command). Pure read; +6 suite checks.
+- **Render gating (Main.gd, immediate-mode — existing paradigm, no Control nodes yet).**
+  `_button` gained `enabled`/`tip` params: an infeasible NUDGE button draws dimmed,
+  absorbs its click as a no-op (kind "noop" → never falls through to deselect the
+  hero), and registers a hover-tooltip with the reason. New lightweight tooltip
+  layer: `_tips` (rebuilt each draw), `_mouse_pos` (tracked on MouseMotion),
+  `_draw_tooltips`/`_draw_tip_box` drawn last (on top) at both `_draw_hud` exits.
+  Seized DIRECT commands are NOT gated (direct control, different contract).
+- **Verified:** suite **192/192**; determinism / save-load / offline gates PASS;
+  Main.gd parses clean (--import). The VISUAL (dim buttons + tooltip box) is
+  render-only and needs an F5 pass to confirm appearance — flagged for the user.
+  Next: #4c Control-node parameterized popups (R11).

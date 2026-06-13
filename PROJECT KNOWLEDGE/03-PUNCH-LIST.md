@@ -26,11 +26,14 @@
     byte-identical (gate hashes unchanged, **no re-baseline**). Save **v6**
     (`_migrate_5_to_6`, forward-compatible). Plain nudges unchanged. +7 suite
     checks → **186/186**; 3 gates PASS.
-  - [ ] #4b — B4 feasibility gating: shared `nudge_feasible(h, target)`
-    predicates (tool present, weapon for fight, affordable, unlocked) feeding
-    BOTH the (existing immediate-mode) nudge buttons (disabled-with-tooltip
-    when infeasible, instead of letting the brain silently redirect) and the
-    #4c popup. Render-layer only.
+  - [x] #4b — B4 feasibility gating SHIPPED (2026-06-13): `SimWorld.nudge_
+    feasible(h, intent) -> {ok, reason}` (allows an affordable acquisition
+    step; disables only when categorically blocked / seized) + immediate-mode
+    render gating in Main.gd (`_button` enabled/tip; infeasible nudge → dim,
+    click-absorbing "noop", hover-tooltip via new `_tips`/`_mouse_pos`/
+    `_draw_tooltips`). Seized direct commands not gated. +6 suite checks
+    (**192/192**); 3 gates PASS; Main.gd parses. **VISUAL pending an F5
+    pass** (dim buttons + tooltip box — render-only, can't confirm headless).
   - [ ] #4c — Control-node parameterized popups (R11 experiment): the actual
     Fight + Skill nudge popups as Godot Control nodes (target dropdown, count
     range, loot-policy selector), sharing the immediate-mode palette/paddings,

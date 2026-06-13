@@ -44,9 +44,10 @@ func _initialize() -> void:
 	_test_unit2c_bias()
 	_test_unit2d_combat_gear()
 	_test_unit3a_param_nudge()
+	_test_unit3b_feasibility()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 186
+	const EXPECTED := 192
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1070,6 +1071,31 @@ func _test_unit3a_param_nudge() -> void:
 	var migrated: Dictionary = SaveLoad.migrate(v6s)
 	_check(int(migrated.get("version", -1)) == SaveLoad.SAVE_VERSION and SaveLoad.load_world(content, migrated) != null,
 		"v5 save migrates up the chain and loads (params forward-compatible)")
+
+## #4b — B4 feasibility gating: `nudge_feasible` allows an affordable acquisition step but disables
+## (with a reason) when the hero categorically can't act. The render layer greys+tooltips from this.
+func _test_unit3b_feasibility() -> void:
+	print("\n[Unit 3 #4b — nudge feasibility gating (B4): weapon/food/tool/affordability]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	var h: Hero = world.heroes[0]
+	_check(bool(world.nudge_feasible(h, "REGROUP")["ok"]), "Town nudge is always feasible")
+	h.equipped["main"] = "bronze_sword"; h.weapon = "sword"; h.inv["trout"] = 3; h.gold = 0.0
+	_check(bool(world.nudge_feasible(h, "FIGHT")["ok"]), "armed + fed → Fight feasible (no gold needed)")
+	var h2: Hero = world.heroes[1]
+	h2.equipped.erase("main"); h2.weapon = "sword"; h2.gold = 0.0; h2.inv["trout"] = 3
+	var f2: Dictionary = world.nudge_feasible(h2, "FIGHT")
+	_check(not bool(f2["ok"]) and String(f2["reason"]).contains("weapon"), "no weapon + broke → Fight gated (%s)" % f2["reason"])
+	var h3: Hero = world.heroes[2]
+	h3.inv.erase("bronze_pickaxe"); h3.gold = 0.0
+	var f3: Dictionary = world.nudge_feasible(h3, "GATHER_ORE")
+	_check(not bool(f3["ok"]) and String(f3["reason"]).contains("pickaxe"), "no pickaxe + broke → Mine gated (%s)" % f3["reason"])
+	h3.gold = 100.0
+	_check(bool(world.nudge_feasible(h3, "GATHER_ORE")["ok"]), "no pickaxe but affordable → Mine feasible (legible buy-then-mine)")
+	h.seized = true
+	_check(not bool(world.nudge_feasible(h, "FIGHT")["ok"]), "seized hero → nudge gated (direct Command instead)")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

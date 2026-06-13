@@ -42,6 +42,10 @@ var _zoom_track: Rect2 = Rect2()   # the slider's hit rect (rebuilt each draw)
 # Clickable control surfaces (Step 4, §20.2) — the Nudge/Seize hero commands + the town-building /
 # incentive buttons. Rebuilt every _draw; hit-tested in _unhandled_input. [{rect, kind, arg}].
 var _ui_rects: Array = []
+# #4b: hover-tooltips for DISABLED buttons (infeasible nudges). Rebuilt every _draw [{rect, text}];
+# drawn last (on top) when the cursor is over a disabled button. `_mouse_pos` tracks the cursor.
+var _tips: Array = []
+var _mouse_pos: Vector2 = Vector2.ZERO
 
 const SaveLoad := preload("res://sim/SaveLoad.gd")
 const SAVE_PATH := "user://save.dat"
@@ -181,6 +185,9 @@ func _snap(shot_name: String) -> void:
 
 # --------------------------------------------------------------------------- input
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		_mouse_pos = event.position   # #4b: track the cursor for disabled-button hover-tooltips
+		queue_redraw()
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_SPACE: speed = 0.0
@@ -292,6 +299,8 @@ func _click_ui(mouse: Vector2) -> bool:
 
 func _dispatch_ui(u: Dictionary) -> void:
 	match String(u["kind"]):
+		"noop":
+			pass   # #4b: a disabled button absorbs its click (the tooltip already says why it's gated)
 		"nudge":
 			if selected != null:
 				world.nudge_hero(selected, String(u["arg"]))
@@ -888,6 +897,7 @@ func _label(text: String, pos: Vector2, col: Color) -> void:
 # --------------------------------------------------------------------------- HUD
 func _draw_hud() -> void:
 	_ui_rects.clear()
+	_tips.clear()
 	var vp := get_viewport_rect().size
 	if selected != null and not world.heroes.has(selected):
 		selected = null   # the selected hero was exiled / departed — clear the stale reference
@@ -900,6 +910,7 @@ func _draw_hud() -> void:
 
 	if not _menu_open:
 		_draw_hero_popup(vp)
+		_draw_tooltips()
 		return
 
 	# OPEN: the single tabbed overlay (drawn over the map, never squishing it)
@@ -923,6 +934,7 @@ func _draw_hud() -> void:
 		0: _menu_colony(pad, y)
 		_: _menu_chronicle(pad, y)
 	_draw_hero_popup(vp)   # the hero popup is independent — drawn on top of everything
+	_draw_tooltips()
 
 # ---- the three top-level menu tabs ----
 # ---- concept-style top HUD bar + left hero roster ----
@@ -1046,23 +1058,54 @@ func _menu_chronicle(pad: float, y: float) -> void:
 # --------------------------------------------------------------------------- Step-4 control surfaces
 ## A clickable button. Returns the next x (so callers can lay buttons out in a row). Records its rect
 ## in _ui_rects for hit-testing. `kind`/`arg` route through _dispatch_ui.
-func _button(label: String, x: float, y: float, kind: String, arg, active: bool) -> float:
+func _button(label: String, x: float, y: float, kind: String, arg, active: bool, enabled: bool = true, tip: String = "") -> float:
 	var w := _font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 10.0
 	var r := Rect2(x, y - 11, w, 16)
-	draw_rect(r, Color("#4a3c22") if active else Color("#2b2820"))
-	draw_rect(r, Color("#5a5040"), false, 1.0)
-	draw_string(_font, Vector2(x + 5, y + 1), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#efe0b8") if active else Color("#cdbf9f"))
-	_ui_rects.append({"rect": r, "kind": kind, "arg": arg})
+	if enabled:
+		draw_rect(r, Color("#4a3c22") if active else Color("#2b2820"))
+		draw_rect(r, Color("#5a5040"), false, 1.0)
+		draw_string(_font, Vector2(x + 5, y + 1), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#efe0b8") if active else Color("#cdbf9f"))
+		_ui_rects.append({"rect": r, "kind": kind, "arg": arg})
+	else:
+		# #4b disabled: dim fill/border/text; absorb the click as a no-op (so it never deselects the
+		# hero by falling through to the map) and register a hover-tooltip explaining WHY it's gated.
+		draw_rect(r, Color("#211e18"))
+		draw_rect(r, Color("#3a352b"), false, 1.0)
+		draw_string(_font, Vector2(x + 5, y + 1), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#6f6552"))
+		_ui_rects.append({"rect": r, "kind": "noop", "arg": ""})
+		if tip != "":
+			_tips.append({"rect": r, "text": tip})
 	return x + w + 3.0
+
+## #4b: draw the hover-tooltip for whichever disabled button the cursor is over (drawn last → on top).
+func _draw_tooltips() -> void:
+	for t in _tips:
+		if (t["rect"] as Rect2).has_point(_mouse_pos):
+			_draw_tip_box(String(t["text"]), _mouse_pos)
+			return
+
+func _draw_tip_box(text: String, at: Vector2) -> void:
+	var tw := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+	var box := Rect2(at + Vector2(12, 6), Vector2(tw + 12, 20))
+	var vp := get_viewport_rect().size
+	if box.end.x > vp.x:
+		box.position.x = maxf(4.0, vp.x - box.size.x - 4.0)
+	draw_rect(box, Color("#15130f", 0.96))
+	draw_rect(box, Color("#5a5040"), false, 1.0)
+	draw_string(_font, box.position + Vector2(6, 14), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#e6d8b4"))
 
 ## Hero command row (§20.2): Nudge a one-off activity (or, while seized, COMMAND it directly), and the
 ## Seize/Release toggle. Same five verbs the brain itself selects among (dual-agency).
 func _draw_commands(h: Hero, pad: float, y: float) -> float:
-	var kind := "command" if h.seized else "nudge"
 	_hud_line("COMMAND (direct)" if h.seized else "NUDGE (one-off, then resumes)", pad, y, Color("#857a67"), 10); y += 15
 	var bx := pad
 	for c in [["Mine", "GATHER_ORE"], ["Chop", "GATHER_LOGS"], ["Fish", "PROVISION"], ["Fight", "FIGHT"], ["Town", "REGROUP"]]:
-		bx = _button(String(c[0]), bx, y, kind, String(c[1]), false)
+		if h.seized:
+			bx = _button(String(c[0]), bx, y, "command", String(c[1]), false)   # direct control — not feasibility-gated
+		else:
+			# #4b: gate an infeasible nudge with a disabled button + reason tooltip (no silent brain redirect)
+			var feas: Dictionary = world.nudge_feasible(h, String(c[1]))
+			bx = _button(String(c[0]), bx, y, "nudge", String(c[1]), false, bool(feas["ok"]), String(feas["reason"]))
 	y += 19
 	if h.seized:
 		var bx3 := _button("Release control", pad, y, "release", "", true)

@@ -14,8 +14,10 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 
 ## Current state
 **MVP + UNIT 0–2 COMPLETE; UNIT 3 (nudge popups, #4) IN PROGRESS —
-#4a done 2026-06-13.** suite **186/186** + determinism/save-load/offline
-gates green; save version **6**. The CATALOG (items.json via ContentDB) is
+#4a + #4b done 2026-06-13.** suite **192/192** + determinism/save-load/offline
+gates green; save version **6**. (Note: #4b's render gating — dim buttons +
+hover tooltip — is verified headless for logic/parse but its VISUAL needs an
+F5 pass; #4c will need F5 too, so they can be checked together.) The CATALOG (items.json via ContentDB) is
 the single item truth. Unit 2 shipped: 7-shop roster as data, dynamic buy
 pricing, treasury ledger (40% purchase routing), player price-bias lever
 (clamp 0.70/1.30). **Day-23 per-capita band 1,501 ± 235** (8 seeds, shipping
@@ -27,6 +29,15 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13)
+- **Unit 3 #4b SHIPPED — B4 feasibility gating.** `SimWorld.nudge_feasible(h,
+  intent) -> {ok, reason}` (feasible if the hero can act now, allowing an
+  affordable buy step; disabled only when categorically blocked, or seized).
+  Render: `Main._button` gained enabled/tip — an infeasible NUDGE button draws
+  dim, absorbs its click ("noop" kind so it never deselects the hero), and
+  shows a hover-tooltip with the reason (new `_tips`/`_mouse_pos`/
+  `_draw_tooltips` layer). Seized direct commands stay un-gated. +6 suite
+  checks → **192/192**; 3 gates PASS; Main.gd parses. **VISUAL (dim buttons +
+  tooltip) needs an F5 pass — render-only, unverifiable headless.**
 - **Unit 3 #4a SHIPPED — parameterized-nudge SIM CORE + loot-filter.**
   `nudge_hero(h, intent, params={})` takes optional per-trip params
   (loc / count_range / loot_policy / mon / suggested_items); the won nudge
@@ -96,28 +107,21 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
   1,460±332).
 
 ## In progress (and how far along)
-- **Unit 3 (punch #4): #4a ✅ · #4b NOT STARTED · #4c NOT STARTED.** The sim
-  foundation is in (parameterized nudges + loot-filter). Remaining:
-  - **#4b (next):** B4 feasibility gating — a shared `nudge_feasible(h,
-    target)` predicate (tool present / weapon for fight / affordable /
-    unlocked) feeding the EXISTING immediate-mode nudge buttons
-    (disabled-with-tooltip when infeasible, instead of the brain silently
-    redirecting). Render-layer only; the same predicate feeds #4c. Testable
-    headless (predicate logic).
-  - **#4c:** the Control-node parameterized popups (R11 experiment) — Fight +
+- **Unit 3 (punch #4): #4a ✅ · #4b ✅ · #4c NOT STARTED.** Sim foundation +
+  feasibility gating are in. Remaining:
+  - **#4c (next):** the Control-node parameterized popups (R11 experiment) — Fight +
     Skill nudge popups (target dropdown, count range, loot-policy selector),
     sharing the immediate-mode palette, dispatching via `nudge_hero(...,
     params)`. Decisions-log paradigm-split entry. **NEEDS F5 visual
     verification — cannot be confirmed headless**, so flag for the user.
 
 ## Next steps (in order)
-1. **#4b** B4 feasibility gating (shared `nudge_feasible` predicate →
-   disabled-with-tooltip on the immediate-mode nudge buttons). Headless-
-   testable.
-2. **#4c** Control-node parameterized popups (R11; Fight + Skill) — the UI
-   experiment, decisions-log paradigm-split entry. **Needs F5 visual
-   verification by the user.** Closes Unit 3.
-3. New directive items **#13–#15** (random founders / immigrant gold
+1. **#4c** Control-node parameterized popups (R11; Fight + Skill) — the UI
+   experiment that wires the #4a params (count range, loot-policy selector,
+   target dropdown) and the #4b feasibility into actual popups; decisions-log
+   paradigm-split entry. **Needs F5 visual verification by the user** (also
+   confirms #4b's dim-button + tooltip visuals). Closes Unit 3.
+2. New directive items **#13–#15** (random founders / immigrant gold
    bands / gear rolls — full specs in the punch list). They anchor on the
    gold attractor, so use the FRESH band **1,501 ± 235** (now re-baselined);
    each wealth change re-runs the band sweep. **#16** (Legendary arrivals)

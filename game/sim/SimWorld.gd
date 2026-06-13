@@ -394,6 +394,41 @@ static func _apply_nudge_params(head: Dictionary, params: Dictionary) -> void:
 	if params.has("suggested_items"):
 		head["suggested_items"] = (params["suggested_items"] as Array).duplicate()
 
+## B4 feasibility gating (#4b): can this hero ACT on a nudge to `intent` right now? Returns
+## {ok: bool, reason: String}. Render reads it to disable-with-tooltip an infeasible nudge button
+## instead of letting the brain silently redirect it (e.g. a tool-less Mine → a confusing BUY_TOOL
+## trip). The same predicate feeds the #4c popup. "Feasible" allows a CHEAP acquisition step the hero
+## can afford (buy the missing tool/weapon/food) — matching the brain's own affordability gates — and
+## only disables when the hero categorically can't (no kit AND can't afford it). Pure read.
+func nudge_feasible(h: Hero, intent: String) -> Dictionary:
+	if h.seized:
+		return {"ok": false, "reason": "seized — use direct Command"}
+	if intent == "REGROUP":
+		return {"ok": true, "reason": ""}
+	if intent == "FIGHT":
+		if not h.equipped.has("main"):
+			var wid: String = {"sword": "bronze_sword", "bow": "shortbow", "staff": "apprentice_staff"}.get(h.weapon, "bronze_sword")
+			var wcost: int = economy.buy_cost(wid)
+			if wcost <= 0:
+				wcost = Config.WEAPON_COST
+			if h.gold < float(wcost + 10):
+				return {"ok": false, "reason": "no weapon, and %dg short of buying one" % (wcost + 10 - int(h.gold))}
+		if int(h.inv.get("trout", 0)) < 1 and h.gold < float(economy.food_price() * 2):
+			return {"ok": false, "reason": "no food for the Rat Pit (need ~%dg)" % (economy.food_price() * 2)}
+		return {"ok": true, "reason": ""}
+	if Activities.is_gather(intent):
+		var skill := Activities.skill_of(intent)
+		if Config.TOOL_FOR.has(skill):
+			var tool: String = String(Config.TOOL_FOR[skill])
+			if int(h.inv.get(tool, 0)) <= 0:
+				var tcost: int = economy.buy_cost(tool)
+				if tcost <= 0:
+					tcost = Config.TOOL_COST
+				if h.gold < float(tcost + 5):
+					return {"ok": false, "reason": "no %s, and can't afford one (%dg)" % [tool.replace("_", " "), tcost]}
+		return {"ok": true, "reason": ""}
+	return {"ok": true, "reason": ""}
+
 ## Tier-3 SEIZE: suspend the hero's brain (it stops auto-deciding) and take direct control.
 func seize_hero(h: Hero) -> void:
 	h.seized = true
