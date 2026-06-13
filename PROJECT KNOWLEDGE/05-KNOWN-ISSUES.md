@@ -52,4 +52,10 @@
   change); post-collision equilibrium is travel-bound (kills ~5× below
   pre-collision peak — watch); post-Unit-1 telemetry flagged "5 fighters
   broke & foodless" at one end-of-run snapshot (momentary-state check,
-  suite food-floor checks green, drift +4% — watch, don't react).
+  suite food-floor checks green, drift +4% — watch, don't react);
+  **#13 rolled founders widened the g/cap band to 1,482 ± 448** (was
+  1,501 ± 235 — mean preserved, variance up from random favorite-spreads);
+  one seed (7a11) ran 50 deaths (combat-heavy roll, colony still alive) and
+  two seeds sit low (~880 g/cap, alive) — all colonies viable (≥1 fisher),
+  so watch the spread/death-outliers across #14–#15 wealth changes, don't
+  knee-jerk-tune a single noisy seed.

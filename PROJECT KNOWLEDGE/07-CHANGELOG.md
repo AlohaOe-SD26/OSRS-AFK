@@ -348,3 +348,26 @@
   PASS; both Main.gd and NudgePopup.gd compile (`--import`). **The VISUAL + interaction
   (popup layout, dropdowns, the #4b dim-buttons/tooltip) CANNOT be confirmed headless —
   needs an F5 pass by the user.** Unit 3 is feature-complete pending that visual sign-off.
+
+## 2026-06-13 — #13 rolled founders (random character generation) + band re-baseline
+- **Founders are fully ROLLED on the seeded RNG** (was a fixed template): per-founder
+  random favorite, weapon style (fighters), starting gold (band 20–100g), name,
+  appearance (skin/hair/shirt), and a spawn tile rolled inside the city walls. Same
+  seed ⇒ same founders (determinism holds). `_make_hero(i, favorite)` now does the
+  rolls over the id-indexed defaults; `_founder_favorites` rolls the spread with a
+  viability floor (≥1 fisher — the colony's only food source); `_new_hero` gained a
+  `weapon` param so the style-skill boost and `h.weapon` agree (id%3 retires for
+  rolled founders; kept for locked/immigrants until #14); `_roll_city_spawn` picks a
+  cached walkable city cell.
+- **`Config.FOUNDERS_LOCKED`** debug/repro flag (default OFF = rolled): ON = the
+  original fixed template, byte-identical (no extra RNG draws). The test suite pins it
+  ON so role-dependent checks stay stable; +7 dedicated rolled-founder checks exercise
+  the OFF path (determinism, viability, gold band, weapon-style, spawn-in-walls).
+- **No SAVE_VERSION bump** (rolled values live in already-serialized hero fields).
+- **Band RE-BASELINED** (`tools/diag_founders.gd`, 8 seeds × 23 days, rolled): per-capita
+  gold **1,482 ± 448** (supersedes 1,501 ± 235) — mean preserved (attractor pins it),
+  variance widened by the random favorite-spreads. Viability VALIDATED: ≥1 fisher every
+  seed, all colonies alive (pop 40–43). WATCH (KI-10): deaths 11.4 ± 16.1 — seed 7a11 an
+  outlier (50 deaths, combat-heavy roll), two seeds low g/cap (~880, alive).
+- **Verified:** suite **199/199**; determinism / save-load / offline gates PASS (rolled
+  founders; offline re-convergence held). Determinism hash re-baselined (1847147488).

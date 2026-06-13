@@ -29,6 +29,7 @@ var rng: Rng
 var telemetry                      # Telemetry (set by owner after construction)
 var _next_id: int = 0              # monotonic hero id source (founders + immigrants)
 var _name_counts: Dictionary = {}  # base name -> times used, so repeats become "Bjorn II" (unique display)
+var _city_cells: Array = []        # #13: cached walkable tiles inside the city walls (rolled-founder spawn)
 
 var heroes: Array = []             # Array[Hero]
 var monsters: Array = []           # Array[MonsterInstance] — live combat targets (§10)
@@ -95,8 +96,9 @@ func setup(content_db: ContentDB, hero_count: int = 6, seed_value: int = Config.
 	social = Social.new()
 	_load_locations()
 	heroes.clear()
+	var favs := _founder_favorites(hero_count)   # #13: viability-constrained roll (or the locked template)
 	for i in range(hero_count):
-		heroes.append(_make_hero(i))
+		heroes.append(_make_hero(i, favs[i]))
 	_next_id = hero_count
 	_spawn_monsters(4)
 	log_event("The colony of Varrock stirs to life. %d adventurers arrive." % hero_count, "lv")
@@ -142,16 +144,63 @@ func _load_locations() -> void:
 			"label": l.get("label", key),
 		}
 
-func _make_hero(i: int) -> Hero:
-	# Phase-0 founder favorites span gathering AND fighting → the Fisher→Cook→Warrior loop (§9)
-	# closes: fighters buy food from cooks, the food sink that pulls gold back toward the tune.
-	var favs := ["mining", "woodcutting", "fishing", "fishing", "fighting", "fighting"]
-	return _new_hero(i, favs[i % favs.size()], "Founder", 0, 20)
+## #13 — the founders' favorite spread. LOCKED = the original fixed template (the Fisher→Cook→Warrior
+## loop, §9 — fighters buy food from cooks, the sink that pulls gold toward the tune; NO RNG draws).
+## ROLLED = each founder's favorite drawn on the seeded RNG, with ONE viability constraint: at least
+## one FISHER (the colony's only food source — a foodless colony structurally collapses). Other roles
+## are free; the brain's demand-responsive labor covers transient shortfalls of ore/logs.
+func _founder_favorites(n: int) -> Array:
+	var out: Array = []
+	if Config.FOUNDERS_LOCKED:
+		var tmpl := ["mining", "woodcutting", "fishing", "fishing", "fighting", "fighting"]
+		for i in range(n):
+			out.append(tmpl[i % tmpl.size()])
+		return out
+	var pool := ["mining", "woodcutting", "fishing", "fighting"]
+	for i in range(n):
+		out.append(pool[rng.randi_range(0, pool.size() - 1)])
+	if n > 0 and not out.has("fishing"):
+		out[rng.randi_range(0, n - 1)] = "fishing"   # guarantee food production (the one structural floor)
+	return out
+
+func _make_hero(i: int, favorite: String) -> Hero:
+	if Config.FOUNDERS_LOCKED:
+		return _new_hero(i, favorite, "Founder", 0, 20)   # original behavior, byte-identical (no extra draws)
+	# #13 ROLLED founder: weapon style (fighters), starting gold band, then name/appearance/spawn rolled
+	# over the id-indexed defaults _new_hero sets. Fixed draw order → same seed ⇒ same founders.
+	var weapon := ""
+	if favorite == "fighting":
+		weapon = ["sword", "bow", "staff"][rng.randi_range(0, 2)]   # #13(d): rolled, replacing id % 3
+	var gold := rng.randi_range(Config.FOUNDER_GOLD_MIN, Config.FOUNDER_GOLD_MAX)
+	var h := _new_hero(i, favorite, "Founder", 0, gold, weapon)
+	h.hero_name = _unique_name(NAMES[rng.randi_range(0, NAMES.size() - 1)])
+	h.skin = SKIN[rng.randi_range(0, SKIN.size() - 1)]
+	h.hair = HAIR[rng.randi_range(0, HAIR.size() - 1)]
+	h.shirt = SHIRT[rng.randi_range(0, SHIRT.size() - 1)]
+	h.pos = _roll_city_spawn()
+	h.backstory = _make_backstory(h)   # rebuild on the rolled fields (deterministic; no rng draw)
+	return h
+
+## #13 — a random WALKABLE tile inside the city walls (interior rect 16..38 × 3..21). Cells are cached
+## once (deterministic, file order); the spawn is one RNG index draw. Falls back to the plaza if empty.
+func _roll_city_spawn() -> Vector2:
+	if _city_cells.is_empty():
+		for x in range(17, 38):
+			for y in range(4, 21):
+				var p := Vector2(float(x), float(y))
+				if not _tile_blocked(p):
+					_city_cells.append(p)
+	if _city_cells.is_empty():
+		return location_tile("combat")
+	return _city_cells[rng.randi_range(0, _city_cells.size() - 1)]
 
 ## Shared hero constructor (founders + immigrants). `tier_boost` adds head-start levels on top of
 ## the role baseline (a higher rarity tier = a more accomplished arrival, §16.1). RNG draw order
 ## (traits ×6, then pos ×2) is preserved from the original so seeded runs stay deterministic.
-func _new_hero(id: int, favorite: String, tier_name: String, tier_boost: int, start_gold: int) -> Hero:
+func _new_hero(id: int, favorite: String, tier_name: String, tier_boost: int, start_gold: int, weapon: String = "") -> Hero:
+	# #13(d): fighters' weapon STYLE is a caller-supplied roll; "" keeps the legacy id%3 (locked founders
+	# + immigrants until #14). Resolved once here so the style-skill boost and h.weapon always agree.
+	var wstyle: String = weapon if weapon != "" else ["sword", "bow", "staff"][id % 3]
 	var h := Hero.new()
 	h.id = id
 	h.hero_name = _unique_name(NAMES[id % NAMES.size()])
@@ -169,10 +218,9 @@ func _new_hero(id: int, favorite: String, tier_name: String, tier_boost: int, st
 	if favorite == "fighting":
 		_boost(h, "attack", 8 + tier_boost)
 		_boost(h, "strength", 8 + tier_boost)
-		var st: String = ["sword", "bow", "staff"][id % 3]   # weapon set below; boost the matching style skill
-		if st == "bow":
+		if wstyle == "bow":
 			_boost(h, "ranged", 8 + tier_boost)
-		elif st == "staff":
+		elif wstyle == "staff":
 			_boost(h, "magic", 8 + tier_boost)
 		_boost(h, "defence", 6 + tier_boost)
 		_boost(h, "hitpoints", 12 + tier_boost)
@@ -193,7 +241,7 @@ func _new_hero(id: int, favorite: String, tier_name: String, tier_boost: int, st
 	# spawn near the central plaza / rat pit
 	var c: Vector2 = location_tile("combat")
 	h.pos = c + Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-1.0, 1.0))
-	h.weapon = ["sword", "bow", "staff"][id % 3]   # deterministic (id-based, no RNG draw)
+	h.weapon = wstyle   # #13(d): rolled style (founders) or legacy id%3 (locked / immigrants)
 	# spawn loadout = ONLY the favorite's item: fighters get their weapon; skillers get their tool
 	if favorite == "fighting":
 		h.equipped = {"main": {"sword": "bronze_sword", "bow": "shortbow", "staff": "apprentice_staff"}[h.weapon]}

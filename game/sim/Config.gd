@@ -336,3 +336,11 @@ const OFFLINE_RARE_MULT: float = 0.5  # rare/boss drops roll at half chance offl
 # ---- world / population (§16, §22.1) ----
 const SIM_MINUTES_PER_TICK: float = 1.4  # in-sim clock minutes advanced per work-action (display only)
 const DEFAULT_SEED: int = 0xA17F00D      # deterministic RNG seed (override per save, §25)
+# #13 — founders are ROLLED on the seeded sim RNG (random name/appearance/favorite/weapon-style/gold/
+# spawn; same seed ⇒ same founders, so the determinism gate holds). FOUNDERS_LOCKED is the debug/repro
+# path: true = the original FIXED template (1 mine/1 chop/2 fish/2 fight, id-indexed look, 20g) with
+# NO extra RNG draws (byte-identical to the pre-#13 sim) — the test suite pins this so role-dependent
+# checks stay stable. static var so tests/tools can flip it. Live game + gates run UNLOCKED (rolled).
+static var FOUNDERS_LOCKED: bool = false
+const FOUNDER_GOLD_MIN: int = 20         # rolled founder starting-gold band (opening stance; << g* so
+const FOUNDER_GOLD_MAX: int = 100        # the upkeep attractor still pins per-capita gold — #13 re-baseline)

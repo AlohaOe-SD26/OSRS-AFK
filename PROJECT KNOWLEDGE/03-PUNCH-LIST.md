@@ -44,24 +44,6 @@
     split LOGGED (06-DECISIONS-LOG). Target/monster routing DEFERRED (one combat
     camp; FSM mon-routing unwired). Suite **192/192**; 3 gates PASS; both files
     parse. **VISUAL needs an F5 pass — unverifiable headless.**
-- [ ] #13 — **Founders fully randomly generated** (directive 2026-06-12).
-  On a fresh start every founder is ROLLED, not templated: random name,
-  random appearance colors (skin/hair/shirt), random skills/stats incl.
-  the favorite-activity spread, random starting gold in a band (opening
-  stance 20–100g; the BAND is the implementer's to recommend against the
-  attractor — the REQUIREMENT is random rolls), random spawn placement
-  within the city walls. Today: fixed favorites list (SimWorld ~146),
-  id-indexed SKIN/HAIR picks (~161), id-based names, `weapon = id % 3`
-  (~196) — all become seeded rolls. CONSTRAINTS: (a) all randomness on the
-  seeded sim RNG — same seed ⇒ same founders (determinism gate holds);
-  (b) keep a debug path to lock founders (fixed preset or pinned seed)
-  for testing/repro; (c) the favorite spread must not roll a structurally
-  unviable colony (e.g. zero fishers) — constrain the roll or PROVE the
-  brain recovers; (d) fighting-favorite founders ROLL their weapon/style
-  (sword/bow/staff) — the `id % 3` assignment retires (same rule for
-  immigrant fighters, #14). Engineering: wealth changes move the gold
-  attractor → re-run the band sweep + re-baseline; gates stay green;
-  SAVE_VERSION bump + upgrader on any save-shape change.
 - [ ] #14 — **Immigrant gold rolled in economy-fitted bands** (directive
   2026-06-12). Replace the fixed per-tier gold (NEWCOMER_TIERS 20/45/130/
   320, Config ~161) with ROLLED ranges per tier, scaled so higher-tier
@@ -130,6 +112,17 @@
   prestige resets correctly (i.e. reset with the run).
 
 ## Done
+- [x] #13 — **Founders fully randomly generated COMPLETE** (2026-06-13): every
+  founder ROLLED on the seeded RNG — favorite (viability floor: ≥1 fisher),
+  weapon style (fighters; `id%3` retired), starting gold (band 20–100g), name,
+  appearance, spawn inside the city walls. `Config.FOUNDERS_LOCKED` debug flag
+  (default OFF=rolled; ON=byte-identical template, pinned by the suite).
+  `_new_hero` gained a `weapon` param (the #14/#15 hook). No SAVE_VERSION bump
+  (values in existing fields). Band RE-BASELINED to **1,482 ± 448** (8 seeds,
+  `diag_founders.gd` — mean preserved, variance widened by random spreads; all
+  colonies viable). Suite 199/199 (+7 checks); 3 gates PASS. WATCH in KI-10.
+  CONSTRAINTS (a)–(d) all met. (Random spawn-in-walls included; no separate
+  sub-item needed.)
 - [x] #3 — **Unit 2: shop economy v2 COMPLETE** (2026-06-12 → 2026-06-13;
   rulings R1/R3). #3a supply side (7-shop roster as data, dynamic buy
   pricing, stock-gated purchases, C5 ambient imports, tier-up unlocks, save

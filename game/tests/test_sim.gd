@@ -22,6 +22,9 @@ func _check(cond: bool, msg: String) -> void:
 
 func _initialize() -> void:
 	print("=== GIELINOR TYCOON — SIM CORE TESTS ===")
+	# #13: pin the LOCKED founder template for the suite so role-dependent checks (heroes[0] is a miner,
+	# etc.) stay stable; the rolled path has its own dedicated test (_test_unit13_founders).
+	Config.FOUNDERS_LOCKED = true
 	_test_xp_curve()
 	_test_combat_math()
 	_test_shops_first_class()
@@ -45,9 +48,10 @@ func _initialize() -> void:
 	_test_unit2d_combat_gear()
 	_test_unit3a_param_nudge()
 	_test_unit3b_feasibility()
+	_test_unit13_founders()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 192
+	const EXPECTED := 199
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1096,6 +1100,54 @@ func _test_unit3b_feasibility() -> void:
 	_check(bool(world.nudge_feasible(h3, "GATHER_ORE")["ok"]), "no pickaxe but affordable → Mine feasible (legible buy-then-mine)")
 	h.seized = true
 	_check(not bool(world.nudge_feasible(h, "FIGHT")["ok"]), "seized hero → nudge gated (direct Command instead)")
+
+## #13 — rolled founders: deterministic on the seed, viability-constrained (≥1 fisher), gold-banded,
+## weapon-style rolled, spawned inside the walls; FOUNDERS_LOCKED restores the fixed template.
+func _test_unit13_founders() -> void:
+	print("\n[#13 — rolled founders: locked template, determinism, viability, gold band, weapon-style, spawn]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	Config.FOUNDERS_LOCKED = true
+	var wl := SimWorld.new()
+	wl.setup(content, 6, Config.DEFAULT_SEED)
+	_check(wl.heroes[0].favorite == "mining" and int(wl.heroes[0].gold) == 20,
+		"FOUNDERS_LOCKED → the fixed template (heroes[0] mines, 20g)")
+	Config.FOUNDERS_LOCKED = false
+	var wa := SimWorld.new(); wa.setup(content, 6, Config.DEFAULT_SEED)
+	var wb := SimWorld.new(); wb.setup(content, 6, Config.DEFAULT_SEED)
+	var same := true
+	for i in range(6):
+		var a: Hero = wa.heroes[i]
+		var b: Hero = wb.heroes[i]
+		if a.hero_name != b.hero_name or a.favorite != b.favorite or int(a.gold) != int(b.gold) or a.weapon != b.weapon or a.pos != b.pos:
+			same = false
+	_check(same, "rolled founders are deterministic (same seed ⇒ identical roster)")
+	var fishers := 0
+	for h in wa.heroes:
+		if h.favorite == "fishing":
+			fishers += 1
+	_check(fishers >= 1, "viability: at least one fisher among the founders (%d)" % fishers)
+	var gold_ok := true
+	for h in wa.heroes:
+		if int(h.gold) < Config.FOUNDER_GOLD_MIN or int(h.gold) > Config.FOUNDER_GOLD_MAX:
+			gold_ok = false
+	_check(gold_ok, "every founder's gold is in the rolled band [%d,%d]" % [Config.FOUNDER_GOLD_MIN, Config.FOUNDER_GOLD_MAX])
+	var wstyle_ok := true
+	for h in wa.heroes:
+		if h.favorite == "fighting" and not (h.weapon in ["sword", "bow", "staff"]):
+			wstyle_ok = false
+	_check(wstyle_ok, "fighting founders roll a weapon style in {sword,bow,staff}")
+	var differs := false
+	for i in range(6):
+		if wa.heroes[i].favorite != wl.heroes[i].favorite or int(wa.heroes[i].gold) != int(wl.heroes[i].gold):
+			differs = true
+	_check(differs, "the rolled roster differs from the locked template (rolling is live)")
+	var in_walls := true
+	for h in wa.heroes:
+		if not wa._inside_city(h.pos):
+			in_walls = false
+	_check(in_walls, "founders spawn on walkable tiles inside the city walls")
+	Config.FOUNDERS_LOCKED = true   # restore the suite default (role-stable for any later test)
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

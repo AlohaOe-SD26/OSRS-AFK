@@ -326,3 +326,37 @@
 - **Alternatives rejected:** extend the immediate-mode toolkit with hand-rolled
   dropdowns/spinners (more bespoke code, the thing R11 avoids); a separate .tscn scene
   (the popup is small and code-built — no inspector wiring needed, keeps it in one file).
+
+## 2026-06-13 — #13 rolled founders: viability constraint, debug lock, band re-baseline
+- **Founders are now fully ROLLED on the seeded RNG** (directive 2026-06-12): per-
+  founder random favorite, weapon style (fighters), starting gold (band 20–100),
+  name, appearance (skin/hair/shirt), and spawn tile inside the city walls. Same
+  seed ⇒ same founders (determinism gate holds). Immigrants already rolled their
+  favorite; their weapon/gear rolls are #14/#15.
+- **Viability constraint (the one structural floor): ≥1 FISHER among the founders.**
+  Favorites roll freely from {mining, woodcutting, fishing, fighting}; if the roll
+  produces zero fishers, one slot is forced to fishing. Rationale: fishing→cooking is
+  the colony's ONLY food source, and a foodless colony structurally collapses
+  (fighters starve). Other roles are left free — the brain's demand-responsive labor
+  covers transient ore/log shortfalls. REJECTED stronger constraints (e.g. ≥1 of each
+  gather, or a fixed min fighter count): the 8-seed sweep proved ≥1-fisher alone keeps
+  every colony ALIVE (pop 40–43), so more constraint would just reduce the variety the
+  directive wants.
+- **Debug lock (constraint b): `Config.FOUNDERS_LOCKED`** (static var, default OFF =
+  rolled). ON restores the original fixed template (1 mine/1 chop/2 fish/2 fight,
+  id-indexed look, 20g) with NO extra RNG draws — byte-identical to the pre-#13 sim.
+  The TEST SUITE pins it ON so role-dependent checks (heroes[0] mines, etc.) stay
+  stable; the rolled path has its own dedicated test. Live game + gates run OFF.
+- **No SAVE_VERSION bump:** rolled founders are different VALUES in already-serialized
+  hero fields (name/look/favorite/gold/weapon/pos) — no schema change.
+- **RE-BASELINE (diag_founders.gd, 8 seeds × 23 days, rolled): per-capita gold
+  1,482 ± 448** — supersedes 1,501 ± 235. The MEAN is preserved (the upkeep attractor
+  pins g/cap regardless of the rolled starting gold, exactly as predicted); the
+  VARIANCE widened (±235 → ±448) because random favorite-spreads vary the economy's
+  composition run-to-run. Viability VALIDATED: min founder-fishers = 1 across all
+  seeds, all colonies alive. WATCH: deaths/run 11.4 ± 16.1 — seed 7a11 is an outlier
+  (50 deaths, a combat-heavy roll with 1 fisher; colony still pop 40, g/cap high) —
+  narratable, not an economic break; two seeds run low g/cap (~880, alive, slow-wealth).
+- **#14/#15 (immigrant gold/gear) anchor on the FRESH band 1,482 ± 448** and retire
+  the immigrant `id % 3` weapon per #13(d) (the new `_new_hero` weapon param is the
+  hook — pass a rolled style instead of "").

@@ -34,7 +34,7 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 186-check headless gate suite
+  tests/test_sim.gd   # 199-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
   data/               # items.json (23 — THE item truth: ids/values/tiers/
                       # styles/recipes/tradeable, Unit 1) · shops.json (7-shop
