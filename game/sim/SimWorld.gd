@@ -364,17 +364,35 @@ func clear_all_incentives() -> void:
 ## Tier-2 NUDGE: inject a one-off activity that wins the hero's next decision, then it resumes autonomy.
 ## Interrupts the current trip (clears act → immediate re-decide) so the response is visible at once.
 ## Ignored for a seized hero (seize already gives you direct control — use command_seized there).
-func nudge_hero(h: Hero, intent: String) -> bool:
+func nudge_hero(h: Hero, intent: String, params: Dictionary = {}) -> bool:
 	if h.seized:
 		return false
 	var head := _intent_head(intent)
 	if head.is_empty():
 		return false
+	_apply_nudge_params(head, params)            # C1 (Unit 3): optional per-trip params (empty = plain nudge)
 	h.nudge = head
 	h.act = {}                                   # drop the current trip → re-decide now; the nudge wins
 	h.thought = "Heeding your nudge — %s." % _intent_phrase(intent)
 	log_event("You nudge %s to %s." % [h.hero_name, _intent_phrase(intent)], "lv")
 	return true
+
+## C1 parameterized nudge (Unit 3, #4a): layer optional player-chosen parameters onto the intent
+## head. All optional — an empty `params` leaves the head identical to a plain nudge (current
+## behavior). `loc` overrides the gather site / combat camp; `count_range` [min,max] is ROLLED into a
+## concrete per-trip target at _apply_choice (seeded → deterministic); `loot_policy` rides the trip;
+## `suggested_items`/`mon` are carried for #4c's UI and ignored by the FSM until then.
+static func _apply_nudge_params(head: Dictionary, params: Dictionary) -> void:
+	if String(params.get("loc", "")) != "":
+		head["loc"] = String(params["loc"])
+	if params.has("count_range") and (params["count_range"] is Array) and (params["count_range"] as Array).size() == 2:
+		head["count_range"] = [int(params["count_range"][0]), int(params["count_range"][1])]
+	if params.has("loot_policy"):
+		head["loot_policy"] = String(params["loot_policy"])
+	if params.has("mon") and String(params["mon"]) != "":
+		head["mon"] = String(params["mon"])
+	if params.has("suggested_items"):
+		head["suggested_items"] = (params["suggested_items"] as Array).duplicate()
 
 ## Tier-3 SEIZE: suspend the hero's brain (it stops auto-deciding) and take direct control.
 func seize_hero(h: Hero) -> void:
@@ -1057,10 +1075,20 @@ func _gear_drop(h: Hero) -> void:
 		h.equipped[it.slot] = it.id
 		_milestone(h, "Looted & equipped %s" % it.name)
 		log_event("%s loots a %s — an upgrade!" % [h.hero_name, it.name], "gold", 2)
-	elif h.cargo_count() < 24:
+	# #4a loot_policy drop-filter (R7): a non-upgrade is CARRIED only if this trip's policy keeps it
+	# AND there's cargo room; otherwise it salvages to coins (the default keep-all preserves the old
+	# carry-if-space behavior). Upgrades above are unaffected — they always auto-equip.
+	elif h.cargo_count() < 24 and loot_keeps(String(h.act.get("loot_policy", Config.LOOT_KEEP_ALL)), it):
 		h.inv[it.id] = int(h.inv.get(it.id, 0)) + 1   # CARRIED — sellable/swappable
 	else:
-		h.gold += float(it.base_value) * 0.5   # no space → salvage
+		h.gold += float(it.base_value) * 0.5   # salvaged (policy says no, or no cargo room)
+
+## #4a: does a trip's loot_policy keep this non-upgrade drop (vs salvage it)? Pure/testable.
+static func loot_keeps(policy: String, it: ItemType) -> bool:
+	match policy:
+		Config.LOOT_SALVAGE: return false
+		Config.LOOT_VALUABLES: return it.base_value >= Config.LOOT_VALUABLE_MIN
+		_: return true   # keep-all (the default + autonomous behavior)
 
 ## Hero death (§14, live-only): counters, reputation dent (§8), gravestone-loot grab (§16.3 grudge),
 ## respawn at town. Shared by the fight loop and aggressive-monster strikes (#1d).
@@ -1201,7 +1229,8 @@ func _fight_round(h: Hero) -> void:
 	# TIMER — after a ROUNDS budget regardless of kills, so a congestion-starved fighter still re-decides on a
 	# regular cadence instead of only on food/flee exits. Either path frees the congestion/utility machinery.
 	h.act["rounds"] = int(h.act.get("rounds", 0)) + 1
-	if int(h.act.get("kills", 0)) >= Config.COMBAT_TRIP_KILLS or int(h.act["rounds"]) >= Config.COMBAT_TRIP_ROUNDS:
+	# C1 (#4a): a parameterized FIGHT nudge rolls its own kill target; else the standing trip length.
+	if int(h.act.get("kills", 0)) >= int(h.act.get("count_target", Config.COMBAT_TRIP_KILLS)) or int(h.act["rounds"]) >= Config.COMBAT_TRIP_ROUNDS:
 		h.act = {}
 		_set_move(h, "shop")
 		h.thought = "Good haul — back to town to restock and weigh what's worth doing."
@@ -1295,6 +1324,15 @@ func _pick_candidate(cands_desc: Array) -> Dictionary:
 func _apply_choice(h: Hero, c: Dictionary) -> void:
 	h.act = {"intent": c["intent"], "loc": c["loc"], "skill": c["skill"],
 		"res": c["res"], "phase": "goto", "target": c["loc"], "then": "", "kills": 0}
+	# C1 parameterized nudge (Unit 3, #4a): bake the per-trip commitment from the nudge params. The
+	# count roll uses the seeded sim RNG and is drawn ONLY when a parameterized nudge set count_range —
+	# autonomous decisions never carry it, so the autonomous RNG stream (gates/band) is unperturbed.
+	if c.has("count_range"):
+		var cr: Array = c["count_range"]
+		var lo := int(cr[0]); var hi := maxi(lo, int(cr[1]))
+		h.act["count_target"] = rng.randi_range(lo, hi)
+	if c.has("loot_policy"):
+		h.act["loot_policy"] = String(c["loot_policy"])
 	# pre-fight: stock up on food at the Market before heading to the Rat Pit (the food sink)
 	if c["intent"] == "FIGHT" and int(h.inv.get("trout", 0)) < 2 and h.gold >= economy.food_price():
 		h.act["target"] = "shop"
@@ -1448,7 +1486,7 @@ func _work_action(h: Hero) -> void:
 		"gather":
 			h.inv[a["res"]] = int(h.inv.get(a["res"], 0)) + 1
 			_grant_xp(h, a["skill"], 8)
-			if int(h.inv[a["res"]]) >= 14 or h.cargo_count() >= 27 or h.inv_full():
+			if int(h.inv[a["res"]]) >= int(a.get("count_target", 14)) or h.cargo_count() >= 27 or h.inv_full():
 				a["phase"] = "goto"
 				a["target"] = "shop"
 				a["then"] = "sell"
@@ -1457,7 +1495,7 @@ func _work_action(h: Hero) -> void:
 		"fish":
 			h.inv["raw_trout"] = int(h.inv.get("raw_trout", 0)) + 1
 			_grant_xp(h, "fishing", 8)
-			if int(h.inv["raw_trout"]) >= 8 or h.inv_full():
+			if int(h.inv["raw_trout"]) >= int(a.get("count_target", 8)) or h.inv_full():
 				a["phase"] = "goto"
 				a["target"] = "range"
 				a["then"] = "cook"

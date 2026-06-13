@@ -5,53 +5,38 @@
 > Item format: `- [ ] #N — description` (N never reused; completed items move
 > to Done with the date).
 
-## Now (active focus) — Unit 3: nudge popups (punch #4)
-> Unit 2 (#3) CLOSED 2026-06-13 — see Done.
+## Now (active focus) — Unit 3: parameterized nudge popups (punch #4)
+> Unit 2 (#3) CLOSED 2026-06-13 — full entry in Done.
 
-### Unit 2 (#3) — CLOSED 2026-06-13 (kept here for build-order context; full entry in Done)
-- [x] #3 — Unit 2: shop economy v2 (rulings R1/R3). Sub-items in build order:
-  - [x] #3a — Supply side SHIPPED: 7-shop roster via new `data/shops.json`
-    (R3 cast), gear re-routed to specialist shops, dynamic buy pricing
-    (`charge_price`, anchored to the validated flat costs at baseline
-    fill), stock-gated purchases, C5 ambient imports (ammo baselines tuned
-    8→60 after a measured supply cliff: kills −25% — the R3 anti-pattern,
-    caught and fixed), tier-up unlocks (buy-side only), save v4 + v3→v4
-    upgrader. Offline-gate criterion v2 (re-entry + runaway guard —
-    endpoint-only Δ was decoupled-run noise). (2026-06-12)
-  - [x] #3b — Ledger SHIPPED: `PURCHASE_TREASURY_ROUTE` 0.40 (all hero
-    shop spend incl. food; hero-side sink unchanged), 5 treasury
-    inflow/outflow counters wired/serialized + telemetry line (day-23:
-    treasury 78k = tax 28k + routing 50k, outflows 0 until player acts);
-    band verified: drift −2%, kills 20.8k vs 21.8k pre-Unit-2, g/cap
-    ~1,829 (band edge — formal re-baseline at #3d closing report).
-    Suite 169/169; 3 gates PASS. (2026-06-12)
-  - [x] #3c — Player price-bias lever SHIPPED (2026-06-13): per-good
-    multiplier on what shops pay; treasury-funded overpay, affordability-
-    gated, degrades to base when unfunded; underpay = smaller faucet, no
-    treasury flow; brain reads the biased price via sell_price; Town-tab
-    cycle row; `treasury_out_bias` ledger; save v5 + v4→v5 upgrader; 7
-    suite checks (176/176). **Clamp LOCKED 0.70/1.30** by the sweep
-    (`tools/diag_bias.gd`, 6 seeds × 16 days): binding axis is treasury
-    funding — 130% overpay stays funded (end 16.7k), 150% breaks it (9.6k
-    ± 9.9k → crosses 0 within 1σ; drain ≈ full organic inflow); steering
-    real & monotonic (WC share 13.1→14.0→14.7%); g* bounded; underpay 0.70
-    floor structurally safe. Config comment + decisions log updated.
-  - [x] #3d — KI-4 counter-force experiment CLOSED (2026-06-13, NEGATIVE
-    RESULT): built the gear-drop reward coupling (`COMBAT_GEAR_REWARD` flag +
-    `gear_board_ref_price()` + gated `gear` brain term, default OFF, +3 suite
-    checks → 179) and swept it with COMBAT_CONGESTION_MULT via
-    `diag_unit2_close.gd` (6 arms, 8 seeds × 23 days). **No shippable
-    mitigation — ZERO behavior change:** gear-coupling FALSIFIED (ON worsens
-    monoculture at every level); congestion 1.0 drops monoculture 28→23% but
-    its higher variance breaks the OFFLINE gate (beef01 Δ31%), so HELD at
-    0.5; 0.75 destabilizes g/cap (1082±470). KI-4 stays OPEN. **Unit-2
-    closing band re-baselined at the shipping config: g/cap 1,501 ± 235**
-    (supersedes 1,460±332). Decisions log + KI-4 + Config updated.
 - [ ] #4 — Unit 3: C1 parameterized nudge popups (+ B4 disabled-with-tooltip
-  gating). UI tech RULED (R11): Control nodes for new popups only, shared
-  visual constants, render-layer only, decisions-log entry on the paradigm
-  split. `loot_policy` = drop-filter semantics (R7). Fight popup after #1;
-  Skill popup can float earlier.
+  gating). RULED: `loot_policy` = drop-filter, NOT ground loot (R7); UI tech
+  = Control nodes for NEW popups only (R11, 4 conditions: existing immediate-
+  mode panels untouched · new popups share visual constants · render-layer
+  only, dispatch via the `_dispatch_ui` path · decisions-log entry on the
+  paradigm split + the rule for which side new UI lands on). Sub-items in
+  build order (sim foundation first — testable headless; UI last — needs F5):
+  - [x] #4a — Parameterized-nudge SIM CORE + loot-filter SHIPPED (2026-06-13):
+    `nudge_hero(h, intent, params={})` merges optional params (loc /
+    `count_range` / `loot_policy` / mon / suggested_items) onto the head via
+    `_apply_nudge_params`; the won nudge rolls `count_range` (seeded) into
+    `act["count_target"]` (FSM reads it at FIGHT/gather/fish completion) and
+    carries `act["loot_policy"]` (the `SimWorld.loot_keeps` drop-filter in
+    `_gear_drop`: keep-all / upgrades-and-valuables≥40g / salvage-all; R7).
+    The new RNG roll fires ONLY on the parameterized path → autonomous play
+    byte-identical (gate hashes unchanged, **no re-baseline**). Save **v6**
+    (`_migrate_5_to_6`, forward-compatible). Plain nudges unchanged. +7 suite
+    checks → **186/186**; 3 gates PASS.
+  - [ ] #4b — B4 feasibility gating: shared `nudge_feasible(h, target)`
+    predicates (tool present, weapon for fight, affordable, unlocked) feeding
+    BOTH the (existing immediate-mode) nudge buttons (disabled-with-tooltip
+    when infeasible, instead of letting the brain silently redirect) and the
+    #4c popup. Render-layer only.
+  - [ ] #4c — Control-node parameterized popups (R11 experiment): the actual
+    Fight + Skill nudge popups as Godot Control nodes (target dropdown, count
+    range, loot-policy selector), sharing the immediate-mode palette/paddings,
+    dispatching through SimWorld nudge methods. Monster roster reads Slayer/
+    unlock state (B2, done). Decisions-log paradigm-split entry. **NEEDS F5
+    visual verification (cannot be confirmed headless).**
 - [ ] #13 — **Founders fully randomly generated** (directive 2026-06-12).
   On a fresh start every founder is ROLLED, not templated: random name,
   random appearance colors (skin/hair/shirt), random skills/stats incl.

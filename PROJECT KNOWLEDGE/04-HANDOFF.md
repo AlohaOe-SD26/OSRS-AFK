@@ -13,21 +13,45 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 `game/`; the `gielinor-tycoon-(*)` dirs are STALE snapshots.
 
 ## Current state
-**MVP + UNIT 0 (Slayer) + UNIT 1 (catalog) + UNIT 2 (shop economy v2)
-COMPLETE 2026-06-13** — suite **179/179** + determinism/save-load/offline
-gates green; save version **5**. The CATALOG (items.json via ContentDB) is
+**MVP + UNIT 0–2 COMPLETE; UNIT 3 (nudge popups, #4) IN PROGRESS —
+#4a done 2026-06-13.** suite **186/186** + determinism/save-load/offline
+gates green; save version **6**. The CATALOG (items.json via ContentDB) is
 the single item truth. Unit 2 shipped: 7-shop roster as data, dynamic buy
 pricing, treasury ledger (40% purchase routing), player price-bias lever
-(clamp 0.70/1.30), and the KI-4 closing sweep. **Day-23 per-capita band
-re-baselined to 1,501 ± 235** (8 seeds, the shipping config = #3d control
-arm; supersedes 1,460±332 — tighter variance, mean inside the old band).
-`COMBAT_CONGESTION_MULT` stays **0.5** — #3d found NO shippable combat-side
-KI-4 mitigation (see below), so KI-4 stays OPEN (structural). Three
-falsified levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward
-coupling (`COMBAT_GEAR_REWARD`), and congestion 1.0 (gate-blocked) — all
-detailed in KI-4.
+(clamp 0.70/1.30). **Day-23 per-capita band 1,501 ± 235** (8 seeds, shipping
+config). `COMBAT_CONGESTION_MULT` stays **0.5** — #3d found NO shippable
+combat-side KI-4 mitigation, so KI-4 stays OPEN (structural). Three falsified
+levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
+(`COMBAT_GEAR_REWARD`), congestion 1.0 (gate-blocked) — all detailed in KI-4.
+**Unit 3 #4a (parameterized-nudge sim core + loot-filter) is shipped**; #4b
+(feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13)
+- **Unit 3 #4a SHIPPED — parameterized-nudge SIM CORE + loot-filter.**
+  `nudge_hero(h, intent, params={})` takes optional per-trip params
+  (loc / count_range / loot_policy / mon / suggested_items); the won nudge
+  rolls `count_range` (seeded) into `act["count_target"]` (the FSM reads it at
+  the FIGHT/gather/fish completion sites) and carries `act["loot_policy"]`
+  (the `SimWorld.loot_keeps` drop-filter in `_gear_drop`: keep-all /
+  upgrades-and-valuables≥40g / salvage-all; R7, NOT ground loot). The new RNG
+  roll fires ONLY on the parameterized path, so autonomous play is byte-
+  identical (gate hashes 3974639208 unchanged — no re-baseline). Save **v5→v6**
+  (`_migrate_5_to_6`, forward-compatible — new keys optional/default-guarded).
+  +7 suite checks → **186/186**; 3 gates PASS. Plain nudges = unchanged.
+- **Unit 2 (#3) CLOSED earlier today — #3c shipped a lever; #3d was a negative result.**
+  #3c: ran `diag_bias.gd`, locked `PRICE_BIAS_MIN/MAX` 0.70/1.30 (binding
+  axis = treasury funding; 150% overpay breaks funding). #3d: built the
+  combat **gear-drop reward coupling** (flag `COMBAT_GEAR_REWARD` +
+  `Economy.gear_board_ref_price()` + gated `gear` brain term, default OFF),
+  then ran the closing sweep `tools/diag_unit2_close.gd` (6 arms, 8 seeds ×
+  23 days). **OUTCOME: no shippable mitigation — #3d shipped ZERO behavior
+  change.** Gear-coupling FALSIFIED (ON worsens monoculture at every level).
+  Congestion 1.0 DOES drop monoculture 28→23% without cratering kills, BUT its
+  higher variance (g/cap SD ±355 vs ±235) breaks the OFFLINE gate (seed beef01
+  closest-tail Δ31% vs ≤25%) — caught by running the gates after the
+  metric-based lock, so REVERTED to 0.5. 0.75 destabilizes g/cap (1082±470).
+  Closing band re-baselined at the shipping config: **1,501 ± 235**. KI-4
+  stays OPEN. Full arm table + process-correction note in 06-DECISIONS-LOG.
 - **Unit 2 (#3) CLOSED — #3c shipped a lever; #3d was a negative result.**
   #3c: ran `diag_bias.gd`, locked `PRICE_BIAS_MIN/MAX` 0.70/1.30 (binding
   axis = treasury funding; 150% overpay breaks funding). #3d: built the
@@ -72,16 +96,28 @@ detailed in KI-4.
   1,460±332).
 
 ## In progress (and how far along)
-- **Nothing mid-flight.** Unit 2 (#3) is closed and pushed; the tree is
-  green at the new defaults. Next is a fresh unit (Unit 3, #4) — not yet
-  started.
+- **Unit 3 (punch #4): #4a ✅ · #4b NOT STARTED · #4c NOT STARTED.** The sim
+  foundation is in (parameterized nudges + loot-filter). Remaining:
+  - **#4b (next):** B4 feasibility gating — a shared `nudge_feasible(h,
+    target)` predicate (tool present / weapon for fight / affordable /
+    unlocked) feeding the EXISTING immediate-mode nudge buttons
+    (disabled-with-tooltip when infeasible, instead of the brain silently
+    redirecting). Render-layer only; the same predicate feeds #4c. Testable
+    headless (predicate logic).
+  - **#4c:** the Control-node parameterized popups (R11 experiment) — Fight +
+    Skill nudge popups (target dropdown, count range, loot-policy selector),
+    sharing the immediate-mode palette, dispatching via `nudge_hero(...,
+    params)`. Decisions-log paradigm-split entry. **NEEDS F5 visual
+    verification — cannot be confirmed headless**, so flag for the user.
 
 ## Next steps (in order)
-1. **Unit 3 (C1 nudge popups + B4 gating, punch #4)** per R11/R7 — Control
-   nodes for new popups only, shared visual constants, render-layer only,
-   decisions-log entry on the paradigm split. `loot_policy` = drop-filter
-   semantics (R7). Fight popup after #1; Skill popup can float earlier.
-2. New directive items **#13–#15** (random founders / immigrant gold
+1. **#4b** B4 feasibility gating (shared `nudge_feasible` predicate →
+   disabled-with-tooltip on the immediate-mode nudge buttons). Headless-
+   testable.
+2. **#4c** Control-node parameterized popups (R11; Fight + Skill) — the UI
+   experiment, decisions-log paradigm-split entry. **Needs F5 visual
+   verification by the user.** Closes Unit 3.
+3. New directive items **#13–#15** (random founders / immigrant gold
    bands / gear rolls — full specs in the punch list). They anchor on the
    gold attractor, so use the FRESH band **1,501 ± 235** (now re-baselined);
    each wealth change re-runs the band sweep. **#16** (Legendary arrivals)

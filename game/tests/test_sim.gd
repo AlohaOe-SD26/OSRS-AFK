@@ -43,9 +43,10 @@ func _initialize() -> void:
 	_test_unit2_shops()
 	_test_unit2c_bias()
 	_test_unit2d_combat_gear()
+	_test_unit3a_param_nudge()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 179
+	const EXPECTED := 186
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -988,14 +989,15 @@ func _test_unit2c_bias() -> void:
 	world.economy.set_price_bias("iron_ore", Config.PRICE_BIAS_MAX)
 	var s_after := _cand_score(Brain.candidates_with_terms(hg, world), "GATHER_ORE")
 	_check(s_after > s_before, "the brain's reward term reads the biased price (score %.1f → %.1f)" % [s_before, s_after])
-	# v4→v5 migration
+	# v4→v5 migration: the v4→v5 upgrader injects the bias dict + premium counter; the chain then
+	# carries them up to the current SAVE_VERSION (version-agnostic so later bumps don't break this).
 	var v4s: Dictionary = SaveLoad.save_world(world)
 	v4s["version"] = 4
 	v4s.erase("price_bias")
 	v4s.erase("treasury_out_bias")
 	var v5: Dictionary = SaveLoad.migrate(v4s)
-	_check(int(v5.get("version", -1)) == 5 and v5.has("price_bias") and float(v5.get("treasury_out_bias", -1.0)) == 0.0,
-		"v4 save migrates to v5 (bias dict + premium counter present)")
+	_check(int(v5.get("version", -1)) == SaveLoad.SAVE_VERSION and v5.has("price_bias") and float(v5.get("treasury_out_bias", -1.0)) == 0.0,
+		"v4 save migrates up the chain (bias dict + premium counter present at v%d)" % SaveLoad.SAVE_VERSION)
 
 ## #3d — KI-4 combat-side counter-force: the gear-drop reward term is gated by COMBAT_GEAR_REWARD,
 ## reads the gear-board reference price, and SATURATES DOWNWARD as the board fills (the negative
@@ -1033,6 +1035,41 @@ func _test_unit2d_combat_gear() -> void:
 	_check(got_flooded < got and got_flooded > 0.0,
 		"flooding the gear board shrinks the reward (%.2f → %.2f) — the KI-4 negative feedback" % [got, got_flooded])
 	Config.COMBAT_GEAR_REWARD = false   # restore the default OFF (static var must not leak into later tests)
+
+## #4a — C1 parameterized nudge: the loot_policy drop-filter (pure), and the count_range roll that
+## bakes a per-trip commitment onto the won nudge's act. Unparameterized nudges stay unchanged.
+func _test_unit3a_param_nudge() -> void:
+	print("\n[Unit 3 #4a — parameterized nudge: count-range roll, loot_policy drop-filter, save v6]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var cheap: ItemType = content.item("leather_cowl")   # base 16
+	var dear: ItemType = content.item("iron_sword")      # base 60
+	_check(SimWorld.loot_keeps(Config.LOOT_KEEP_ALL, cheap) and SimWorld.loot_keeps(Config.LOOT_KEEP_ALL, dear),
+		"keep-all carries every non-upgrade drop")
+	_check(not SimWorld.loot_keeps(Config.LOOT_SALVAGE, dear) and not SimWorld.loot_keeps(Config.LOOT_SALVAGE, cheap),
+		"salvage-all carries nothing (everything → coins)")
+	_check(SimWorld.loot_keeps(Config.LOOT_VALUABLES, dear) and not SimWorld.loot_keeps(Config.LOOT_VALUABLES, cheap),
+		"upgrades-and-valuables keeps iron_sword(60), salvages leather_cowl(16)")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	var h: Hero = world.heroes[0]
+	h.weapon = "bow"; h.equipped["main"] = "shortbow"; h.inv["trout"] = 5
+	world.nudge_hero(h, "FIGHT", {"count_range": [3, 3], "loot_policy": Config.LOOT_SALVAGE})
+	_check(h.nudge.get("count_range", []) == [3, 3] and String(h.nudge.get("loot_policy", "")) == Config.LOOT_SALVAGE,
+		"a parameterized nudge stores count_range + loot_policy on the pending nudge")
+	world._start_activity(h)   # the dominating nudge wins → its params bake onto the trip act
+	_check(int(h.act.get("count_target", -1)) == 3 and String(h.act.get("loot_policy", "")) == Config.LOOT_SALVAGE,
+		"the won nudge rolls count_target=%d + carries loot_policy onto the trip" % int(h.act.get("count_target", -1)))
+	var h2: Hero = world.heroes[1]
+	world.nudge_hero(h2, "GATHER_LOGS")   # plain, unparameterized
+	world._start_activity(h2)
+	_check(not h2.act.has("count_target") and not h2.act.has("loot_policy"),
+		"a plain nudge adds no params (standing trip-length + keep-all unchanged)")
+	var v6s: Dictionary = SaveLoad.save_world(world)
+	v6s["version"] = 5
+	var migrated: Dictionary = SaveLoad.migrate(v6s)
+	_check(int(migrated.get("version", -1)) == SaveLoad.SAVE_VERSION and SaveLoad.load_world(content, migrated) != null,
+		"v5 save migrates up the chain and loads (params forward-compatible)")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

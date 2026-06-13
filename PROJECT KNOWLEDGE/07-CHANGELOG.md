@@ -286,3 +286,27 @@
   PASS. KI-4 stays OPEN (structural, documented — 05-KNOWN-ISSUES). **Unit 2
   (punch #3) CLOSED** (negative result; code delivered = the OFF gear lever +
   diag_unit2_close.gd). Full arm table + rationale in 06-DECISIONS-LOG.
+
+## 2026-06-13 — #4a parameterized-nudge SIM CORE + loot-filter (Unit 3 begins)
+- **Parameterized nudges (C1 sim core).** `nudge_hero(h, intent, params={})` now
+  accepts optional per-trip params, merged onto the intent head by
+  `_apply_nudge_params`: `loc` (gather site / combat camp override), `count_range`
+  `[min,max]`, `loot_policy`, plus `mon`/`suggested_items` carried for #4c. When the
+  nudge wins the decision, `_apply_choice` ROLLS `count_range` (seeded) into
+  `act["count_target"]` and stores `act["loot_policy"]`. The trip FSM reads the rolled
+  target at all three completion sites (FIGHT `COMBAT_TRIP_KILLS`, gather 14, fish 8
+  → `count_target` when set). An empty `params` = a plain nudge = the old behavior.
+- **loot_policy drop-filter (R7).** `SimWorld.loot_keeps(policy, it)` gates the
+  carried-vs-salvage branch in `_gear_drop` for NON-upgrade drops (upgrades still
+  auto-equip): keep-all (default/autonomous) carries if room; upgrades-and-valuables
+  carries only base_value >= `LOOT_VALUABLE_MIN` (40); salvage-all always salvages.
+  NOT ground loot (graves = wave e).
+- **Determinism preserved WITHOUT a re-baseline:** the new RNG roll is drawn ONLY on
+  the parameterized-nudge path (`if c.has("count_range")`), never autonomous play —
+  so the gate hashes are IDENTICAL to pre-#4a (determinism/save-load 3974639208).
+- **Save v5 → v6:** the new keys are OPTIONAL on the per-hero act/nudge dicts (read
+  with defaults), so a v5 save loads and continues correctly; the `_migrate_5_to_6`
+  upgrader just stamps the version (forward-compatible, R10).
+- **Verified:** suite **186/186** (+7 #4a checks); determinism / save-load / offline
+  gates PASS (identical hashes — autonomous stream unperturbed). Next: #4b feasibility
+  gating, then #4c the Control-node popups (needs F5 visual verification).

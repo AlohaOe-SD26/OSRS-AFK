@@ -122,6 +122,16 @@ const RAT_DROP_RANGE: int = 5
 # and values all live in the CATALOG now (items.json dropPool/tier/style/baseValue — the old
 # GEAR_DROPS/GEAR_TIER tables are retired; ContentDB.gear_drop_pool()/tier()/style() replace them).
 static var GEAR_DROP_CHANCE: float = 0.04
+# #4a (Unit 3) — loot_policy drop-FILTER (R7; NOT ground loot — graves arrive in wave (e)). A C1
+# parameterized nudge can set how a fighter handles NON-UPGRADE gear drops for that one trip (upgrades
+# always auto-equip regardless). keep-all = carry if space else salvage (the default + the autonomous
+# behavior, so normal play is unchanged); upgrades-and-valuables = carry only items worth ≥
+# LOOT_VALUABLE_MIN, salvage the rest; salvage-all = never carry, salvage everything to coins. The
+# policy rides on the trip `act` (set from the nudge params at _apply_choice).
+const LOOT_KEEP_ALL := "keep-all"
+const LOOT_VALUABLES := "upgrades-and-valuables"
+const LOOT_SALVAGE := "salvage-all"
+const LOOT_VALUABLE_MIN: int = 40   # base-value cutoff for "valuable" (keeps iron/oak/battlestaff gear; salvages cheap leather)
 # a saturated shop still pays this fraction of base value. static var (not const) so the labor
 # sweep can test whether the gather-price floor is what drives heroes into combat; 0.12 = validated.
 static var PRICE_FLOOR_FRAC: float = 0.12

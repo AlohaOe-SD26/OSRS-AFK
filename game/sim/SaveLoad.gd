@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 5   # v5: #3c price-bias lever (per-good bias dict + bias-premium outflow counter)
+const SAVE_VERSION := 6   # v6: #4a C1 parameterized-nudge params (optional count_target/loot_policy on hero act/nudge)
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,17 @@ const SAVE_VERSION := 5   # v5: #3c price-bias lever (per-good bias dict + bias-
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5}
+	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5, 5: _migrate_5_to_6}
+
+## v5 → v6 (#4a, C1 parameterized nudge): the new per-trip params (count_target, count_range,
+## loot_policy) are OPTIONAL keys on each hero's `act`/`nudge` dict, read everywhere with safe
+## defaults (count_target → the standing trip length; loot_policy → keep-all = the old behavior). A
+## v5 save therefore loads and continues correctly with no field transform — this upgrader just
+## stamps the version so the chain is explicit (forward-compatible, per R10).
+static func _migrate_5_to_6(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	nd["version"] = 6
+	return nd
 
 ## v4 → v5 (#3c, price-bias lever): pre-lever worlds have no biases set and no premium spend.
 static func _migrate_4_to_5(d: Dictionary) -> Dictionary:

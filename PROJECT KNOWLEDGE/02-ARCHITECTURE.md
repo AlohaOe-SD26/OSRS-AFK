@@ -16,8 +16,9 @@ game/
     SimWorld.gd   # tick loop, trip FSM, combat, control tiers, kick votes,
                   # buildings, offline catch-up, chronicle
     Config.gd     # ALL tuned constants (mirrors EQUATIONS CONFIG.*)
-    Economy.gd    # market facade: 2 shops (+ gear board), treasury, tax,
-                  # upkeep attractor; base values catalog-sourced (Unit 1)
+    Economy.gd    # market facade over the 7-shop roster (Unit 2), treasury +
+                  # ledger, tax, price-bias, upkeep attractor; base values
+                  # catalog-sourced (Unit 1)
     Shop.gd       # per-shop stock / dynamic prices / consumption / leveling
     Brain.gd      # utility scoring (score == sum of named terms)
     Hero.gd       # 28-slot canon inventory, 10 equip slots, goals,
@@ -33,7 +34,7 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 169-check headless gate suite
+  tests/test_sim.gd   # 186-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
   data/               # items.json (23 — THE item truth: ids/values/tiers/
                       # styles/recipes/tradeable, Unit 1) · shops.json (7-shop
@@ -62,12 +63,13 @@ Offline: 24 real h ≈ 35 sim-days, resolved statistically with live bounds
 g(T) = g* + (g0−g*)e^(−kT) — cannot overshoot live play).
 
 ## State / save shape
-`SaveLoad.save_world` → one binary Variant dict, `SAVE_VERSION = 1`:
-heroes (full FSM/paths/goals/equipment), monsters, shops, treasury +
-tax_collected, population, social adjacency, incentives/buildings/kick
-records, chronicle, clock/counters, **RNG state**. Version mismatch → load
-refused — no migration scaffold yet (KI-3). Save is a pure read (cannot
-perturb the run being saved).
+`SaveLoad.save_world` → one binary Variant dict, `SAVE_VERSION = 6`:
+heroes (full FSM/paths/goals/equipment + nudge/seize, incl. C1 nudge params),
+monsters, shops, treasury + ledger counters + price-bias, population, social
+adjacency, incentives/buildings/kick records, chronicle, clock/counters,
+**RNG state**. Old saves are walked up an ordered upgrader chain
+(`SaveLoad._chain()`, v1→…→v6); an unreachable/future version → load refused.
+Save is a pure read (cannot perturb the run being saved).
 
 ## Determinism contract
 One seeded `Rng` threaded everywhere; draw ORDER is part of the contract
