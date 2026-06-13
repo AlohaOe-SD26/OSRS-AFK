@@ -185,13 +185,21 @@ const REP_PER_DEATH: float = 5.0      # reputation lost per death in the recent 
 const REP_PER_KICK: float = 8.0       # reputation lost per recent kick (§16.2, wired in Step 5)
 const REP_SCALE: float = 70.0         # reputation→immigration sensitivity divisor (EQUATIONS §8)
 const REP_EVENT_DECAY: float = 0.75   # daily decay of the recent-deaths/kicks penalty windows
-# Newcomer rarity tiers (§16.1): combat/gather head-start + starting gold + base draw weight.
+# #14 — the anchor for economy-fitted arrival wealth: the per-capita gold band CENTER (g*) measured
+# by the #13 re-baseline (diag_founders.gd, 1,482 ± 448). Immigrant gold is rolled as a FRACTION of
+# this (below), so arrivals are sized to the economy, not preset numbers; re-point it if g* moves.
+const GOLD_ATTRACTOR_REF: int = 1482
+# Newcomer rarity tiers (§16.1): combat/gather head-start + starting-gold BAND + base draw weight.
 # Reputation tilts the roll toward higher tiers (a famous town attracts accomplished adventurers).
+# #14: `gold_frac` is a [lo,hi] fraction of GOLD_ATTRACTOR_REF, ROLLED per arrival (seeded) — low
+# tiers a few % of g*, Elite a substantial-but-BOUNDED fraction (<< g*, so even an Elite arrival
+# can't break per-capita; the upkeep attractor pulls them toward g* regardless). The bands bracket
+# the old fixed 20/45/130/320 anchors. Same SHAPE as #13: random rolls, tiered, economy-fitted.
 const NEWCOMER_TIERS: Array = [
-	{"name": "Greenhorn", "boost": 0,  "gold": 20,  "weight": 1.00},
-	{"name": "Seasoned",  "boost": 7,  "gold": 45,  "weight": 0.55},
-	{"name": "Veteran",   "boost": 16, "gold": 130, "weight": 0.22},
-	{"name": "Elite",     "boost": 28, "gold": 320, "weight": 0.07},
+	{"name": "Greenhorn", "boost": 0,  "gold_frac": [0.01, 0.03], "weight": 1.00},   # ≈ 15–44g
+	{"name": "Seasoned",  "boost": 7,  "gold_frac": [0.03, 0.07], "weight": 0.55},   # ≈ 44–104g
+	{"name": "Veteran",   "boost": 16, "gold_frac": [0.08, 0.15], "weight": 0.22},   # ≈ 119–222g
+	{"name": "Elite",     "boost": 28, "gold_frac": [0.18, 0.30], "weight": 0.07},   # ≈ 267–445g
 ]
 const TIER_REP_TILT: float = 0.9      # how strongly reputation shifts weight toward higher tiers
 

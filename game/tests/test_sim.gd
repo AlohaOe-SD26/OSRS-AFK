@@ -49,9 +49,10 @@ func _initialize() -> void:
 	_test_unit3a_param_nudge()
 	_test_unit3b_feasibility()
 	_test_unit13_founders()
+	_test_unit14_immigrants()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 199
+	const EXPECTED := 205
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1148,6 +1149,41 @@ func _test_unit13_founders() -> void:
 			in_walls = false
 	_check(in_walls, "founders spawn on walkable tiles inside the city walls")
 	Config.FOUNDERS_LOCKED = true   # restore the suite default (role-stable for any later test)
+
+## #14 — immigrant gold rolls in economy-fitted tier bands (fraction of the attractor ref), tiered
+## and bounded; fighters roll their weapon style (id%3 retired). Deterministic on the seed.
+func _test_unit14_immigrants() -> void:
+	print("\n[#14 — immigrant gold rolled in economy-fitted bands + rolled weapon style]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var ref := Config.GOLD_ATTRACTOR_REF
+	var green: Dictionary = Config.NEWCOMER_TIERS[0]
+	var elite: Dictionary = Config.NEWCOMER_TIERS[3]
+	var g_lo := int(round(ref * float(green["gold_frac"][0]))); var g_hi := int(round(ref * float(green["gold_frac"][1])))
+	var e_lo := int(round(ref * float(elite["gold_frac"][0]))); var e_hi := int(round(ref * float(elite["gold_frac"][1])))
+	var w := SimWorld.new()
+	w.setup(content, 6, Config.DEFAULT_SEED)
+	var gmin := 99999; var gmax := -1; var emin := 99999; var emax := -1
+	var fighters := 0; var fighters_valid := 0
+	for i in range(20):
+		var hg: Hero = w.spawn_immigrant(green); gmin = mini(gmin, int(hg.gold)); gmax = maxi(gmax, int(hg.gold))
+		var he: Hero = w.spawn_immigrant(elite); emin = mini(emin, int(he.gold)); emax = maxi(emax, int(he.gold))
+		for h in [hg, he]:
+			if h.favorite == "fighting":
+				fighters += 1
+				if h.weapon in ["sword", "bow", "staff"]:
+					fighters_valid += 1
+	_check(gmin >= g_lo and gmax <= g_hi, "Greenhorn gold rolls within its band [%d,%d] (saw %d..%d)" % [g_lo, g_hi, gmin, gmax])
+	_check(emin >= e_lo and emax <= e_hi, "Elite gold rolls within its band [%d,%d] (saw %d..%d)" % [e_lo, e_hi, emin, emax])
+	_check(e_lo > g_hi, "Elite gold band sits entirely above Greenhorn's (tiered: %d > %d)" % [e_lo, g_hi])
+	_check(e_hi < ref, "even Elite arrives below the per-capita attractor %d (bounded: %d)" % [ref, e_hi])
+	_check(fighters >= 1 and fighters == fighters_valid, "every immigrant fighter rolled a weapon in {sword,bow,staff} (%d fighters)" % fighters)
+	var wa := SimWorld.new(); wa.setup(content, 6, 0xBEEF01)
+	var ia: Hero = wa.spawn_immigrant(Config.NEWCOMER_TIERS[2])
+	var wb := SimWorld.new(); wb.setup(content, 6, 0xBEEF01)
+	var ib: Hero = wb.spawn_immigrant(Config.NEWCOMER_TIERS[2])
+	_check(int(ia.gold) == int(ib.gold) and ia.favorite == ib.favorite and ia.weapon == ib.weapon,
+		"immigrant roll is deterministic (same seed ⇒ same arrival)")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

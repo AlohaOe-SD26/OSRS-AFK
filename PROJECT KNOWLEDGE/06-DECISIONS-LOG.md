@@ -360,3 +360,27 @@
 - **#14/#15 (immigrant gold/gear) anchor on the FRESH band 1,482 ± 448** and retire
   the immigrant `id % 3` weapon per #13(d) (the new `_new_hero` weapon param is the
   hook — pass a rolled style instead of "").
+## 2026-06-13 — #14 immigrant gold in economy-fitted bands + rolled weapon style
+- **Immigrant starting gold is now a ROLLED tier band, sized as a FRACTION of the
+  attractor**, not a preset number (directive 2026-06-12). `NEWCOMER_TIERS` gains a
+  `gold_frac` [lo,hi] per tier; `spawn_immigrant` rolls gold = round(GOLD_ATTRACTOR_REF
+  × randf(lo,hi)) on the seeded RNG. Bands: Greenhorn 1–3% (≈15–44g), Seasoned 3–7%
+  (≈44–104g), Veteran 8–15% (≈119–222g), Elite 18–30% (≈267–445g). They bracket the
+  retired fixed anchors (20/45/130/320) and keep the SHAPE the directive asked for:
+  random, tiered, low-modest / high-wealthy-but-BOUNDED (even Elite's max 445 << g*, so
+  an arrival can't break per-capita; the upkeep attractor normalizes it anyway).
+- **`GOLD_ATTRACTOR_REF = 1482`** (the #13 band center) is the anchor. It is a stable
+  DESIGN anchor, NOT re-pointed every sweep — the measured band drifts within noise as
+  the RNG stream shifts; chasing it would be circular. Re-point only on a deliberate
+  economy change.
+- **Immigrant fighters ROLL their weapon style** (#13(d) completed for arrivals): the
+  `_new_hero` weapon param now carries a rolled sword/bow/staff; immigrant `id%3` retired.
+- **No SAVE_VERSION bump** (gold/weapon are values in already-serialized fields; the
+  tier shape change is in a Config const, not a save field).
+- **RE-BASELINE (diag_founders.gd, 8 seeds × 23 days, rolled founders + rolled
+  immigrants): per-capita gold 1,337 ± 269** — supersedes the #13 band 1,482 ± 448.
+  The ~145 mean shift + tighter variance are within-noise STREAM effects (the immigrant
+  rolls perturb the RNG from the first arrival on), not a real economic regression: 1,337
+  and 1,482 sit inside each other's bands, all colonies viable (≥1 fisher, pop 40–43),
+  and the #13 death outlier (7a11 50→10) washed out. New band of record: 1,337 ± 269.
+- **#15 (immigrant gear rolls) anchors on this**, rolls main-hand to match the #14 style.

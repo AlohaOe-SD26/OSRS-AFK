@@ -44,16 +44,6 @@
     split LOGGED (06-DECISIONS-LOG). Target/monster routing DEFERRED (one combat
     camp; FSM mon-routing unwired). Suite **192/192**; 3 gates PASS; both files
     parse. **VISUAL needs an F5 pass — unverifiable headless.**
-- [ ] #14 — **Immigrant gold rolled in economy-fitted bands** (directive
-  2026-06-12). Replace the fixed per-tier gold (NEWCOMER_TIERS 20/45/130/
-  320, Config ~161) with ROLLED ranges per tier, scaled so higher-tier
-  joiners arrive meaningfully funded relative to their level — sized to
-  FIT THE ECONOMY, not preset numbers. Derive bands from the current
-  attractor (anchor each tier to a sensible fraction of the per-capita
-  band — e.g. Greenhorn a few % of g*, Elite a substantial-but-bounded
-  fraction), propose with sweep evidence, tune within gates. The SHAPE is
-  the requirement: random rolls; low tiers modest; high tiers wealthy but
-  not economy-breaking. Same engineering constraints as #13.
 - [ ] #15 — **Immigrant gear rolls** (directive 2026-06-12). Arrivals roll
   random starting gear of random quality; higher stats/levels add a BONUS
   to the roll (better heroes arrive better-equipped). Gear-as-data exists
@@ -112,6 +102,13 @@
   prestige resets correctly (i.e. reset with the run).
 
 ## Done
+- [x] #14 — **Immigrant gold in economy-fitted bands COMPLETE** (2026-06-13):
+  `NEWCOMER_TIERS` gold → `gold_frac` [lo,hi] (fraction of `GOLD_ATTRACTOR_REF`
+  1482) — Greenhorn 1–3% … Elite 18–30% (≈267–445g, bounded < g*); rolled per
+  arrival via `_roll_tier_gold`. Immigrant fighters roll weapon style (#13d;
+  id%3 retired). No SAVE_VERSION bump. Band re-baselined **1,337 ± 269** (8
+  seeds, rolled founders + immigrants — within-noise shift, all viable). Suite
+  205/205 (+6 checks); 3 gates PASS.
 - [x] #13 — **Founders fully randomly generated COMPLETE** (2026-06-13): every
   founder ROLLED on the seeded RNG — favorite (viability floor: ≥1 fisher),
   weapon style (fighters; `id%3` retired), starting gold (band 20–100g), name,

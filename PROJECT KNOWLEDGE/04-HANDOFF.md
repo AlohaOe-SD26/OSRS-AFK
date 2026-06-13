@@ -13,16 +13,17 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 `game/`; the `gielinor-tycoon-(*)` dirs are STALE snapshots.
 
 ## Current state
-**MVP + UNIT 0–2 COMPLETE; UNIT 3 (#4) CODE-COMPLETE (F5-pending); #13
-(rolled founders) COMPLETE — 2026-06-13.** suite **199/199** + determinism/
-save-load/offline gates green; save version **6**. **Day-23 per-capita band
-re-baselined to 1,482 ± 448** (8 seeds, ROLLED founders — mean preserved vs the
-prior 1,501±235, variance widened by random favorite-spreads; all colonies
-viable, ≥1 fisher each). Founders are now fully rolled (random favorite/weapon/
-gold 20–100/name/look/spawn; `Config.FOUNDERS_LOCKED` ON = the old fixed
-template, pinned by the test suite). **OUTSTANDING: an F5 visual sign-off on
-Unit 3** (#4b dim-buttons + tooltip; #4c "Custom nudge…" Control-node popup) —
-render-only, unverifiable headless; everything else (sim/logic/parse) is green. The CATALOG (items.json via ContentDB) is
+**MVP + UNIT 0–2 COMPLETE; UNIT 3 (#4) CODE-COMPLETE (F5-pending); #13+#14
+(rolled founders + rolled immigrant gold/weapon) COMPLETE — 2026-06-13.** suite
+**205/205** + determinism/save-load/offline gates green; save version **6**.
+**Day-23 per-capita band re-baselined to 1,337 ± 269** (8 seeds, rolled founders
++ immigrants — within-noise of the prior 1,501±235; all colonies viable, ≥1
+fisher). Founders + immigrants are now fully rolled (favorite/weapon/gold/name/
+look/spawn; founder gold band 20–100, immigrant gold = tiered fraction of
+`GOLD_ATTRACTOR_REF` 1482; `Config.FOUNDERS_LOCKED` ON = the old fixed founder
+template, pinned by the suite). **OUTSTANDING: an F5 visual sign-off on Unit 3**
+(#4b dim-buttons + tooltip; #4c "Custom nudge…" Control-node popup) — render-only,
+unverifiable headless; everything else (sim/logic/parse) is green. The CATALOG (items.json via ContentDB) is
 the single item truth. Unit 2 shipped: 7-shop roster as data, dynamic buy
 pricing, treasury ledger (40% purchase routing), player price-bias lever
 (clamp 0.70/1.30). **Day-23 per-capita band 1,501 ± 235** (8 seeds, shipping
@@ -34,6 +35,12 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13)
+- **#14 SHIPPED — immigrant gold in economy-fitted bands + rolled weapon.**
+  `NEWCOMER_TIERS` gold → `gold_frac` (fraction of `GOLD_ATTRACTOR_REF` 1482):
+  Greenhorn 1–3% … Elite 18–30% (≈267–445g, bounded < g*), rolled per arrival;
+  immigrant fighters roll weapon style (id%3 retired). No save bump. Band
+  re-baselined **1,337 ± 269** (within-noise; all viable). Suite **205/205**
+  (+6 checks); 3 gates PASS.
 - **#13 SHIPPED — founders fully rolled (random character generation).** Every
   founder is ROLLED on the seeded RNG: favorite (viability floor ≥1 fisher),
   weapon style (fighters; `id%3` retired), gold (band 20–100), name, appearance,
@@ -146,21 +153,21 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
      Nudge disabled + reason shown.
   If anything looks wrong, that's the next fix; otherwise tick the F5 box and
   Unit 3 is closed.
-- **#13 (rolled founders): DONE** (not in progress — see above). #14 is the
-  next code item.
+- **#13 + #14: DONE** (not in progress — see above). #15 is the next code item.
 
 ## Next steps (in order)
 1. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above). If clean,
    close Unit 3 in the punch list; if not, fix the render issue first.
-2. **#14 — immigrant gold rolled in economy-fitted bands** (then #15 gear
-   rolls). Anchor on the FRESH band **1,482 ± 448** (re-baselined by #13);
-   retire the immigrant `id%3` weapon via the `_new_hero` weapon param (#13d);
-   re-run `diag_founders.gd`-style band check after the wealth change. **#16**
+2. **#15 — immigrant gear rolls** (the last directive-batch item before the big
+   units): arrivals roll random starting gear of random quality, with a level/
+   stat BONUS to the roll; style-matched main-hand for the #14-rolled weapon;
+   roll against the catalog (items.json tiers/styles/slots). Anchor on the band
+   **1,337 ± 269**; re-run `diag_founders.gd` after (gear = wealth). **#16**
    (Legendary arrivals) waits on Unit 4's GE + achievements.
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 199 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 205 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

@@ -289,13 +289,23 @@ func _boost(h: Hero, skill: String, level: int) -> void:
 	h.skills[skill] = {"level": level, "xp": XpTables.xp_for_level(level)}
 
 ## Immigration arrival (§16.1) — called by Population once an applicant is admitted. Builds an
-## immigrant with a random favorite + the rolled rarity tier's head-start/gold, appends, logs.
+## immigrant with a rolled favorite + (#14) a rolled weapon style for fighters and a tier gold roll.
 func spawn_immigrant(tier: Dictionary) -> Hero:
-	var h := _new_hero(_next_id, _rand_favorite(), tier["name"], int(tier["boost"]), int(tier["gold"]))
+	var fav := _rand_favorite()
+	var weapon := ""
+	if fav == "fighting":
+		weapon = ["sword", "bow", "staff"][rng.randi_range(0, 2)]   # #14/#13(d): rolled, retiring id%3
+	var h := _new_hero(_next_id, fav, tier["name"], int(tier["boost"]), _roll_tier_gold(tier), weapon)
 	_next_id += 1
 	heroes.append(h)
 	log_event("%s the %s arrives in Varrock." % [h.hero_name, tier["name"]], "lv")
 	return h
+
+## #14 — roll an arrival's starting gold as a tier-banded fraction of the attractor ref (economy-
+## fitted: low tiers modest, Elite wealthy-but-bounded). Seeded → deterministic.
+func _roll_tier_gold(tier: Dictionary) -> int:
+	var frac: Array = tier.get("gold_frac", [0.01, 0.03])
+	return int(round(float(Config.GOLD_ATTRACTOR_REF) * rng.randf_range(float(frac[0]), float(frac[1]))))
 
 func _rand_favorite() -> String:
 	var pool := ["mining", "woodcutting", "fishing", "fishing", "fighting", "fighting"]

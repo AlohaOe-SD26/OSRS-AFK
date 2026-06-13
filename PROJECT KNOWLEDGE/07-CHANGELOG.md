@@ -371,3 +371,20 @@
   outlier (50 deaths, combat-heavy roll), two seeds low g/cap (~880, alive).
 - **Verified:** suite **199/199**; determinism / save-load / offline gates PASS (rolled
   founders; offline re-convergence held). Determinism hash re-baselined (1847147488).
+
+## 2026-06-13 — #14 immigrant gold in economy-fitted bands + rolled weapon style
+- **Immigrant starting gold is now a rolled tier BAND** (fraction of GOLD_ATTRACTOR_REF
+  1482), replacing the fixed 20/45/130/320: NEWCOMER_TIERS gains `gold_frac` [lo,hi]
+  per tier (Greenhorn 1–3% ≈15–44g, Seasoned 3–7%, Veteran 8–15%, Elite 18–30%
+  ≈267–445g — tiered, low-modest / high-wealthy-but-bounded < g*). `spawn_immigrant`
+  rolls gold via `_roll_tier_gold` on the seeded RNG.
+- **Immigrant fighters roll their weapon style** (#13(d) for arrivals): the `_new_hero`
+  weapon param carries a rolled sword/bow/staff; immigrant id%3 retired.
+- **No SAVE_VERSION bump** (values in existing fields; tier shape is a Config const).
+- **Band RE-BASELINED** (`diag_founders.gd`, 8 seeds × 23 days, rolled founders + rolled
+  immigrants): per-capita gold **1,337 ± 269** (supersedes 1,482 ± 448). Within-noise
+  stream shift (the immigrant rolls perturb the RNG from the first arrival); all colonies
+  viable (≥1 fisher, pop 40–43), the #13 death outlier washed out (deaths 11.1 ± 7.4).
+- **Verified:** suite **205/205** (+6 #14 checks: gold-in-band per tier, tiered,
+  bounded < g*, fighter weapon valid, determinism); determinism / save-load / offline
+  gates PASS.
