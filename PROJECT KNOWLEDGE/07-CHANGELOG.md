@@ -256,3 +256,33 @@
 - **Verified:** suite **176/176**; determinism / save-load / offline gates
   ALL PASS. **Unit 2 sub-item #3c is DONE.** Remaining in Unit 2: #3d
   (KI-4 counter-force sweep + Unit-2 closing band re-baseline).
+
+## 2026-06-13 — #3d KI-4 closing sweep (NEGATIVE RESULT) → Unit 2 (#3) CLOSED
+- **Built the combat gear-drop reward coupling** (KI-4 counter-force candidate):
+  `Config.COMBAT_GEAR_REWARD` flag + `COMBAT_GEAR_K`, `Economy.gear_board_ref_
+  price()` (avg saturation-aware sell_price over drop-pool gear), and a gated
+  greed-weighted `gear` term in `Brain._score_fight` symmetric to gather's
+  price-saturating reward. Default OFF → zero change to the shipped sim. +3 suite
+  checks (flag gate / price read / flood-shrinks-reward) — **179/179**; 3 gates
+  PASS with hashes IDENTICAL to pre-#3d (default-OFF proven inert).
+- **Ran the closing sweep** (`diag_unit2_close.gd`, 6 arms = congestion {0.5/0.75/
+  1.0} × coupling {off/on}, 8 seeds × 23 days, integrated monoculture).
+- **OUTCOME: no shippable combat-side KI-4 mitigation — #3d ships ZERO behavior
+  change** (COMBAT_CONGESTION_MULT HELD at 0.5; gear-coupling stays OFF):
+  - **Gear-coupling FALSIFIED:** ON worsens monoculture at every congestion level
+    (+4..+7 pts) — it's a positive ~7-pt reward and the board only floors at
+    ~11–17, so its downward saturation is too weak to bite. Stays default-OFF for
+    future salvage (cf. BRAIN_V2).
+  - **Congestion 1.0 gate-BLOCKED:** it DOES drop monoculture 28→23% without
+    cratering kills (~21k flat), but its higher variance (g/cap SD ±355 vs ±235)
+    breaks the OFFLINE re-convergence gate (seed beef01: closest-tail Δ31% vs ≤25%;
+    was Δ0–2% at 0.5). Caught by running the gates AFTER the metric-based lock — so
+    reverted. A green release gate must not be weakened to ship a tune.
+  - **0.75 rejected:** no monoculture gain (27%) + destabilized g/cap (1082±470).
+- **Unit-2 closing band re-baselined at the shipping config (0.5/off): per-capita
+  gold 1,501 ± 235** (8 seeds, control arm) — supersedes 1,460±332; tighter variance,
+  mean inside the old band.
+- **Verified (0.5/off):** suite 179/179; determinism / save-load / offline gates
+  PASS. KI-4 stays OPEN (structural, documented — 05-KNOWN-ISSUES). **Unit 2
+  (punch #3) CLOSED** (negative result; code delivered = the OFF gear lever +
+  diag_unit2_close.gd). Full arm table + rationale in 06-DECISIONS-LOG.

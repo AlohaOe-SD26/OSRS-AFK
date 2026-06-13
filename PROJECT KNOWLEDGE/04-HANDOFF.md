@@ -13,27 +13,38 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 `game/`; the `gielinor-tycoon-(*)` dirs are STALE snapshots.
 
 ## Current state
-**MVP COMPLETE; UNIT 0 (Slayer) + UNIT 1 (catalog migration) COMPLETE
-2026-06-12** — suite **153/153** + determinism/save-load/offline gates
-green; save version **3**. The CATALOG (items.json via ContentDB) is the
-single item truth: canon ids are the inv/equip/shop keys, prices anchor on
-catalog base values (KI-8 resolved), gear/recipes/tradeable flags are
-data. Day-23 per-capita band **1,460 ± 332** (8 seeds; single-seed
-telemetry now reads ~1,790, +4% drift — within 1σ). M2 BRAIN_V2
-default-OFF (4th test failed it — see KI-4).
+**MVP + UNIT 0 (Slayer) + UNIT 1 (catalog) + UNIT 2 (shop economy v2)
+COMPLETE 2026-06-13** — suite **179/179** + determinism/save-load/offline
+gates green; save version **5**. The CATALOG (items.json via ContentDB) is
+the single item truth. Unit 2 shipped: 7-shop roster as data, dynamic buy
+pricing, treasury ledger (40% purchase routing), player price-bias lever
+(clamp 0.70/1.30), and the KI-4 closing sweep. **Day-23 per-capita band
+re-baselined to 1,501 ± 235** (8 seeds, the shipping config = #3d control
+arm; supersedes 1,460±332 — tighter variance, mean inside the old band).
+`COMBAT_CONGESTION_MULT` stays **0.5** — #3d found NO shippable combat-side
+KI-4 mitigation (see below), so KI-4 stays OPEN (structural). Three
+falsified levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward
+coupling (`COMBAT_GEAR_REWARD`), and congestion 1.0 (gate-blocked) — all
+detailed in KI-4.
 
 ## What was just done (this session, 2026-06-13)
-- **#3c price-bias lever CLOSED** — ran the clamp sweep
-  (`tools/diag_bias.gd`, 6 seeds × 16 days, bias on logs). **Locked
-  `PRICE_BIAS_MIN/MAX` at 0.70 / 1.30** (the opening stance, now
-  evidence-backed). Binding axis is treasury FUNDING: 130% overpay stays
-  funded (end 16.7k), 150% breaks it (9.6k ± 9.9k → crosses 0 within 1σ;
-  37k drain ≈ full organic inflow). Steering real & monotonic (WC share
-  13.1→14.0→14.7%); g* bounded in every arm. Underpay 0.70 floor is
-  structurally safe (no treasury flow). Config comment + decisions log +
-  changelog updated; no code/save-shape change (values were already the
-  opening stance). Suite **176/176**; all 3 gates PASS. **Unit 2 is now
-  one sub-item from closing: only #3d remains.**
+- **Unit 2 (#3) CLOSED — #3c shipped a lever; #3d was a negative result.**
+  #3c: ran `diag_bias.gd`, locked `PRICE_BIAS_MIN/MAX` 0.70/1.30 (binding
+  axis = treasury funding; 150% overpay breaks funding). #3d: built the
+  combat **gear-drop reward coupling** (flag `COMBAT_GEAR_REWARD` +
+  `Economy.gear_board_ref_price()` + gated `gear` brain term, default OFF,
+  +3 suite checks → 179), then ran the closing sweep
+  `tools/diag_unit2_close.gd` (6 arms, 8 seeds × 23 days). **OUTCOME: no
+  shippable mitigation — #3d ships ZERO behavior change.** Gear-coupling
+  FALSIFIED (ON worsens monoculture at every level — positive reward, board
+  floors at ~11–17). Congestion 1.0 DOES drop monoculture 28→23% without
+  cratering kills, BUT its higher variance (g/cap SD ±355 vs ±235) breaks
+  the OFFLINE gate (seed beef01 closest-tail Δ31% vs ≤25%) — caught by
+  running the gates after the metric-based lock, so REVERTED to 0.5. 0.75
+  destabilizes g/cap (1082±470). Closing band re-baselined at the shipping
+  config (0.5/off): **1,501 ± 235**. KI-4 stays OPEN. Suite **179/179**; all
+  3 gates PASS at 0.5/off (the gear lever is inert at default — identical
+  hashes). Full arm table + the process-correction note in 06-DECISIONS-LOG.
 
 ## Earlier (session 2026-06-12)
 - **#3c price-bias lever BUILT** (mechanics + UI + save v5 + 7 checks;
@@ -61,27 +72,20 @@ default-OFF (4th test failed it — see KI-4).
   1,460±332).
 
 ## In progress (and how far along)
-- **Unit 2 (punch #3): #3a ✅ #3b ✅ #3c ✅ · #3d NOT STARTED (the last
-  sub-item — closes the unit).**
-  - **#3d (next, not started):** KI-4 counter-force sweep — sweep
-    `COMBAT_CONGESTION_MULT` {0.5 current, 0.75, 1.0} ± gear-drop reward
-    coupling through the now-real gear-board price; two-sided criterion
-    (monoculture must drop from ~44%, combat must NOT crater); lock the
-    winner. Then the **Unit-2 CLOSING BAND RE-BASELINE** — the formal
-    multi-seed g/cap re-baseline (single-seed telemetry drifted to ~1,829;
-    the band of record is still 1,460±332 from Unit 0) — closes the unit.
-    No sweep tool exists for this yet; author one paralleling
-    `tools/diag_bias.gd` (multi-seed, integrated labor share + g/cap +
-    combat kills/deaths), or extend `headless_log.gd`.
+- **Nothing mid-flight.** Unit 2 (#3) is closed and pushed; the tree is
+  green at the new defaults. Next is a fresh unit (Unit 3, #4) — not yet
+  started.
 
 ## Next steps (in order)
-1. **#3d** KI-4 sweep + lock COMBAT_CONGESTION_MULT + Unit-2 closing band
-   re-baseline → closes Unit 2.
-2. Unit 3 (C1 nudge popups + B4 gating, punch #4) per R11/R7.
-3. New directive items **#13–#15** (random founders / immigrant gold
-   bands / gear rolls — full specs in the punch list) slot naturally
-   AFTER the Unit-2 close (they need the fresh band as their anchor);
-   **#16** (Legendary arrivals) waits on Unit 4's GE + achievements.
+1. **Unit 3 (C1 nudge popups + B4 gating, punch #4)** per R11/R7 — Control
+   nodes for new popups only, shared visual constants, render-layer only,
+   decisions-log entry on the paradigm split. `loot_policy` = drop-filter
+   semantics (R7). Fight popup after #1; Skill popup can float earlier.
+2. New directive items **#13–#15** (random founders / immigrant gold
+   bands / gear rolls — full specs in the punch list). They anchor on the
+   gold attractor, so use the FRESH band **1,501 ± 235** (now re-baselined);
+   each wealth change re-runs the band sweep. **#16** (Legendary arrivals)
+   waits on Unit 4's GE + achievements.
 
 ## How to run / build / test
 ```

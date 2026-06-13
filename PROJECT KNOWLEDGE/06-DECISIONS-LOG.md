@@ -236,3 +236,61 @@
 - REJECTED 1.50 ceiling: bigger nominal pull (14.7%) but noisier (σ 4.1 vs
   2.3) and treasury-unfunded at the tail — re-injection must stay bounded
   by real inflow (the R1 bounty rule), so an unfunded premium is out.
+
+## 2026-06-13 — #3d KI-4 closing sweep: NEGATIVE RESULT — no shippable combat-side mitigation; congestion HELD at 0.5; Unit 2 closed
+- **The experiment.** KI-4 (combat is the standing monoculture refuge) was ruled
+  to need a combat-side counter-force: reward saturation / price coupling, since
+  combat's appeal is price-INDEPENDENT (flat base + coin drops) while gather's
+  `price*0.25` reward saturates. `diag_unit2_close.gd` swept the two combat levers
+  TOGETHER (8 seeds × 23 days, integrated non-fav monoculture): COMBAT_CONGESTION_
+  MULT {0.5/0.75/1.0} × a new gear-board price-coupled reward term COMBAT_GEAR_
+  REWARD {off/on}. Arms (mono / kills / g-cap / board-end):
+    - 0.50/off (control): 28%±5 / 21039 / 1501±235 / 17
+    - 0.50/ON:            35%±6 / 24233 / 1608±76  / 11
+    - 0.75/off:           27%±4 / 21553 / 1082±470 / 14
+    - 0.75/ON:            31%±5 / 23347 / 1436±251 / 12
+    - 1.00/off:           23%±4 / 21768 / 1435±355 / 14
+    - 1.00/ON:            29%±5 / 23241 / 1435±370 / 16
+- **DECISION: hold COMBAT_CONGESTION_MULT at 0.5 (NO change); gear-coupling stays
+  OFF. #3d ships ZERO behavior change — both candidate counter-forces failed.**
+- **Process correction (recorded honestly):** I first locked 1.0 on the sweep
+  metrics alone, THEN ran the release gates and caught that 1.0 FAILS the offline
+  re-convergence gate — so I reverted. The lesson: the closing-sweep criterion must
+  include the offline/save-load gates, not just monoculture/kills/g-cap. (The
+  two-sided criterion in diag_unit2_close.gd's header omitted them.)
+- **Why 1.0 is NOT shippable:** it genuinely drops monoculture (28→23%, monotonic
+  across 0.5/0.75/1.0) without cratering kills (flat ~21k — rat-camp throughput is
+  respawn/travel-bound, not headcount-sensitive) — the *intended* effect works. BUT
+  1.0's higher run-to-run variance (g/cap SD ±355 vs ±235 at 0.5) breaks the offline
+  GATE: seed beef01 goes from closest-tail Δ0–2% at 0.5 to Δ31% at 1.0 (criterion
+  ≤25%) — the offline-return arm no longer demonstrably re-converges to the control
+  within the window. The offline batch itself stays bounded/absorbed/capped on every
+  seed; it's the decoupled post-reconnect trajectories that diverge under the higher
+  variance. A release gate that has been green project-wide must not be weakened to
+  ship a tuning change, so 1.0 is out.
+- **Why NOT 0.75:** it buys essentially no monoculture gain (27% vs 28%) while
+  destabilizing g/cap (1082±470 — depressed mean, ~2× the variance); strictly worse
+  than 0.5. An intermediate 0.5–0.75 value was NOT chased: the monoculture gain there
+  would be <1pt and barely-pass-the-gate knob-fiddling is exactly the discipline trap.
+- **REJECTED — the gear-drop reward coupling (FALSIFIED for KI-4):** turning it ON
+  WORSENS monoculture at every congestion level (+4..+7 pts) and raises kills. It is
+  a POSITIVE ~7-pt reward term, and the board only floors at ~11–17 (town demand +
+  the 4% drop rate keep gear off the board floor), so the added combat appeal
+  dominates the weak downward saturation — it acts as a combat ATTRACTANT, not a
+  counter-force. RETAINED default-OFF (cf. BRAIN_V2) for possible future salvage:
+  reformulate as a saturation PENALTY rather than a positive reward, or couple far
+  harder so the board actually crashes. The mechanism + price-coupling are unit-
+  tested (gated by the flag), so a future reformulation has a foundation.
+- **KI-4 stays OPEN (structural, documented), NOT mitigated this unit.** Net of #3d:
+  the gear coupling is falsified, congestion-1.0 is gate-blocked, 0.75 is band-
+  destabilizing → the available combat-side levers can't reduce monoculture without
+  violating a release gate or the band. Next attempts (recorded in KI-4): gear
+  coupling as a penalty; or revisit once a variance-robust offline gate / the
+  BRAIN_V2 base-shape fix lands.
+- **Unit-2 CLOSING BAND re-baselined at the SHIPPING config (0.5/off): per-capita
+  gold 1,501 ± 235** (8 seeds, the control arm). Supersedes the Unit-0 band of record
+  1,460±332; the new mean sits inside the old band with tighter variance — a clean
+  re-baseline, not a regression.
+- **Unit 2 (punch #3) CLOSED** — #3a supply / #3b ledger / #3c price-bias / #3d this
+  (negative result; no behavior change). Code delivered by #3d: the gear-coupling
+  lever (default-OFF, unit-tested) + the `diag_unit2_close.gd` sweep tool.

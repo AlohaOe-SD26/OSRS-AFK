@@ -5,8 +5,11 @@
 > Item format: `- [ ] #N — description` (N never reused; completed items move
 > to Done with the date).
 
-## Now (active focus) — Unit 2: shop economy v2 (punch #3)
-- [ ] #3 — Unit 2: shop economy v2 (rulings R1/R3). Sub-items in build order:
+## Now (active focus) — Unit 3: nudge popups (punch #4)
+> Unit 2 (#3) CLOSED 2026-06-13 — see Done.
+
+### Unit 2 (#3) — CLOSED 2026-06-13 (kept here for build-order context; full entry in Done)
+- [x] #3 — Unit 2: shop economy v2 (rulings R1/R3). Sub-items in build order:
   - [x] #3a — Supply side SHIPPED: 7-shop roster via new `data/shops.json`
     (R3 cast), gear re-routed to specialist shops, dynamic buy pricing
     (`charge_price`, anchored to the validated flat costs at baseline
@@ -33,11 +36,17 @@
     ± 9.9k → crosses 0 within 1σ; drain ≈ full organic inflow); steering
     real & monotonic (WC share 13.1→14.0→14.7%); g* bounded; underpay 0.70
     floor structurally safe. Config comment + decisions log updated.
-  - [ ] #3d — KI-4 counter-force experiment (designed into this unit per
-    #1e): sweep COMBAT_CONGESTION_MULT {0.5 current, 0.75, 1.0} ±
-    gear-drop reward coupling through the now-real gear-board price;
-    two-sided criterion (monoculture must drop from ~44%, combat must not
-    crater). Lock the winner; closing band report.
+  - [x] #3d — KI-4 counter-force experiment CLOSED (2026-06-13, NEGATIVE
+    RESULT): built the gear-drop reward coupling (`COMBAT_GEAR_REWARD` flag +
+    `gear_board_ref_price()` + gated `gear` brain term, default OFF, +3 suite
+    checks → 179) and swept it with COMBAT_CONGESTION_MULT via
+    `diag_unit2_close.gd` (6 arms, 8 seeds × 23 days). **No shippable
+    mitigation — ZERO behavior change:** gear-coupling FALSIFIED (ON worsens
+    monoculture at every level); congestion 1.0 drops monoculture 28→23% but
+    its higher variance breaks the OFFLINE gate (beef01 Δ31%), so HELD at
+    0.5; 0.75 destabilizes g/cap (1082±470). KI-4 stays OPEN. **Unit-2
+    closing band re-baselined at the shipping config: g/cap 1,501 ± 235**
+    (supersedes 1,460±332). Decisions log + KI-4 + Config updated.
 - [ ] #4 — Unit 3: C1 parameterized nudge popups (+ B4 disabled-with-tooltip
   gating). UI tech RULED (R11): Control nodes for new popups only, shared
   visual constants, render-layer only, decisions-log entry on the paradigm
@@ -129,6 +138,17 @@
   prestige resets correctly (i.e. reset with the run).
 
 ## Done
+- [x] #3 — **Unit 2: shop economy v2 COMPLETE** (2026-06-12 → 2026-06-13;
+  rulings R1/R3). #3a supply side (7-shop roster as data, dynamic buy
+  pricing, stock-gated purchases, C5 ambient imports, tier-up unlocks, save
+  v4) · #3b treasury ledger (40% purchase routing + 5 counters + telemetry)
+  · #3c player price-bias lever (treasury-funded overpay, clamp LOCKED
+  0.70/1.30 by diag_bias, save v5) · #3d KI-4 closing sweep
+  (`diag_unit2_close.gd`, negative result): no shippable combat-side
+  mitigation — gear coupling FALSIFIED, congestion 1.0 gate-blocked (offline
+  variance), so COMBAT_CONGESTION_MULT HELD at 0.5; KI-4 stays open.
+  **Unit-2 closing band re-baselined g/cap 1,501 ± 235**. Suite 179/179;
+  3 gates PASS. Sub-item detail above + in 07-CHANGELOG (2026-06-12/13).
 - [x] #1 — **Unit 0: Slayer slice COMPLETE** (2026-06-11 → 2026-06-12; zones
   slice 2, absorbs B2; rulings R4/R5/R6/R10). #1a save-migration scaffold
   (upgrader chain, ruled gate green) · #1b Slayer core (Vannaka,

@@ -108,6 +108,27 @@ func sell_price(item: String) -> int:
 func bias_of(item: String) -> float:
 	return float(price_bias.get(item, 1.0))
 
+## #3d — the gear-board reference price: the average saturation-aware sell_price across the
+## drop-pool gear items that route to a shop. This is the price-coupled signal the combat brain
+## reads (COMBAT_GEAR_REWARD): as fighters flood combat and dump gear, the board fills and this
+## value FALLS toward the floor → the combat reward term shrinks → combat self-limits (KI-4
+## counter-force). Bias-free (the steering uses the raw board price, not the player's faucet lever).
+## Cached id list (deterministic, catalog file order); 0.0 when no catalog/gear is loaded.
+var _gear_board_ids: Array = []
+func gear_board_ref_price() -> float:
+	if _gear_board_ids.is_empty():
+		if _content == null:
+			return 0.0
+		for it in _content.gear_drop_pool():
+			if _by_good.has(it.id):
+				_gear_board_ids.append(it.id)
+		if _gear_board_ids.is_empty():
+			return 0.0
+	var sum := 0.0
+	for id in _gear_board_ids:
+		sum += float(_by_good[id].sell_price(id))
+	return sum / float(_gear_board_ids.size())
+
 ## Player API (#3c): set/clear the per-good price bias, clamped to the swept band. ~1.0 clears.
 func set_price_bias(good: String, mult: float) -> void:
 	if absf(mult - 1.0) < 0.01:

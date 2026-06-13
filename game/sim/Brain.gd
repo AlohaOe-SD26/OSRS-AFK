@@ -121,6 +121,11 @@ static func _score_fight(hero: Hero, world, camp: String = "combat", mon_id: Str
 	# coin reward — camps now differ economically (wizards/guards pay; chickens don't)
 	var wealth_w := 0.6 + float(hero.traits.get("greed", 0.4))
 	terms.append(["reward", (mon.coin_drop_min + mon.coin_drop_max) * 0.5 * 0.2 * wealth_w])
+	# #3d KI-4 COUNTER-FORCE (default OFF): gear-drop reward coupled to the gear-board price. Combat's
+	# only price-responsive feedback — the board crashes as fighters flood it and dump gear, so this
+	# term saturates DOWNWARD and combat stops being the price-independent refuge (symmetric to gather).
+	if Config.COMBAT_GEAR_REWARD:
+		terms.append(["gear", world.economy.gear_board_ref_price() * Config.COMBAT_GEAR_K * wealth_w])
 	# FUNDED BOUNTY (Unit 0 / R5): the posted per-kill payout enters through the SAME greed-weighted
 	# reward shape — one number the player sets, attraction derived from the payout. Affordability-
 	# gated by the same rule that gates payment, so an empty treasury attracts nobody.

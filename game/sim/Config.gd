@@ -23,8 +23,24 @@ const FAVORITE_MULT: float = 1.6      # utility multiplier for a hero's favorite
 const SECONDARY_MULT: float = 1.2     # smaller multiplier for the secondary skill
 const CONGESTION_K: float = 7.0       # crowded nodes lose utility → self-balancing labor (§6)
 # combat-node congestion weight vs gather nodes (0.5 = combat areas hold more bodies than one ore
-# rock). static var (not const) so the labor sweep can A/B it without recompiling; 0.5 = original.
+# rock). static var (not const) so sweeps can A/B it. #3d HELD AT 0.5 (NOT raised): the sweep
+# (diag_unit2_close.gd, 8 seeds × 23 days) showed 1.0 DOES drop non-fav monoculture 28→23% without
+# cratering kills — BUT 1.0's higher run-to-run variance (g/cap SD ±355 vs ±235) breaks the offline
+# re-convergence GATE (seed beef01: closest-tail Δ31% vs ≤25% required), and 0.75 buys no monoculture
+# gain (27%) while destabilizing g/cap (1082 ± 470). No combat-side KI-4 mitigation was shippable —
+# see KI-4 + the 2026-06-13 decisions entry. 0.5 stays the gate-green, band-stable default.
 static var COMBAT_CONGESTION_MULT: float = 0.5
+# #3d — KI-4 combat-side counter-force EXPERIMENT (FALSIFIED, stays default-OFF; cf. BRAIN_V2):
+# combat's reward is price-INDEPENDENT (flat base + coin drops), unlike gather's saturating
+# `price*0.25`. This couples a reward term to the GEAR-BOARD price, the idea being the board crashes
+# as fighters flood it → the reward shrinks → combat self-limits. The sweep FALSIFIED it: ON WORSENS
+# monoculture at every congestion level (+4..+7 pts) and raises kills, because it's a POSITIVE ~7-pt
+# reward and the board only floors at ~11–17 (town demand + the 4% drop rate keep it off the floor),
+# so the added appeal dominates the weak downward saturation. RETAINED default-OFF for possible
+# future salvage (reformulate as a saturation PENALTY, or couple far harder). static var so
+# diag_unit2_close.gd can A/B it. Default OFF = zero change to the shipped sim.
+static var COMBAT_GEAR_REWARD: bool = false
+static var COMBAT_GEAR_K: float = 0.20   # coupling weight on the gear-board ref price (only live when the flag is ON)
 const STICKY_BONUS: float = 6.0       # anti-thrash hysteresis for the current activity
 const DECISION_INTERVAL: float = 4.0  # seconds between re-evaluations (3–5s, §18.6)
 # Stage-2 lever 2: soften the hard argmax into a WEIGHTED-RANDOM pick among NEAR-TIE candidates (scores

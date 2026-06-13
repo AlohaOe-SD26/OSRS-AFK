@@ -10,20 +10,29 @@
   live `game/` build.
 
 ## KI-4 — §18 combat-utility asymmetry (opened ~2026-06-09, severity: med,
-  status: CONFIRMED structural by the #1e sweep, 2026-06-12)
+  status: OPEN — structural; #3d (2026-06-13) found NO shippable mitigation)
 - **Symptom:** combat's base utility is price-independent (no reward
-  saturation) + congestion discounted ×0.5 → combat is the standing refuge.
-  The old ~8–20% mitigation was lethality in disguise: once the #1d
-  survival triad made combat safe, combat-share rebounded to 39–44%
-  (8 seeds, all on-task arms — `tools/diag_unit0.gd`).
-- **Fix path REVISED by the BRAIN_V2 4th test (#1e):** V2 as built makes it
-  WORSE (52±3 vs 44±5) — saturating bases drain appeal from a gatherer's
-  trained favorite while untrained strength stays a maximal-need refuge for
-  everyone. V2 stays default-OFF. A real fix needs a combat-side
-  counter-force: reward saturation / price coupling on the combat base
-  (Unit-1+ catalog/pricing work is the natural home), not more breadth.
-  V2's one clear win — gold variance collapses ±332→±84 — is worth
-  salvaging when the base shape is fixed.
+  saturation) → without enough crowding back-pressure, combat is the
+  standing refuge for non-fighters (integrated non-fav share ~28%).
+- **#3d closing sweep (`diag_unit2_close.gd`, 8 seeds × 23 days) — TWO
+  candidate counter-forces, both rejected:**
+  - **Gear-drop reward coupling** (`COMBAT_GEAR_REWARD`, the new lever):
+    FALSIFIED — turning it ON WORSENS monoculture at every congestion level.
+    It is a POSITIVE ~7-pt reward and the gear board only floors at ~11–17
+    (town demand + the 4% drop rate keep it off the floor), so its downward
+    saturation is too weak to act as the intended counter-force; it just
+    makes combat more attractive. Stays default-OFF.
+  - **Raising `COMBAT_CONGESTION_MULT` 0.5 → 1.0:** DOES drop monoculture
+    28→23% without cratering kills (~21k) — the intended effect works — BUT
+    1.0's higher run-to-run variance (g/cap SD ±355 vs ±235) breaks the
+    OFFLINE re-convergence gate (seed beef01 Δ31% vs ≤25%). Gate-blocked, so
+    held at 0.5. (0.75 buys no gain and destabilizes g/cap to 1082±470.)
+- **Next attempts when revisited:** reformulate the gear coupling as a
+  saturation PENALTY (not a positive reward), or couple far harder so the
+  board actually crashes; and/or land the BRAIN_V2 base-shape fix first.
+  BRAIN_V2 (also default-OFF) still owns a salvageable win — gold variance
+  ±332→±84 — once the combat base shape is fixed. The #3d mechanism +
+  price-coupling are unit-tested (flag-gated), so a reformulation has a base.
 
 ## KI-6 — Ammo economy feel-tuned only (severity: low)
 - **Symptom:** with consumption on, kills 812 vs 2634 free — bounded and

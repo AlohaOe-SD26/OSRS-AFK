@@ -42,9 +42,10 @@ func _initialize() -> void:
 	_test_unit1_catalog()
 	_test_unit2_shops()
 	_test_unit2c_bias()
+	_test_unit2d_combat_gear()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 176
+	const EXPECTED := 179
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -995,6 +996,43 @@ func _test_unit2c_bias() -> void:
 	var v5: Dictionary = SaveLoad.migrate(v4s)
 	_check(int(v5.get("version", -1)) == 5 and v5.has("price_bias") and float(v5.get("treasury_out_bias", -1.0)) == 0.0,
 		"v4 save migrates to v5 (bias dict + premium counter present)")
+
+## #3d — KI-4 combat-side counter-force: the gear-drop reward term is gated by COMBAT_GEAR_REWARD,
+## reads the gear-board reference price, and SATURATES DOWNWARD as the board fills (the negative
+## feedback combat lacked). Default OFF → no term, so the rest of the suite/sim is untouched.
+func _test_unit2d_combat_gear() -> void:
+	print("\n[Unit 2 #3d — combat gear-drop reward coupling (KI-4 counter-force): flag, price coupling, default-OFF]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	# a feasible rat-fighter: bow main (no off-hand check), fed, leveled past the rat power gate
+	var h: Hero = world.heroes[0]
+	h.weapon = "bow"
+	h.equipped["main"] = "shortbow"
+	h.inv["trout"] = 5
+	h.skills["ranged"] = {"level": 5, "xp": 0}; h.skills["defence"] = {"level": 5, "xp": 0}
+	var ref_p := world.economy.gear_board_ref_price()
+	# default OFF: no gear term on the FIGHT candidate (and the global default must be OFF)
+	Config.COMBAT_GEAR_REWARD = false
+	_check(ref_p > 0.0 and _fight_term(h, world, "combat", "gear") <= -1e8,
+		"default OFF: combat carries no gear term (board ref price %.0fg exists)" % ref_p)
+	# ON: the gear term appears, positive, equal to ref_price × K × greed-weight
+	Config.COMBAT_GEAR_REWARD = true
+	var wealth_w := 0.6 + float(h.traits.get("greed", 0.4))
+	var expect := world.economy.gear_board_ref_price() * Config.COMBAT_GEAR_K * wealth_w
+	var got := _fight_term(h, world, "combat", "gear")
+	_check(got > 0.0 and absf(got - expect) < 0.01,
+		"ON: gear term reads the board price (%.0f × %.2f × %.2f = %.2f)" % [world.economy.gear_board_ref_price(), Config.COMBAT_GEAR_K, wealth_w, got])
+	# price coupling (the counter-force): flood the gear board → ref price falls → the term SHRINKS
+	for s in world.economy.shops:
+		for g in s.goods:
+			if content.tier(g) > 0:
+				s.stock[g] = float(s.maximum[g])   # saturate every gear arm → board price floors out
+	var got_flooded := _fight_term(h, world, "combat", "gear")
+	_check(got_flooded < got and got_flooded > 0.0,
+		"flooding the gear board shrinks the reward (%.2f → %.2f) — the KI-4 negative feedback" % [got, got_flooded])
+	Config.COMBAT_GEAR_REWARD = false   # restore the default OFF (static var must not leak into later tests)
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:
