@@ -239,3 +239,20 @@
   per-run) recorded with full specs.
 - **Verified:** suite **176/176** (+7 bias checks); determinism /
   save-load / offline gates ALL PASS on the v5 shape.
+
+## 2026-06-13 — #3c price-bias clamp LOCKED → Unit 2 sub-item #3c CLOSED
+- **Ran the clamp sweep** (`tools/diag_bias.gd`, 6 seeds × 16 days, bias
+  on logs from day 3, organic treasury). **Locked `PRICE_BIAS_MIN/MAX` at
+  0.70 / 1.30** — the opening stance, now evidence-backed. The binding
+  axis is treasury FUNDING: 130% overpay stays funded (treasury end
+  16.7k), 150% breaks it (9.6k ± 9.9k, crosses 0 within 1σ; 37k drain ≈
+  full organic inflow). Steering is real & monotonic (WC share
+  13.1→14.0→14.7%); g* bounded in every arm. Underpay 0.70 floor is
+  structurally safe (no treasury flow). Full arm table + rejected 1.50
+  ceiling in 06-DECISIONS-LOG.
+- Config comment updated with the sweep result (was "the #3c sweep locks
+  the number"); no code/save-shape change — the clamp values were already
+  the opening stance, so suite/gates unaffected.
+- **Verified:** suite **176/176**; determinism / save-load / offline gates
+  ALL PASS. **Unit 2 sub-item #3c is DONE.** Remaining in Unit 2: #3d
+  (KI-4 counter-force sweep + Unit-2 closing band re-baseline).

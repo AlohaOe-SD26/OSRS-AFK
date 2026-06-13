@@ -212,3 +212,27 @@
   compatible. Engineering constraints attached: wealth changes → band
   re-sweep + re-baseline; gates stay green; SAVE_VERSION + upgrader on
   save-shape changes.
+
+## 2026-06-13 — #3c price-bias clamp LOCKED at ±30% (sweep evidence)
+- **PRICE_BIAS_MIN/MAX locked 0.70 / 1.30** (the opening stance, now
+  evidence-backed). `tools/diag_bias.gd`: 6 seeds × 16 days, one bias on
+  logs from day 3, organic treasury (tax + routing only). Arms vs control
+  (WC share / g/cap / treasury end / premium drain):
+    - control: 13.1%±2.6 / 1229±390 / 44570±5961 / 0
+    - overpay 130%: 14.0%±2.3 / 1451±433 / 16724±12893 / 27634±20879
+    - overpay 150%: 14.7%±4.1 / 1417±448 / 9560±9888 / 36911±17739
+    - underpay 70%: 13.5%±3.0 / 1293±393 / 44798±7732 / 0
+- **The binding axis is treasury FUNDING, not the steering pull.** The pull
+  is real but modest+monotonic (overpay 13.1→14.0→14.7%; woodcutting is a
+  minor activity); g* stays bounded in every arm (1229–1451, all within
+  ~1σ — no inflation/starvation). What decides the ceiling is criterion
+  (c): at 130% the treasury ends positive even at −1σ (~3.8k); at 150% it
+  ends 9.6k ± 9.9k (crosses 0 within 1σ) with a 37k drain ≈ the entire
+  organic inflow — the premium is NOT sustainably funded. So 130% is the
+  widest funded overpay.
+- **Underpay floor 0.70 is structurally safe** (underpay has zero treasury
+  flow by design — it only shrinks the faucet), so the floor is bounded by
+  the ruled "narrower than 50–150%" expectation, not by a funding cliff.
+- REJECTED 1.50 ceiling: bigger nominal pull (14.7%) but noisier (σ 4.1 vs
+  2.3) and treasury-unfunded at the tail — re-injection must stay bounded
+  by real inflow (the R1 bounty rule), so an unfunded premium is out.

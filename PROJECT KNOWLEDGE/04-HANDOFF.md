@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/OSRS-AFK
-**Last updated:** 2026-06-12
+**Last updated:** 2026-06-13
 
 ## What is this project?
 A Godot 4.6.3 single-player idle/tycoon "ant farm" in canon OSRS Varrock:
@@ -22,9 +22,22 @@ data. Day-23 per-capita band **1,460 ± 332** (8 seeds; single-seed
 telemetry now reads ~1,790, +4% drift — within 1σ). M2 BRAIN_V2
 default-OFF (4th test failed it — see KI-4).
 
-## What was just done (this session, 2026-06-12)
+## What was just done (this session, 2026-06-13)
+- **#3c price-bias lever CLOSED** — ran the clamp sweep
+  (`tools/diag_bias.gd`, 6 seeds × 16 days, bias on logs). **Locked
+  `PRICE_BIAS_MIN/MAX` at 0.70 / 1.30** (the opening stance, now
+  evidence-backed). Binding axis is treasury FUNDING: 130% overpay stays
+  funded (end 16.7k), 150% breaks it (9.6k ± 9.9k → crosses 0 within 1σ;
+  37k drain ≈ full organic inflow). Steering real & monotonic (WC share
+  13.1→14.0→14.7%); g* bounded in every arm. Underpay 0.70 floor is
+  structurally safe (no treasury flow). Config comment + decisions log +
+  changelog updated; no code/save-shape change (values were already the
+  opening stance). Suite **176/176**; all 3 gates PASS. **Unit 2 is now
+  one sub-item from closing: only #3d remains.**
+
+## Earlier (session 2026-06-12)
 - **#3c price-bias lever BUILT** (mechanics + UI + save v5 + 7 checks;
-  clamp sweep authored but unrun — see "In progress" for the exact state).
+  clamp sweep authored, run+locked the following session).
 - **Directive batch recorded** (2026-06-12, from the user): the COINPURSE
   INVARIANT locked in the decisions log (hero gold never pools); punch
   items **#13** (founders fully rolled), **#14** (immigrant gold in
@@ -48,33 +61,24 @@ default-OFF (4th test failed it — see KI-4).
   1,460±332).
 
 ## In progress (and how far along)
-- **Unit 2 (punch #3): #3a ✅ #3b ✅ · #3c MECHANICS BUILT (see below) ·
-  #3d not started.**
-  - **#3c state (wrap-up 2026-06-12):** the lever is fully BUILT and
-    committed — `Economy.price_bias` + `set_price_bias` (clamped to
-    `PRICE_BIAS_MIN/MAX`, opening stance 0.70–1.30), treasury-funded
-    overpay (premium drawn in `_pay_for`, affordability-gated per sale,
-    degrades to base price when unfunded — bounties pattern), underpay =
-    smaller faucet with NO treasury flow (pocketing savings would mint
-    gold), brain coupling free via `sell_price` (the reward term reads the
-    biased price), Town-tab cycle row (100%→MAX→MIN→100%), `treasury_out_
-    bias` ledger counter + telemetry, save v5 + v4→v5 upgrader, 7 suite
-    checks. **REMAINING for #3c: the clamp SWEEP** — `tools/diag_bias.gd`
-    is WRITTEN but UNRUN (4 arms: control / 130% / 150% / 70% on logs,
-    6 seeds × 16 days, organic treasury; lock criterion in its header).
-    Run it (~45 min), lock PRICE_BIAS_MIN/MAX from the evidence, update
-    the Config comment + decisions log, then mark #3c done.
-  - **#3d (not started):** KI-4 counter-force sweep — COMBAT_CONGESTION_
-    MULT {0.5/0.75/1.0} ± gear-drop reward coupling; two-sided criterion
-    (monoculture must drop from ~44%, combat must not crater); lock the
-    winner; Unit-2 CLOSING BAND RE-BASELINE (g/cap drifted to ~1,829
-    single-seed — the formal multi-seed re-baseline closes the unit).
+- **Unit 2 (punch #3): #3a ✅ #3b ✅ #3c ✅ · #3d NOT STARTED (the last
+  sub-item — closes the unit).**
+  - **#3d (next, not started):** KI-4 counter-force sweep — sweep
+    `COMBAT_CONGESTION_MULT` {0.5 current, 0.75, 1.0} ± gear-drop reward
+    coupling through the now-real gear-board price; two-sided criterion
+    (monoculture must drop from ~44%, combat must NOT crater); lock the
+    winner. Then the **Unit-2 CLOSING BAND RE-BASELINE** — the formal
+    multi-seed g/cap re-baseline (single-seed telemetry drifted to ~1,829;
+    the band of record is still 1,460±332 from Unit 0) — closes the unit.
+    No sweep tool exists for this yet; author one paralleling
+    `tools/diag_bias.gd` (multi-seed, integrated labor share + g/cap +
+    combat kills/deaths), or extend `headless_log.gd`.
 
 ## Next steps (in order)
-1. **Finish #3c**: run `tools/diag_bias.gd`, lock the clamp, docs, done.
-2. **#3d** KI-4 sweep + lock + Unit-2 closing band re-baseline.
-3. Unit 3 (C1 nudge popups + B4 gating, punch #4) per R11/R7.
-4. New directive items **#13–#15** (random founders / immigrant gold
+1. **#3d** KI-4 sweep + lock COMBAT_CONGESTION_MULT + Unit-2 closing band
+   re-baseline → closes Unit 2.
+2. Unit 3 (C1 nudge popups + B4 gating, punch #4) per R11/R7.
+3. New directive items **#13–#15** (random founders / immigrant gold
    bands / gear rolls — full specs in the punch list) slot naturally
    AFTER the Unit-2 close (they need the fresh band as their anchor);
    **#16** (Legendary arrivals) waits on Unit 4's GE + achievements.

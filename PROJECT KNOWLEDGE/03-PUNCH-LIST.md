@@ -22,15 +22,17 @@
     band verified: drift −2%, kills 20.8k vs 21.8k pre-Unit-2, g/cap
     ~1,829 (band edge — formal re-baseline at #3d closing report).
     Suite 169/169; 3 gates PASS. (2026-06-12)
-  - [ ] #3c — Player price-bias lever: **MECHANICS BUILT 2026-06-12**
-    (per-good multiplier on what shops pay; treasury-funded overpay,
-    affordability-gated, degrades to base when unfunded; underpay = smaller
-    faucet, no treasury flow; brain reads the biased price via sell_price;
-    Town-tab cycle row; `treasury_out_bias` ledger; save v5 + v4→v5
-    upgrader; 7 suite checks — 176/176). **REMAINS: the clamp sweep** —
-    `tools/diag_bias.gd` written/UNRUN (4 arms × 6 seeds; lock criterion
-    in its header); run it, lock PRICE_BIAS_MIN/MAX (opening stance
-    0.70–1.30), update Config comment + decisions log, then close.
+  - [x] #3c — Player price-bias lever SHIPPED (2026-06-13): per-good
+    multiplier on what shops pay; treasury-funded overpay, affordability-
+    gated, degrades to base when unfunded; underpay = smaller faucet, no
+    treasury flow; brain reads the biased price via sell_price; Town-tab
+    cycle row; `treasury_out_bias` ledger; save v5 + v4→v5 upgrader; 7
+    suite checks (176/176). **Clamp LOCKED 0.70/1.30** by the sweep
+    (`tools/diag_bias.gd`, 6 seeds × 16 days): binding axis is treasury
+    funding — 130% overpay stays funded (end 16.7k), 150% breaks it (9.6k
+    ± 9.9k → crosses 0 within 1σ; drain ≈ full organic inflow); steering
+    real & monotonic (WC share 13.1→14.0→14.7%); g* bounded; underpay 0.70
+    floor structurally safe. Config comment + decisions log updated.
   - [ ] #3d — KI-4 counter-force experiment (designed into this unit per
     #1e): sweep COMBAT_CONGESTION_MULT {0.5 current, 0.75, 1.0} ±
     gear-drop reward coupling through the now-real gear-board price;

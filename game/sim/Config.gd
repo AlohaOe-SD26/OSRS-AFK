@@ -131,8 +131,11 @@ static var PURCHASE_TREASURY_ROUTE: float = 0.40
 # PAYS heroes. Overpay (>1) mints extra gold → the premium is TREASURY-FUNDED and affordability-
 # gated per sale (R1 bounded re-injection — an empty treasury means no bias, like bounties);
 # underpay (<1) simply shrinks the faucet (no treasury flow — pocketing the "savings" would mint
-# treasury gold from nothing). Clamp: ±30% opening stance (ruled expectation "narrower than
-# 50–150%"); the #3c sweep locks the number. static var so the sweep can arm wider clamps.
+# treasury gold from nothing). Clamp ±30% LOCKED by the #3c sweep (tools/diag_bias.gd, 6 seeds ×
+# 16 days, bias on logs): overpay is the binding side — 130% stays treasury-FUNDED (end 16.7k),
+# 150% breaks funding (end 9.6k ± 9.9k → crosses 0 within 1σ, 37k drain ≈ full organic inflow);
+# steering is real & monotonic (WC share 13.1→14.0→14.7%), g* bounded throughout. Underpay carries
+# no treasury risk by design, so 70% floor is structurally safe. static var so the sweep can arm wider.
 static var PRICE_BIAS_MIN: float = 0.70
 static var PRICE_BIAS_MAX: float = 1.30
 
