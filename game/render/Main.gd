@@ -46,6 +46,8 @@ var _ui_rects: Array = []
 # drawn last (on top) when the cursor is over a disabled button. `_mouse_pos` tracks the cursor.
 var _tips: Array = []
 var _mouse_pos: Vector2 = Vector2.ZERO
+# #4c: the parameterized nudge popup — the project's first Control-node UI (R11), on its own CanvasLayer.
+var _nudge_popup: Control = null
 
 const SaveLoad := preload("res://sim/SaveLoad.gd")
 const SAVE_PATH := "user://save.dat"
@@ -63,6 +65,14 @@ func _ready() -> void:
 	_update_origin()
 	get_viewport().size_changed.connect(_update_origin)
 	set_process(true)
+	# #4c: parameterized nudge popup (Control-node UI, R11) on a top CanvasLayer so it renders above
+	# the immediate-mode HUD and ignores the map camera. Dispatches back through nudge_hero(...,params).
+	var ui_layer := CanvasLayer.new()
+	ui_layer.layer = 10
+	add_child(ui_layer)
+	_nudge_popup = preload("res://render/NudgePopup.gd").new()
+	ui_layer.add_child(_nudge_popup)
+	_nudge_popup.submitted.connect(_on_nudge_submitted)
 	if "--shot" in OS.get_cmdline_user_args():
 		_shot = true
 		speed = 8.0   # develop the colony fast before capturing (levels, bonds, immigration)
@@ -297,10 +307,19 @@ func _click_ui(mouse: Vector2) -> bool:
 			return true
 	return false
 
+## #4c: the parameterized nudge popup emitted a commitment → dispatch it like any other player intent.
+func _on_nudge_submitted(intent: String, params: Dictionary) -> void:
+	if selected != null:
+		world.nudge_hero(selected, intent, params)
+		queue_redraw()
+
 func _dispatch_ui(u: Dictionary) -> void:
 	match String(u["kind"]):
 		"noop":
 			pass   # #4b: a disabled button absorbs its click (the tooltip already says why it's gated)
+		"nudge_popup":
+			if selected != null and not selected.seized:
+				_nudge_popup.open_for(world, selected)   # #4c: open the Control-node parameterized popup
 		"nudge":
 			if selected != null:
 				world.nudge_hero(selected, String(u["arg"]))
@@ -1118,7 +1137,8 @@ func _draw_commands(h: Hero, pad: float, y: float) -> float:
 		y += 12
 		_hud_line("click map = walk there · WASD = walk", pad, y, Color("#857a67"), 9)
 	else:
-		_button("Seize (drive directly)", pad, y, "seize", "", false)
+		var bxs := _button("Seize (drive directly)", pad, y, "seize", "", false)
+		_button("Custom nudge…", bxs, y, "nudge_popup", "", false)   # #4c: opens the parameterized popup
 	y += 19
 	# civic kick vote (§16.2): god initiates; force-kick unlocks after enough failed votes
 	var bx2 := pad

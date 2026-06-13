@@ -13,11 +13,14 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 `game/`; the `gielinor-tycoon-(*)` dirs are STALE snapshots.
 
 ## Current state
-**MVP + UNIT 0–2 COMPLETE; UNIT 3 (nudge popups, #4) IN PROGRESS —
-#4a + #4b done 2026-06-13.** suite **192/192** + determinism/save-load/offline
-gates green; save version **6**. (Note: #4b's render gating — dim buttons +
-hover tooltip — is verified headless for logic/parse but its VISUAL needs an
-F5 pass; #4c will need F5 too, so they can be checked together.) The CATALOG (items.json via ContentDB) is
+**MVP + UNIT 0–2 COMPLETE; UNIT 3 (nudge popups, #4) CODE-COMPLETE —
+#4a + #4b + #4c done 2026-06-13, pending one F5 VISUAL sign-off.** suite
+**192/192** + determinism/save-load/offline gates green; save version **6**;
+both render files parse (`--import`). **OUTSTANDING: an F5 pass to confirm the
+render visuals** — #4b's dim/disabled nudge buttons + hover-tooltip, and #4c's
+Control-node "Custom nudge…" popup (activity/trip-range/loot dropdowns). These
+are render-only and cannot be confirmed headless; the sim + logic + parse are
+all verified. Once F5 confirms (or surfaces issues), Unit 3 fully closes. The CATALOG (items.json via ContentDB) is
 the single item truth. Unit 2 shipped: 7-shop roster as data, dynamic buy
 pricing, treasury ledger (40% purchase routing), player price-bias lever
 (clamp 0.70/1.30). **Day-23 per-capita band 1,501 ± 235** (8 seeds, shipping
@@ -29,6 +32,17 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13)
+- **Unit 3 #4c CODE-COMPLETE — Control-node parameterized nudge popup (R11).**
+  New `render/NudgePopup.gd` (the project's FIRST Godot Control-node UI): a
+  modal popup with an activity OptionButton, trip-length min/max SpinBoxes
+  (#4a count_range), and a fights-only loot-policy OptionButton (#4a filter);
+  #4b feasibility disables the Nudge button + shows the reason. Palette mirrors
+  the HUD (R11 cond. 2); render-layer only — emits `submitted(intent, params)`,
+  Main dispatches via `nudge_hero(...)`. Opened by a "Custom nudge…" command-
+  row button on a CanvasLayer. **Paradigm split LOGGED** (06-DECISIONS-LOG:
+  complex forms → Control nodes; HUD → immediate-mode). Target/monster routing
+  DEFERRED (one combat camp; FSM mon-routing unwired). Suite **192/192**; 3
+  gates PASS; both files parse. **The VISUAL needs an F5 pass.**
 - **Unit 3 #4b SHIPPED — B4 feasibility gating.** `SimWorld.nudge_feasible(h,
   intent) -> {ok, reason}` (feasible if the hero can act now, allowing an
   affordable buy step; disabled only when categorically blocked, or seized).
@@ -107,20 +121,23 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
   1,460±332).
 
 ## In progress (and how far along)
-- **Unit 3 (punch #4): #4a ✅ · #4b ✅ · #4c NOT STARTED.** Sim foundation +
-  feasibility gating are in. Remaining:
-  - **#4c (next):** the Control-node parameterized popups (R11 experiment) — Fight +
-    Skill nudge popups (target dropdown, count range, loot-policy selector),
-    sharing the immediate-mode palette, dispatching via `nudge_hero(...,
-    params)`. Decisions-log paradigm-split entry. **NEEDS F5 visual
-    verification — cannot be confirmed headless**, so flag for the user.
+- **Unit 3 (punch #4): #4a ✅ · #4b ✅ · #4c ✅ (code) — ONE F5 VISUAL
+  SIGN-OFF OUTSTANDING.** All code is shipped, green, and parses. The only
+  remaining step is a human F5 pass to confirm the render visuals:
+  1. Open the app (F5 in Godot), click a hero → hero popup.
+  2. **#4b:** when the hero lacks a tool/weapon/food and can't afford it, the
+     matching nudge button (Mine/Fight/…) should be DIM and show a reason
+     tooltip on hover; clicking it should do nothing (not deselect).
+  3. **#4c:** click "Custom nudge…" → the Control-node popup opens; pick an
+     activity, set the trip-length min/max, (for Fight) a loot policy, hit
+     Nudge → the hero takes the parameterized trip; infeasible activity →
+     Nudge disabled + reason shown.
+  If anything looks wrong, that's the next fix; otherwise tick the F5 box and
+  Unit 3 is closed.
 
 ## Next steps (in order)
-1. **#4c** Control-node parameterized popups (R11; Fight + Skill) — the UI
-   experiment that wires the #4a params (count range, loot-policy selector,
-   target dropdown) and the #4b feasibility into actual popups; decisions-log
-   paradigm-split entry. **Needs F5 visual verification by the user** (also
-   confirms #4b's dim-button + tooltip visuals). Closes Unit 3.
+1. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above). If clean,
+   close Unit 3 in the punch list; if not, fix the render issue first.
 2. New directive items **#13–#15** (random founders / immigrant gold
    bands / gear rolls — full specs in the punch list). They anchor on the
    gold attractor, so use the FRESH band **1,501 ± 235** (now re-baselined);

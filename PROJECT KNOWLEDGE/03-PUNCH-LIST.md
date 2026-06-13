@@ -34,12 +34,16 @@
     `_draw_tooltips`). Seized direct commands not gated. +6 suite checks
     (**192/192**); 3 gates PASS; Main.gd parses. **VISUAL pending an F5
     pass** (dim buttons + tooltip box — render-only, can't confirm headless).
-  - [ ] #4c — Control-node parameterized popups (R11 experiment): the actual
-    Fight + Skill nudge popups as Godot Control nodes (target dropdown, count
-    range, loot-policy selector), sharing the immediate-mode palette/paddings,
-    dispatching through SimWorld nudge methods. Monster roster reads Slayer/
-    unlock state (B2, done). Decisions-log paradigm-split entry. **NEEDS F5
-    visual verification (cannot be confirmed headless).**
+  - [x] #4c — Control-node parameterized popup SHIPPED (2026-06-13, code-
+    complete; F5 visual sign-off pending): new `render/NudgePopup.gd` (the
+    project's FIRST Godot Control-node UI) — activity OptionButton + trip-length
+    min/max SpinBoxes (#4a count_range) + loot-policy OptionButton (fights);
+    #4b feasibility disables Nudge + shows the reason; palette mirrors the HUD
+    (R11 cond. 2); render-layer only, dispatches via `nudge_hero(...,params)`.
+    Opened by a "Custom nudge…" command-row button on a CanvasLayer. Paradigm-
+    split LOGGED (06-DECISIONS-LOG). Target/monster routing DEFERRED (one combat
+    camp; FSM mon-routing unwired). Suite **192/192**; 3 gates PASS; both files
+    parse. **VISUAL needs an F5 pass — unverifiable headless.**
 - [ ] #13 — **Founders fully randomly generated** (directive 2026-06-12).
   On a fresh start every founder is ROLLED, not templated: random name,
   random appearance colors (skin/hair/shirt), random skills/stats incl.

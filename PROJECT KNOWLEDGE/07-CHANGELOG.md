@@ -328,3 +328,23 @@
   Main.gd parses clean (--import). The VISUAL (dim buttons + tooltip box) is
   render-only and needs an F5 pass to confirm appearance — flagged for the user.
   Next: #4c Control-node parameterized popups (R11).
+
+## 2026-06-13 — #4c Control-node parameterized nudge popup (R11) — Unit 3 feature-complete
+- **New `render/NudgePopup.gd`** — the project's FIRST Godot Control-node UI. A modal
+  popup (CenterContainer → PanelContainer → VBox of OptionButton/SpinBox/Button rows,
+  on a dedicated CanvasLayer above the HUD): pick the ACTIVITY (Fight / Mine / Chop /
+  Fish), the TRIP LENGTH as a [min,max] range the hero rolls within (#4a count_range →
+  count_target), and the LOOT POLICY for fights (#4a drop-filter). Feasibility (#4b
+  `nudge_feasible`) disables the Nudge button + shows the reason. Palette mirrors Main's
+  HUD hexes (R11 cond. 2). Render-layer only: reads the sim read-only, emits
+  `submitted(intent, params)` for Main to dispatch via `nudge_hero(...)`.
+- **Main.gd wiring:** a CanvasLayer + the popup are built in `_ready`; a "Custom nudge…"
+  button on the hero command row (kind `nudge_popup`) opens it; `_on_nudge_submitted`
+  dispatches the commitment. Immediate-mode HUD otherwise untouched.
+- **Paradigm split LOGGED** (06-DECISIONS-LOG, R11): complex-input forms → Control
+  nodes; HUD/panels → immediate-mode. Target/monster routing DEFERRED (one combat camp
+  today; FSM mon-routing unwired) — the popup exposes only the FSM-wired params.
+- **Verified (logic/parse):** suite **192/192**; determinism / save-load / offline gates
+  PASS; both Main.gd and NudgePopup.gd compile (`--import`). **The VISUAL + interaction
+  (popup layout, dropdowns, the #4b dim-buttons/tooltip) CANNOT be confirmed headless —
+  needs an F5 pass by the user.** Unit 3 is feature-complete pending that visual sign-off.

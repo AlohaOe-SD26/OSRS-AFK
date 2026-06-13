@@ -294,3 +294,35 @@
 - **Unit 2 (punch #3) CLOSED** — #3a supply / #3b ledger / #3c price-bias / #3d this
   (negative result; no behavior change). Code delivered by #3d: the gear-coupling
   lever (default-OFF, unit-tested) + the `diag_unit2_close.gd` sweep tool.
+
+## 2026-06-13 — #4c: UI paradigm split — Control nodes for complex-input forms (R11)
+- **Decision:** the parameterized nudge popup (`render/NudgePopup.gd`) is the project's
+  FIRST Godot Control-node UI. From here the UI is a DELIBERATE two-paradigm split:
+  - **Complex-input FORMS** (dropdowns, range spinners, multi-field popups) → Godot
+    **Control nodes** (OptionButton/SpinBox/Button in containers), on a dedicated
+    `CanvasLayer` above the HUD.
+  - **HUD / status / panels / overlays** (topbar, roster, TOWN LEDGER, hero popup,
+    the nudge command row) → stay **immediate-mode** `Main._draw` + `_ui_rects`
+    hit-testing, untouched.
+- **Why (R11 lean (b), approved):** the hand-rolled immediate-mode toolkit has
+  buttons + one slider; it has no dropdowns/spinners/forms, and hand-rolling them is
+  bespoke and error-prone. Control nodes are the engine's intended path for forms and
+  cut bespoke code. C1 is the experiment; if Control nodes prove better, future
+  complex UI follows the same rule.
+- **R11 conditions honored:** (1) existing immediate-mode panels untouched; (2) the
+  popup MIRRORS Main's HUD palette (the `C_*` consts in NudgePopup = Main's hexes) so
+  the mixed paradigm reads as one game; (3) render-layer only — the popup reads the
+  sim read-only (`nudge_feasible`) and emits an intent that Main dispatches through
+  `nudge_hero(...)`, exactly like `_dispatch_ui`; it never mutates the sim; (4) this
+  entry records the split + the which-side rule above.
+- **Scope note (honest):** the popup exposes the params #4a actually WIRED into the
+  FSM — activity + trip-length range (count_range → count_target) + loot policy
+  (fights). Per-MONSTER/camp target routing is DEFERRED: #4a carries `mon` but the FSM
+  does not route on it, and there is effectively one combat camp today; the target
+  dropdown returns when zones expand and the FSM routes to a chosen camp.
+- **Verification boundary:** Control-node rendering cannot be confirmed headless
+  (no gate covers pixels). Parse is checked via `--import`; the look/behaviour needs
+  an F5 pass. This is the standing limit for all Control-node UI going forward.
+- **Alternatives rejected:** extend the immediate-mode toolkit with hand-rolled
+  dropdowns/spinners (more bespoke code, the thing R11 avoids); a separate .tscn scene
+  (the popup is small and code-built — no inspector wiring needed, keeps it in one file).
