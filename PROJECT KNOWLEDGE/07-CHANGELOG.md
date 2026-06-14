@@ -388,3 +388,16 @@
 - **Verified:** suite **205/205** (+6 #14 checks: gold-in-band per tier, tiered,
   bounded < g*, fighter weapon valid, determinism); determinism / save-load / offline
   gates PASS.
+
+## 2026-06-13 — #15 immigrant gear rolls (boost-scaled) → directive batch #13–#15 done
+- **Arrivals roll starting gear scaled by rarity tier.** New `ContentDB.equippable(slot,
+  tier, style)` + `SimWorld._roll_arrival_gear`: armor slots (head/torso/off) roll with
+  equip-prob `0.15 + boost×0.02` and tier-2 chance `boost×0.025`; fighter style main-hand
+  may upgrade to tier-2 (style-matched). Higher-tier arrivals arrive better-equipped.
+- **No SAVE_VERSION bump** (equipped already serialized).
+- **Band RE-BASELINED (full rolled stack): per-capita gold 1,384 ± 174** — variance
+  tightened across the batch (±448→±269→±174), deaths down (11.4→7.3): equipped arrivals
+  survive better. All colonies viable (≥1 fisher, pop 41–43). Final batch band: 1,384 ± 174.
+- **Verified:** suite **210/210** (+5 #15 checks: boost-scaled armor 44 vs 9, tier-2 rolls,
+  valid slots, style-matched main, determinism); determinism / save-load / offline gates PASS.
+- **Directive batch #13–#15 COMPLETE** (random founders + immigrant gold + immigrant gear).

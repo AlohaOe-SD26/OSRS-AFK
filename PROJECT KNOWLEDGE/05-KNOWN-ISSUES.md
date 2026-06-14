@@ -53,10 +53,9 @@
   pre-collision peak — watch); post-Unit-1 telemetry flagged "5 fighters
   broke & foodless" at one end-of-run snapshot (momentary-state check,
   suite food-floor checks green, drift +4% — watch, don't react);
-  **rolled founders+immigrants (#13/#14) moved the g/cap band to 1,337 ± 269**
-  (was 1,501 ± 235 all-fixed → 1,482 ± 448 founders-rolled → 1,337 ± 269 both
-  rolled). Shifts are within-noise RNG-stream effects (the rolls perturb the
-  stream), mean stays in the ~1.3–1.5k attractor range, all colonies viable
-  (≥1 fisher); the #13 death outlier (7a11 50→10) washed out under #14. WATCH
-  the band across #15 (immigrant gear) — don't knee-jerk-tune a single noisy
-  seed; re-run `diag_founders.gd` after each wealth change.
+  **the rolled-character batch (#13–#15) settled the g/cap band at 1,384 ± 174**
+  (1,501 ± 235 all-fixed → 1,482 ± 448 founders → 1,337 ± 269 +immigrant gold →
+  1,384 ± 174 +immigrant gear). Variance TIGHTENED and deaths FELL across the
+  batch (gear-equipped arrivals survive better); mean held in the attractor
+  range, all colonies viable (≥1 fisher). The band is healthy and stable — no
+  action; re-run `diag_founders.gd` after any future wealth change.

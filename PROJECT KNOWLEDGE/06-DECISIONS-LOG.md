@@ -384,3 +384,30 @@
   and 1,482 sit inside each other's bands, all colonies viable (≥1 fisher, pop 40–43),
   and the #13 death outlier (7a11 50→10) washed out. New band of record: 1,337 ± 269.
 - **#15 (immigrant gear rolls) anchors on this**, rolls main-hand to match the #14 style.
+
+## 2026-06-13 — #15 immigrant gear rolls (boost-scaled) → directive batch #13–#15 COMPLETE
+- **Arrivals roll starting GEAR against the catalog, scaled by rarity tier.** New
+  `ContentDB.equippable(slot, tier, style)` (file-order, deterministic) +
+  `SimWorld._roll_arrival_gear(h, tier_boost)`: per armor slot (head/torso/off) an
+  equip chance `p_equip = 0.15 + boost×0.02` (Greenhorn .15 → Elite ~.71) and, if
+  equipped, a tier-2 chance `p_t2 = boost×0.025` (Greenhorn 0 → Elite ~.70); a
+  fighter's style main-hand may upgrade to tier-2 in its OWN style (style-matched,
+  #13d). Higher-tier arrivals thus arrive better-equipped, as the directive asked.
+- **Why this shape:** the directive's "random quality + a level/stat BONUS" maps
+  cleanly to two boost-scaled probabilities (have-a-piece, and is-it-tier-2). Gear is
+  rolled from the catalog (items.json tiers/styles/slots — the Unit-1 single truth),
+  not hardcoded. Armor is style-agnostic so any arrival can roll it; only the main-hand
+  is style-gated. REJECTED: scaling by live skill level instead of the rarity tier
+  (tier_boost IS the arrival's accomplishment proxy and is already the head-start lever
+  — one knob, consistent with #14's tiering); founders rolling gear too (the directive
+  scopes this to ARRIVALS; founders keep their minimal favorite loadout).
+- **No SAVE_VERSION bump** (equipped is already serialized; more pieces = more values).
+- **RE-BASELINE (diag_founders.gd, 8 seeds × 23 days, the FULL rolled stack — founders +
+  immigrant gold/weapon/gear): per-capita gold 1,384 ± 174.** The band's VARIANCE
+  TIGHTENED across the batch (±448 #13 → ±269 #14 → ±174 #15) and deaths fell
+  (11.4 → 11.1 → 7.3): gear-equipped arrivals survive better, stabilizing the colony.
+  All viable (≥1 fisher, pop 41–43). Final band of record for the directive batch:
+  **1,384 ± 174** (within noise of the original 1,501 ± 235; mean held, colony healthier).
+- **Directive batch #13–#15 COMPLETE.** Random founders + economy-fitted immigrant
+  gold + boost-scaled immigrant gear, all seeded/deterministic, gates green, viable.
+  #16 (Legendary/Easter-Egg arrivals) remains, gated behind Unit 4's GE (icebox).

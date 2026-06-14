@@ -104,6 +104,22 @@ func style(id: String) -> String:
 	var it: ItemType = items.get(id, null)
 	return it.style if it != null else ""
 
+## #15 — equippable GEAR in a slot, optionally filtered by tier and weapon style. File order
+## (deterministic — callers index it with the seeded RNG). want_tier -1 = any; want_style "" = any
+## (and style-less armor always matches). Tools/ammo (slot "" or tier 0) are excluded.
+func equippable(slot: String, want_tier: int = -1, want_style: String = "") -> Array:
+	var out: Array = []
+	for iid in items:
+		var it: ItemType = items[iid]
+		if it.slot != slot or it.tier <= 0:
+			continue
+		if want_tier != -1 and it.tier != want_tier:
+			continue
+		if want_style != "" and it.style != "" and it.style != want_style:
+			continue
+		out.append(it)
+	return out
+
 ## Recipes-as-data: the crafted output whose recipe consumes `input_id` via `skill`
 ## (e.g. craft_output("cooking", "raw_trout") → trout). null when no recipe matches.
 func craft_output(skill: String, input_id: String) -> ItemType:

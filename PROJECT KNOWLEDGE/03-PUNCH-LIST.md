@@ -44,14 +44,6 @@
     split LOGGED (06-DECISIONS-LOG). Target/monster routing DEFERRED (one combat
     camp; FSM mon-routing unwired). Suite **192/192**; 3 gates PASS; both files
     parse. **VISUAL needs an F5 pass — unverifiable headless.**
-- [ ] #15 — **Immigrant gear rolls** (directive 2026-06-12). Arrivals roll
-  random starting gear of random quality; higher stats/levels add a BONUS
-  to the roll (better heroes arrive better-equipped). Gear-as-data exists
-  since Unit 1 (items.json tiers/styles/slots) — roll against the catalog.
-  Style-matched main-hand for fighters per the #13(d) rolled style; armor
-  slots may roll for any tier-appropriate arrival. Same engineering
-  constraints as #13 (seeded RNG, gates, save migration if shape changes).
-
 ## Later / icebox
 - [ ] #5 — Unit 4: Bank + GE order book + City BUY orders + City Inventory
   (the big gold-ledger unit — sweep g* before/after; offline statistical
@@ -102,6 +94,13 @@
   prestige resets correctly (i.e. reset with the run).
 
 ## Done
+- [x] #15 — **Immigrant gear rolls COMPLETE** (2026-06-13): arrivals roll
+  starting gear scaled by rarity tier — `ContentDB.equippable(slot,tier,style)`
+  + `_roll_arrival_gear` (armor head/torso/off via equip-prob `0.15+boost×0.02`
+  + tier-2 chance `boost×0.025`; fighter main upgrades style-matched). No save
+  bump. Final batch band **1,384 ± 174** (variance tightened ±448→±269→±174,
+  deaths down — equipped arrivals survive better; all viable). Suite 210/210
+  (+5 checks); 3 gates PASS. **Directive batch #13–#15 COMPLETE.**
 - [x] #14 — **Immigrant gold in economy-fitted bands COMPLETE** (2026-06-13):
   `NEWCOMER_TIERS` gold → `gold_frac` [lo,hi] (fraction of `GOLD_ATTRACTOR_REF`
   1482) — Greenhorn 1–3% … Elite 18–30% (≈267–445g, bounded < g*); rolled per

@@ -50,9 +50,10 @@ func _initialize() -> void:
 	_test_unit3b_feasibility()
 	_test_unit13_founders()
 	_test_unit14_immigrants()
+	_test_unit15_immigrant_gear()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 205
+	const EXPECTED := 210
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1184,6 +1185,48 @@ func _test_unit14_immigrants() -> void:
 	var ib: Hero = wb.spawn_immigrant(Config.NEWCOMER_TIERS[2])
 	_check(int(ia.gold) == int(ib.gold) and ia.favorite == ib.favorite and ia.weapon == ib.weapon,
 		"immigrant roll is deterministic (same seed ⇒ same arrival)")
+
+## #15 — arrivals roll starting gear scaled by rarity tier: Elite arrivals wear more (and higher-
+## tier) gear than Greenhorns; pieces are valid catalog gear; fighters keep a style-matched main.
+func _test_unit15_immigrant_gear() -> void:
+	print("\n[#15 — immigrant gear rolls: boost-scaled quality, style-matched main, validity]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var w := SimWorld.new()
+	w.setup(content, 6, Config.DEFAULT_SEED)
+	var elite: Dictionary = Config.NEWCOMER_TIERS[3]
+	var green: Dictionary = Config.NEWCOMER_TIERS[0]
+	var elite_armor := 0; var green_armor := 0; var elite_t2 := 0
+	var arrivals: Array = []
+	for i in range(20):
+		var he: Hero = w.spawn_immigrant(elite)
+		var hg: Hero = w.spawn_immigrant(green)
+		arrivals.append(he); arrivals.append(hg)
+		for slot in ["head", "torso", "off"]:
+			if he.equipped.has(slot):
+				elite_armor += 1
+				if content.tier(String(he.equipped[slot])) == 2:
+					elite_t2 += 1
+			if hg.equipped.has(slot):
+				green_armor += 1
+	var valid := true
+	var style_ok := true
+	for h in arrivals:
+		for slot in h.equipped:
+			var it: ItemType = content.item(String(h.equipped[slot]))
+			if it == null or it.slot != String(slot):
+				valid = false
+		if h.favorite == "fighting" and h.equipped.has("main") and content.style(String(h.equipped["main"])) != h.weapon:
+			style_ok = false
+	_check(elite_armor > green_armor, "Elite arrivals wear more armor than Greenhorns (%d vs %d) — boost-scaled" % [elite_armor, green_armor])
+	_check(elite_t2 >= 1, "high-tier (Elite) arrivals roll tier-2 gear (%d pieces)" % elite_t2)
+	_check(valid, "every equipped piece is catalog gear in its matching slot")
+	_check(style_ok, "fighter arrivals keep a style-matched main-hand")
+	var wa := SimWorld.new(); wa.setup(content, 6, 0xC0FFEE)
+	var ia: Hero = wa.spawn_immigrant(elite)
+	var wb := SimWorld.new(); wb.setup(content, 6, 0xC0FFEE)
+	var ib: Hero = wb.spawn_immigrant(elite)
+	_check(ia.equipped == ib.equipped, "arrival gear roll is deterministic (same seed ⇒ same kit)")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

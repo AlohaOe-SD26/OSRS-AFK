@@ -296,6 +296,7 @@ func spawn_immigrant(tier: Dictionary) -> Hero:
 	if fav == "fighting":
 		weapon = ["sword", "bow", "staff"][rng.randi_range(0, 2)]   # #14/#13(d): rolled, retiring id%3
 	var h := _new_hero(_next_id, fav, tier["name"], int(tier["boost"]), _roll_tier_gold(tier), weapon)
+	_roll_arrival_gear(h, int(tier["boost"]))   # #15: better arrivals (higher tier) arrive better-equipped
 	_next_id += 1
 	heroes.append(h)
 	log_event("%s the %s arrives in Varrock." % [h.hero_name, tier["name"]], "lv")
@@ -306,6 +307,28 @@ func spawn_immigrant(tier: Dictionary) -> Hero:
 func _roll_tier_gold(tier: Dictionary) -> int:
 	var frac: Array = tier.get("gold_frac", [0.01, 0.03])
 	return int(round(float(Config.GOLD_ATTRACTOR_REF) * rng.randf_range(float(frac[0]), float(frac[1]))))
+
+## #15 — roll an arrival's starting GEAR against the catalog, scaled by rarity tier (a higher
+## tier_boost = both a higher chance to wear a piece AND a higher chance it's tier-2). Armor slots
+## (head/torso/off) roll for any arrival; a fighter's style main-hand may upgrade to tier-2 in its
+## OWN style (style-matched, #13d). Seeded → deterministic. Equipped is already serialized (no save bump).
+func _roll_arrival_gear(h: Hero, tier_boost: int) -> void:
+	var p_equip: float = clampf(0.15 + float(tier_boost) * 0.02, 0.15, 0.9)   # Greenhorn .15 → Elite ~.71
+	var p_t2: float = clampf(float(tier_boost) * 0.025, 0.0, 0.85)            # Greenhorn 0 → Elite ~.70
+	for slot in ["head", "torso", "off"]:
+		if rng.randf() < p_equip:
+			_equip_rolled(h, slot, 2 if rng.randf() < p_t2 else 1, "")
+	if h.favorite == "fighting" and h.equipped.has("main") and rng.randf() < p_t2:
+		_equip_rolled(h, "main", 2, h.weapon)   # upgrade the style weapon to tier-2 (style-matched)
+
+func _equip_rolled(h: Hero, slot: String, want_tier: int, want_style: String) -> void:
+	var cands: Array = content.equippable(slot, want_tier, want_style)
+	if cands.is_empty():
+		cands = content.equippable(slot, -1, want_style)   # fall back to any tier in the slot
+	if cands.is_empty():
+		return
+	var it: ItemType = cands[rng.randi_range(0, cands.size() - 1)]
+	h.equipped[slot] = it.id
 
 func _rand_favorite() -> String:
 	var pool := ["mining", "woodcutting", "fishing", "fishing", "fighting", "fighting"]
