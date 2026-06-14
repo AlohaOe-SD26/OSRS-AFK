@@ -13,6 +13,14 @@ static func state_string(world) -> String:
 	var parts: PackedStringArray = []
 	parts.append("D%d T%d K%d Dth%d Fl%d RNG%d" % [world.sim_day, int(round(world.sim_total)), world.total_kills, world.deaths, world.flees, world.rng.get_state()])
 	parts.append("GOLD%d TREAS%d TAX%.1f" % [world.total_gold(), int(world.economy.treasury), world.economy.tax_collected])
+	# #5e — GE economic state (empty while the GE is locked, so the GE-locked fingerprint is stable):
+	var _ge_rem := 0
+	for _o in world.ge_orders:
+		_ge_rem += int(_o["remaining"])
+	var _cinv := 0
+	for _k in world.city_inventory:
+		_cinv += int(world.city_inventory[_k])
+	parts.append("GE%s o%d r%d cinv%d gtax%.1f" % ["1" if world.ge_unlocked else "0", world.ge_orders.size(), _ge_rem, _cinv, world.economy.treasury_in_ge_tax])
 	for m in world.monsters:
 		parts.append("m%s hp%d %s r%.3f" % [m.type_id, m.hp, "A" if m.alive else "d", m.respawn])
 	# heroes sorted by id → order-independent

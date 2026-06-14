@@ -14,10 +14,12 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 
 ## Current state
 **MVP + UNIT 0–2 COMPLETE; UNIT 3 (#4) CODE-COMPLETE (F5-pending); DIRECTIVE
-BATCH #13–#15 COMPLETE; UNIT 4 (#5) — #5a bank + #5b GE engine + #5c city
-orders + #5e-1 GE unlock shipped 2026-06-14 (only #5e-2 live-economy step +
-#5d offline fill remain).** suite **232/232** + determinism/save-load/offline
-gates green; save version **9**.
+BATCH #13–#15 COMPLETE; UNIT 4 (#5) FUNCTIONALLY COMPLETE 2026-06-14 — bank +
+GE order book + city orders + GE unlock + funded gather incentive LIVE (only
+refinements #5d offline-fill + the R5 utility-incentive retirement remain).**
+suite **238/238** + determinism/save-load/offline gates green; save version
+**9**. GE-active band 1,378 ± 331 (≈ the GE-locked band 1,384 ± 174 — attractor
+holds with the GE live).
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
 founders + immigrant gold/weapon/gear — variance tightened across the batch,
 deaths down, all colonies viable, ≥1 fisher; within noise of the original
@@ -38,6 +40,16 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#5e-2 SHIPPED — funded gather incentive goes LIVE (the attractor holds).**
+  Brain gather reward reads `best_sell_price` = max(shop, best buy order) → a
+  funded city/GE order pulls labor (1.6→15.3 on GATHER_LOGS); `_auto_city_orders`
+  daily (town posts 1 buy order/gather-good at 1.5× shop, escrow ≤25% treasury,
+  self-limiting); sim_hash gains a GE-state line. **RE-BASELINE (diag_ge.gd, GE
+  open all run, 8 seeds): g/cap 1,378 ± 331 — mean ≈ the locked band 1,384±174,
+  the upkeep attractor absorbs the re-injection faucet, all colonies alive.**
+  Suite **238/238**; 3 gates PASS (GE-locked). Deferred refinements: retire
+  utility gather incentives (R5 cleanup; breaks the incentive test), #5d offline
+  fill, relationship tilt. **Unit 4 is functionally COMPLETE.**
 - **#5e-1 SHIPPED — Unit 4 GE unlock.** A `ge_annex` building (1500g) opens the
   Grand Exchange (`build("ge_annex")` → `ge_unlocked`), gated on Gate-1
   (`gate1_reached()` = any hero Combat 40, the canon road-north milestone);
@@ -191,35 +203,29 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
      Nudge disabled + reason shown.
   If anything looks wrong, that's the next fix; otherwise tick the F5 box and
   Unit 3 is closed.
-- **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): #5a bank + #5b GE
-  engine + #5c city orders + #5e-1 GE unlock DONE; only #5e-2 + #5d remain.** No
-  code item is mid-flight (each sub-item ships green & inert until wired).
+- **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): FUNCTIONALLY
+  COMPLETE** — #5a bank + #5b GE engine + #5c city orders + #5e GE unlock +
+  funded gather incentive live, all shipped/green. No code item mid-flight.
 
 ## Next steps (in order)
-1. **#5e-2 — the economically-LIVE step (R5 end state):** the one remaining piece
-   that changes the *running* economy. (a) The town AUTONOMOUSLY posts city buy
-   orders once the GE is unlocked — a treasury-budgeted policy (e.g. buy gather
-   goods at a small premium over the shop, replenished daily). (b) The BRAIN pulls
-   labor toward gathering-for-orders: the gather reward reads `max(shop sell_price,
-   best standing buy-order price)` so funded demand attracts gatherers. (c) RETIRE
-   the pure-utility gather incentives (the Incentives UI then shows bounties +
-   buy-orders/price-bias as one funded system). Engineering: add the GE state to
-   `sim_hash`, run the LIVE re-baseline (`diag_founders.gd` + a new GE telemetry),
-   and report the shop→GE tax-migration (R8). **This is the project's single
-   biggest economic change — start it fresh, not at the tail of a long session.**
-2. **#5d — Offline statistical fill** for the now-flowing orders (bounded like
-   `offline_catchup`; bank is the landing target; offline-gate must hold).
-3. Revisit the deferred **relationship-tilt** (`Social.trade_modifier`) and whether
-   `total_gold` should count escrowed/city gold.
+1. **Unit-4 refinements (optional, not blockers):** #5d offline order-fill
+   (orders fill while away, bounded like `offline_catchup`, bank is the landing
+   target); the R5 cleanup to retire the pure-utility gather incentives (note:
+   it breaks the existing incentive test, which needs rewriting); the deferred
+   relationship-tilt (`Social.trade_modifier`); whether `total_gold` should count
+   escrowed/city gold. Each is a small, contained follow-up.
 2. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above) — the one
-   non-code thread; can happen anytime, independent of Unit 4.
-3. **#16** (Legendary & Easter-Egg arrivals) — gated behind Unit 4's GE + an
-   achievement record; the immigration template-override hook is the
+   non-code thread; anytime, independent of Unit 4.
+3. **Unit 5 (#6)** — C4 shop sell-back (`min(saturation, 0.30 × GE reference)`,
+   R2; the GE reference now exists) + C3 item-cost upgrade ladders + C5 shop
+   crafting queues. The next big unit.
+4. **#16** (Legendary & Easter-Egg arrivals) — gated behind Unit 4's GE (now
+   built) + an achievement record; the immigration template-override hook is the
    `_new_hero`/`spawn_immigrant` path built out by #13–#15.
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 232 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 238 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

@@ -485,3 +485,27 @@
   economy is unchanged — no re-baseline here. The economy goes LIVE in **#5e-2** (autonomous city
   buy orders + the brain pull toward gathering-for-orders + retiring the utility gather incentives),
   which is where the real re-baseline + the shop→GE tax-migration report land.
+
+## 2026-06-14 — #5e-2 funded gather incentive goes LIVE; the attractor holds (re-baseline PASS)
+- **The funded gather incentive is now LIVE once the GE is open.** (a) The brain's gather reward
+  reads `best_sell_price` = max(shop sell_price, best standing buy order), so a funded city/GE buy
+  order pulls labor onto that good (measured: a premium order lifts the GATHER reward 1.6 → 15.3).
+  (b) The town AUTONOMOUSLY tops up city buy orders daily (`_auto_city_orders`): one order per gather
+  good {iron_ore, logs, trout} at 1.5× the shop price, total escrow capped at 25% of the treasury
+  (self-limiting). Both are no-ops while the GE is locked (no buy orders → best = shop), so the
+  GE-LOCKED gates are byte-equivalent in behavior (new sim_hash line for the GE state — the only
+  fingerprint change; the band is unchanged).
+- **RE-BASELINE (diag_ge.gd, GE forced open all run, 8 seeds × 23 days): g/cap 1,378 ± 331** — the
+  MEAN matches the GE-locked band (1,384 ± 174) almost exactly: the upkeep attractor fully absorbs
+  the re-injection faucet, as the budget guard intended. All colonies alive (pop 42); variance a bit
+  wider (the faucet adds run-to-run spread) but no seed inflated or starved. **The validated attractor
+  HOLDS with the GE live.** Tax migration (R8): GE-tax ≈ 1% of shop-tax under the conservative
+  autonomous policy — the funded incentive is gentle by default (the player scales it with bigger
+  posted orders). City inventory accrues ~771 units/run (a treasury→goods conversion, bounded).
+- **REJECTED a more aggressive default policy** (higher premium / bigger budget): the gentle default
+  keeps the AFK economy bounded without player attention; the player's own city orders are the lever
+  for stronger pull. Tunable within the band gates.
+- **Still deferred (Unit-4 refinements, not blockers):** retiring the pure-utility gather incentives
+  (R5 cleanup — it breaks the existing incentive test; the utility lever sits unused at 0 in
+  autonomous play and doesn't interfere); #5d offline order-fill; the relationship-tilt
+  (`Social.trade_modifier`); whether total_gold should count escrowed/city gold.

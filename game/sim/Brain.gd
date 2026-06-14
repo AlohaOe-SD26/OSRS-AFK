@@ -181,9 +181,11 @@ static func _score_inner(hero: Hero, world, intent: String, skill: String, loc_k
 		elif hero.secondary == skill:
 			fav = Config.SECONDARY_MULT * 10.0
 		terms.append(["favorite", fav])
-	# expected wealth from this activity (greed-weighted) — the term that SATURATES with price
+	# expected wealth from this activity (greed-weighted) — the term that SATURATES with price. #5e-2:
+	# reads the BEST venue (max of the shop price and any standing GE/city buy order) so a funded city
+	# order pulls labor onto the good. Identical to the shop price while no buy order exists.
 	var wealth_w := 0.6 + float(hero.traits.get("greed", 0.4))
-	var price := int(world.economy.sell_price(Activities.sells_as(intent)))
+	var price := int(world.best_sell_price(Activities.sells_as(intent)))
 	terms.append(["reward", price * 0.25 * wealth_w])
 	# self-balancing: crowded nodes are less attractive (§6 / §18.6)
 	terms.append(["congestion", -world.congestion(loc_key) * Config.CONGESTION_K])

@@ -193,6 +193,15 @@ const REP_EVENT_DECAY: float = 0.75   # daily decay of the recent-deaths/kicks p
 # by the #13 re-baseline (diag_founders.gd, 1,482 ± 448). Immigrant gold is rolled as a FRACTION of
 # this (below), so arrivals are sized to the economy, not preset numbers; re-point it if g* moves.
 const GOLD_ATTRACTOR_REF: int = 1482
+# #5e-2 — autonomous CITY BUY ORDERS (the funded gather incentive going live once the GE is open).
+# The town posts standing buy orders for gather goods at a premium over the shop, BOUNDED by a
+# treasury budget (R1: a player-throttled re-injection faucet, here run automatically) — self-limiting
+# because the spend scales with treasury size, and the upkeep attractor pulls the re-injected gold
+# back down. Only active when ge_unlocked (a player build). Tunable within the band gates.
+const CITY_ORDER_GOODS: Array = ["iron_ore", "logs", "trout"]
+const CITY_ORDER_QTY: int = 20              # units per standing order (topped up daily)
+const CITY_ORDER_PREMIUM: float = 1.5       # the city pays this × the shop sell price (the gather pull)
+const CITY_ORDER_BUDGET_FRAC: float = 0.25  # cap total city-order escrow at this fraction of the treasury
 # Newcomer rarity tiers (§16.1): combat/gather head-start + starting-gold BAND + base draw weight.
 # Reputation tilts the roll toward higher tiers (a famous town attracts accomplished adventurers).
 # #14: `gold_frac` is a [lo,hi] fraction of GOLD_ATTRACTOR_REF, ROLLED per arrival (seeded) — low

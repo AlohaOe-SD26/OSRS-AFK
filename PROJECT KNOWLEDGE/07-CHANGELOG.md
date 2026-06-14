@@ -446,3 +446,15 @@
 - **Verified:** suite **232/232** (+3 #5e checks); determinism / save-load / offline gates PASS;
   Main.gd parses. **Remaining Unit-4 (#5e-2):** autonomous city orders + brain gather-for-orders
   pull + retire utility incentives + the live re-baseline + tax-migration report (R8).
+
+## 2026-06-14 — #5e-2 funded gather incentive goes live (Unit 4)
+- **Brain reads `best_sell_price`** = max(shop, best standing buy order) for the gather reward → a
+  funded city/GE order pulls labor (measured 1.6 → 15.3 on GATHER_LOGS). **`_auto_city_orders`** (daily,
+  when GE unlocked): the town posts one city buy order per gather good at 1.5× shop, total escrow ≤
+  25% of treasury (self-limiting). Both no-ops while the GE is locked. sim_hash gains a GE-state line.
+- **RE-BASELINE (`diag_ge.gd`, GE open all run, 8 seeds): g/cap 1,378 ± 331** — mean matches the
+  GE-locked band 1,384 ± 174 (the attractor absorbs the re-injection faucet); all colonies alive.
+  Tax migration ≈ 1% (gentle default policy). The validated economy HOLDS with the GE live.
+- **Verified:** suite **238/238** (+6 #5e-2 checks); determinism / save-load / offline gates PASS
+  (GE-locked). Deferred (refinements): retire utility gather incentives, #5d offline fill,
+  relationship tilt.

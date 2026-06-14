@@ -754,6 +754,7 @@ func _town_daily() -> void:
 	if upkeep > 0.0:
 		economy.treasury -= upkeep   # may go negative (a deficit blocks new builds until tax refills it)
 		economy.treasury_out_building += upkeep
+	_auto_city_orders()   # #5e-2: top up the town's funded gather buy orders (no-op until GE unlocked)
 
 # ---------------------------------------------------------------------------
 # CIVIC KICK VOTES (GDD §16.2) — the colony's self-governance + the player's failsafe. God initiates a
@@ -2019,6 +2020,39 @@ func ge_cancel_order(id: int) -> bool:
 ## remainder to the treasury. This is the funded GATHER incentive (R5) — pay-per-delivery.
 func city_post_buy_order(good: String, qty: int, price: int) -> int:
 	return ge_post_order(-1, "buy", good, qty, price)
+
+## #5e-2 — the best price a hero can get selling `good`: max(shop sell price, best standing buy
+## order). The brain's gather reward reads THIS, so a funded city/GE buy order pulls labor toward the
+## good. Identical to the shop price when no buy order exists (the GE-locked / no-orders case) → the
+## autonomous economy is unchanged until the GE is open and orders flow.
+func best_sell_price(good: String) -> int:
+	var p := economy.sell_price(good)
+	var b := _ge_best(good, "buy")
+	return maxi(p, int(b["price"])) if not b.is_empty() else p
+
+## #5e-2 — once the GE is open, the town AUTONOMOUSLY tops up standing city buy orders for the gather
+## goods (the funded incentive, run automatically). Each good gets one standing order at a premium
+## over the shop; total city escrow is capped at a fraction of the treasury (self-limiting), so it
+## never drains the town. Called daily. No-op while the GE is locked.
+func _auto_city_orders() -> void:
+	if not ge_unlocked:
+		return
+	var escrowed := 0.0
+	var have: Dictionary = {}
+	for o in ge_orders:
+		if int(o["owner"]) == -1 and String(o["side"]) == "buy":
+			escrowed += float(int(o["remaining"]) * int(o["price"]))
+			have[String(o["good"])] = true
+	var budget := economy.treasury * Config.CITY_ORDER_BUDGET_FRAC
+	for good: String in Config.CITY_ORDER_GOODS:
+		if have.has(good):
+			continue   # a standing order for this good already exists — don't stack
+		var price: int = int(round(float(economy.sell_price(good)) * Config.CITY_ORDER_PREMIUM))
+		var cost := float(Config.CITY_ORDER_QTY * price)
+		if price <= 0 or escrowed + cost > budget or economy.treasury < cost:
+			continue
+		if city_post_buy_order(good, Config.CITY_ORDER_QTY, price) >= 0:
+			escrowed += cost
 
 ## #5c — when a hero reaches its sell step, FILL any standing GE/city BUY orders first (a better deal
 ## than the NPC shop), then the normal NPC sell handles the rest. The hero posts a sell at the NPC

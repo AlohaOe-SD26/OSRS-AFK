@@ -55,9 +55,10 @@ func _initialize() -> void:
 	_test_unit5b_ge_orderbook()
 	_test_unit5c_city_orders()
 	_test_unit5e_ge_unlock()
+	_test_unit5e2_funded_gather()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 232
+	const EXPECTED := 238
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1387,6 +1388,48 @@ func _test_unit5e_ge_unlock() -> void:
 	_check(world.gate1_reached() and world.build("ge_annex") and world.ge_unlocked,
 		"after Gate-1 + treasury, building the GE annex opens the GE")
 	_check(not world.build("ge_annex"), "the GE annex can't be re-built once the GE is open")
+
+## #5e-2 — the funded gather incentive goes live: the brain reads the best venue (shop vs city buy
+## order), and the town autonomously posts treasury-budgeted city buy orders once the GE is open.
+func _test_unit5e2_funded_gather() -> void:
+	print("\n[Unit 4 #5e-2 — funded gather incentive: best-price pull + autonomous city orders]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var w := SimWorld.new(); w.setup(content, 6, Config.DEFAULT_SEED)
+	var shop := w.economy.sell_price("logs")
+	_check(w.best_sell_price("logs") == shop, "best_sell_price = shop price when the book is empty")
+	w.economy.treasury = 100000.0
+	w.city_post_buy_order("logs", 10, shop + 30)
+	_check(w.best_sell_price("logs") == shop + 30, "a higher city buy order raises best_sell_price")
+	# brain pull: GATHER_LOGS reward rises with a funded premium order (vs no order)
+	var wa := SimWorld.new(); wa.setup(content, 6, Config.DEFAULT_SEED)
+	var ha: Hero = wa.heroes[0]; ha.inv["bronze_axe"] = 1
+	var base_score := _cand_score(Brain.candidates_with_terms(ha, wa), "GATHER_LOGS")
+	var wb := SimWorld.new(); wb.setup(content, 6, Config.DEFAULT_SEED); wb.economy.treasury = 100000.0
+	wb.city_post_buy_order("logs", 10, wb.economy.sell_price("logs") + 40)
+	var hb: Hero = wb.heroes[0]; hb.inv["bronze_axe"] = 1
+	var pull_score := _cand_score(Brain.candidates_with_terms(hb, wb), "GATHER_LOGS")
+	_check(pull_score > base_score, "a funded city order pulls labor: GATHER_LOGS reward rises (%.1f → %.1f)" % [base_score, pull_score])
+	# autonomous posting: no-op while locked; one order per gather good once open with ample treasury
+	var w2 := SimWorld.new(); w2.setup(content, 6, Config.DEFAULT_SEED); w2.economy.treasury = 100000.0
+	w2._auto_city_orders()
+	_check(w2.ge_orders.is_empty(), "auto city orders are a no-op while the GE is locked")
+	w2.ge_unlocked = true
+	w2._auto_city_orders()
+	var city_count := 0
+	for o in w2.ge_orders:
+		if int(o["owner"]) == -1:
+			city_count += 1
+	_check(city_count == Config.CITY_ORDER_GOODS.size(), "GE open + treasury: one city buy order per gather good (%d)" % city_count)
+	# budget guard: a tight treasury caps total city escrow at ≤ treasury × budget frac
+	var w3 := SimWorld.new(); w3.setup(content, 6, Config.DEFAULT_SEED); w3.ge_unlocked = true; w3.economy.treasury = 1000.0
+	var budget := 1000.0 * Config.CITY_ORDER_BUDGET_FRAC
+	w3._auto_city_orders()
+	var esc := 0.0; var n3 := 0
+	for o in w3.ge_orders:
+		if int(o["owner"]) == -1:
+			esc += float(int(o["remaining"]) * int(o["price"])); n3 += 1
+	_check(esc <= budget and n3 < Config.CITY_ORDER_GOODS.size(), "budget guard: tight treasury caps city escrow ≤ %dg (%dg, %d orders)" % [int(budget), int(esc), n3])
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:
