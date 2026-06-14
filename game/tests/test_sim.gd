@@ -51,9 +51,10 @@ func _initialize() -> void:
 	_test_unit13_founders()
 	_test_unit14_immigrants()
 	_test_unit15_immigrant_gear()
+	_test_unit5a_bank()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 210
+	const EXPECTED := 217
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1227,6 +1228,41 @@ func _test_unit15_immigrant_gear() -> void:
 	var wb := SimWorld.new(); wb.setup(content, 6, 0xC0FFEE)
 	var ib: Hero = wb.spawn_immigrant(elite)
 	_check(ia.equipped == ib.equipped, "arrival gear roll is deterministic (same seed ⇒ same kit)")
+
+## #5a — the bank foundation (Unit 4, R9): per-hero balance, total-wealth upkeep (no attractor
+## dodge), death-safe, save v7. Inert in live play (empty bank) until the GE refunds fill it (#5b).
+func _test_unit5a_bank() -> void:
+	print("\n[Unit 4 #5a — bank: deposit/withdraw, total-wealth upkeep, death-safe, save v7]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	var h: Hero = world.heroes[0]
+	h.gold = 100.0; h.bank = 0.0
+	var before := world.total_gold()
+	var moved := world.bank_deposit(h, 60.0)
+	_check(moved == 60.0 and h.gold == 40.0 and h.bank == 60.0 and world.total_gold() == before,
+		"deposit moves coinpurse→bank, total wealth unchanged")
+	world.bank_withdraw(h, 25.0)
+	_check(h.gold == 65.0 and h.bank == 35.0, "withdraw moves bank→coinpurse")
+	_check(world.bank_deposit(h, 9999.0) == 65.0 and h.gold == 0.0, "deposit is capped at the coinpurse")
+	_check(world.bank_withdraw(h, 9999.0) == 100.0 and h.bank == 0.0, "withdraw is capped at the balance")
+	var hb: Hero = world.heroes[1]
+	hb.gold = 0.0; hb.bank = 1000.0
+	world.economy.economy_tick(1.0, [hb])
+	_check(hb.gold == 0.0 and hb.bank < 1000.0, "upkeep drains the bank when the coinpurse is empty (bank %.0f — no attractor dodge)" % hb.bank)
+	var hd2: Hero = world.heroes[2]
+	hd2.gold = 100.0; hd2.bank = 500.0
+	world._hero_death(hd2, "a test rat")
+	_check(hd2.bank == 500.0, "death-transfer leaves banked gold untouched (bank %.0f)" % hd2.bank)
+	var s: Dictionary = SaveLoad.save_world(world)
+	s["version"] = 6
+	for hdz in s["heroes"]:
+		hdz.erase("bank")
+	var m: Dictionary = SaveLoad.migrate(s)
+	var w2: SimWorld = SaveLoad.load_world(content, m)
+	_check(int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w2 != null and float(w2.heroes[0].bank) == 0.0,
+		"v6 save migrates to v%d; pre-bank heroes default bank=0" % SaveLoad.SAVE_VERSION)
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

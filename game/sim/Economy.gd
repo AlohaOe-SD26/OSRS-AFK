@@ -270,9 +270,15 @@ func economy_tick(dd: float, heroes: Array) -> float:
 		s.import_tick(dd)   # Unit 2 (C5): ambient imports restock purchasables toward baseline
 	var burned := 0.0
 	for hero in heroes:
-		var drain: float = (Config.UPKEEP_FLAT + Config.UPKEEP_RATE * hero.gold) * dd
-		drain = minf(hero.gold, drain)   # never drives gold negative
-		hero.gold -= drain
+		# #5a: upkeep is proportional to TOTAL wealth (coinpurse + bank) so banked gold can't dodge
+		# the attractor; drawn from the coinpurse first, then the bank. (Bank is 0 pre-#5b, so this is
+		# numerically identical to the validated coinpurse-only sink until the bank actually fills.)
+		var wealth: float = hero.gold + hero.bank
+		var drain: float = (Config.UPKEEP_FLAT + Config.UPKEEP_RATE * wealth) * dd
+		drain = minf(wealth, drain)   # never drives total wealth negative
+		var from_purse: float = minf(hero.gold, drain)
+		hero.gold -= from_purse
+		hero.bank -= (drain - from_purse)
 		burned += drain
 	return burned
 

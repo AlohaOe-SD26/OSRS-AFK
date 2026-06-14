@@ -411,3 +411,21 @@
 - **Directive batch #13–#15 COMPLETE.** Random founders + economy-fitted immigrant
   gold + boost-scaled immigrant gear, all seeded/deterministic, gates green, viable.
   #16 (Legendary/Easter-Egg arrivals) remains, gated behind Unit 4's GE (icebox).
+
+## 2026-06-14 — #5a bank foundation: banked gold is upkeep-bearing (attractor-safe)
+- **Unit 4 opens with the BANK (ruling R9: it's the prerequisite — GE refunds/expiry need a
+  deposit target).** `Hero.bank` is a PER-HERO balance (coinpurse invariant: never a pool).
+- **DECISION — banked gold stays subject to the upkeep attractor** (upkeep is now proportional
+  to TOTAL wealth = coinpurse + bank, drained purse-first then bank). Why: if banked gold
+  escaped the wealth-proportional sink, heroes would bank everything to dodge upkeep and the
+  validated bounded-equilibrium attractor would break (a store without back-pressure — the
+  bug-class doctrine forbids it). Banked gold IS safe from the §14 death-transfer (canon: bank
+  gold survives death) — that's the bank's player-facing value, not upkeep avoidance.
+  ALTERNATIVE REJECTED: bank as an upkeep-free safe haven (classic idle "vault") — breaks the
+  attractor; if a vault is ever wanted it needs its own counter-force (storage fee), deferred.
+- **Inert until #5b:** no autonomous deposit behavior yet and no GE refunds, so the bank is
+  empty in all live flows → `total_gold()` (now coinpurse+bank) is numerically unchanged, the
+  upkeep math is identical (bank=0), and the determinism/save-load/offline gates pass with the
+  economy byte-identical — NO re-baseline. The bank becomes load-bearing when #5b's GE refunds
+  land in it (sim_hash will gain the bank field then, with its own re-baseline).
+- **Save v6 → v7** (`_migrate_6_to_7`, forward-compatible: `_load_hero` defaults bank=0).

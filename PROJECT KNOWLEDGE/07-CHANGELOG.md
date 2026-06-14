@@ -401,3 +401,13 @@
 - **Verified:** suite **210/210** (+5 #15 checks: boost-scaled armor 44 vs 9, tier-2 rolls,
   valid slots, style-matched main, determinism); determinism / save-load / offline gates PASS.
 - **Directive batch #13–#15 COMPLETE** (random founders + immigrant gold + immigrant gear).
+
+## 2026-06-14 — #5a bank foundation (Unit 4 opens)
+- **`Hero.bank`** — a per-hero bank balance (coinpurse invariant: never pooled). The R9
+  prerequisite for the GE order book (refund/expiry/unfilled-buy target).
+- `SimWorld.bank_deposit/bank_withdraw/bank_total`; `total_gold()` now counts coinpurse + bank.
+- **Upkeep is now proportional to TOTAL wealth** (gold + bank), drained purse-first then bank —
+  banked gold can't dodge the attractor. Death-transfer (§14) leaves the bank untouched (safe).
+- **Save v6 → v7** (`_migrate_6_to_7`, forward-compatible — `.get("bank", 0.0)`).
+- **Inert in live play** (empty bank until #5b GE refunds): economy byte-identical, gates pass
+  with no re-baseline. +7 suite checks → **217/217**; determinism / save-load / offline PASS.

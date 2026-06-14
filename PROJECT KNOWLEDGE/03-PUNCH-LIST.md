@@ -5,55 +5,51 @@
 > Item format: `- [ ] #N — description` (N never reused; completed items move
 > to Done with the date).
 
-## Now (active focus) — Unit 3: parameterized nudge popups (punch #4)
-> Unit 2 (#3) CLOSED 2026-06-13 — full entry in Done.
+## Now (active focus) — Unit 4: bank + GE + city orders (punch #5)
+> Unit 2 (#3) CLOSED, directive batch #13–#15 CLOSED — full entries in Done.
 
-- [ ] #4 — Unit 3: C1 parameterized nudge popups (+ B4 disabled-with-tooltip
-  gating). RULED: `loot_policy` = drop-filter, NOT ground loot (R7); UI tech
-  = Control nodes for NEW popups only (R11, 4 conditions: existing immediate-
-  mode panels untouched · new popups share visual constants · render-layer
-  only, dispatch via the `_dispatch_ui` path · decisions-log entry on the
-  paradigm split + the rule for which side new UI lands on). Sub-items in
-  build order (sim foundation first — testable headless; UI last — needs F5):
-  - [x] #4a — Parameterized-nudge SIM CORE + loot-filter SHIPPED (2026-06-13):
-    `nudge_hero(h, intent, params={})` merges optional params (loc /
-    `count_range` / `loot_policy` / mon / suggested_items) onto the head via
-    `_apply_nudge_params`; the won nudge rolls `count_range` (seeded) into
-    `act["count_target"]` (FSM reads it at FIGHT/gather/fish completion) and
-    carries `act["loot_policy"]` (the `SimWorld.loot_keeps` drop-filter in
-    `_gear_drop`: keep-all / upgrades-and-valuables≥40g / salvage-all; R7).
-    The new RNG roll fires ONLY on the parameterized path → autonomous play
-    byte-identical (gate hashes unchanged, **no re-baseline**). Save **v6**
-    (`_migrate_5_to_6`, forward-compatible). Plain nudges unchanged. +7 suite
-    checks → **186/186**; 3 gates PASS.
-  - [x] #4b — B4 feasibility gating SHIPPED (2026-06-13): `SimWorld.nudge_
-    feasible(h, intent) -> {ok, reason}` (allows an affordable acquisition
-    step; disables only when categorically blocked / seized) + immediate-mode
-    render gating in Main.gd (`_button` enabled/tip; infeasible nudge → dim,
-    click-absorbing "noop", hover-tooltip via new `_tips`/`_mouse_pos`/
-    `_draw_tooltips`). Seized direct commands not gated. +6 suite checks
-    (**192/192**); 3 gates PASS; Main.gd parses. **VISUAL pending an F5
-    pass** (dim buttons + tooltip box — render-only, can't confirm headless).
-  - [x] #4c — Control-node parameterized popup SHIPPED (2026-06-13, code-
-    complete; F5 visual sign-off pending): new `render/NudgePopup.gd` (the
-    project's FIRST Godot Control-node UI) — activity OptionButton + trip-length
-    min/max SpinBoxes (#4a count_range) + loot-policy OptionButton (fights);
-    #4b feasibility disables Nudge + shows the reason; palette mirrors the HUD
-    (R11 cond. 2); render-layer only, dispatches via `nudge_hero(...,params)`.
-    Opened by a "Custom nudge…" command-row button on a CanvasLayer. Paradigm-
-    split LOGGED (06-DECISIONS-LOG). Target/monster routing DEFERRED (one combat
-    camp; FSM mon-routing unwired). Suite **192/192**; 3 gates PASS; both files
-    parse. **VISUAL needs an F5 pass — unverifiable headless.**
-## Later / icebox
+### Awaiting verification
+- [~] #4 — Unit 3 nudge popups: **CODE-COMPLETE (#4a/#4b/#4c all shipped &
+  green, suite+gates), ONE F5 VISUAL SIGN-OFF OUTSTANDING** (#4b dim-buttons +
+  tooltip; #4c "Custom nudge…" Control-node popup — render-only, unverifiable
+  headless). F5 checklist in 04-HANDOFF. Sub-item detail in Done once F5 ticks.
+
+### Unit 4 (#5) — the big gold-ledger unit
 - [ ] #5 — Unit 4: Bank + GE order book + City BUY orders + City Inventory
-  (the big gold-ledger unit — sweep g* before/after; offline statistical
-  fill model). RULED: bank ships WITH the order book (R9 — refunds need a
-  deposit target); **city buy orders escrow treasury gold at posting**,
-  cancel/expiry refunds remainder (R1); GE tax 1% at open, treasury-routed,
-  tunable 1–3%; city orders untaxed; tax on hero-side proceeds uniformly
-  (R8); shop 3% tax untouched. After this unit, gather incentives migrate
-  to funded mechanisms (buy orders + price-bias) and pure-utility incentives
-  retire (R5 end state).
+  (sweep g* before/after; offline statistical fill). RULED: bank ships WITH the
+  order book (R9 — refunds need a deposit target); city buy orders escrow
+  treasury at posting, cancel/expiry refunds remainder (R1); GE tax 1% at open,
+  treasury-routed, tunable 1–3%; city orders untaxed; tax on hero-side proceeds
+  uniformly (R8); shop 3% tax untouched. R5 end state: gather incentives migrate
+  to funded mechanisms (buy orders + price-bias), pure-utility incentives retire.
+  **COINPURSE INVARIANT: the bank holds PER-HERO deposits, never a pool.**
+  Sub-items in build order (foundation/testable first; UI + economic tuning last):
+  - [x] #5a — **Bank foundation SHIPPED** (2026-06-14): `Hero.bank` per-hero
+    store; `bank_deposit/withdraw/total`; `total_gold()` counts coinpurse+bank;
+    upkeep on TOTAL wealth (purse-then-bank → no attractor dodge); death-safe.
+    Save **v7** (`_migrate_6_to_7`). Inert (empty bank → live sim byte-identical,
+    gates pass, **no re-baseline**). +7 suite checks → **217/217**; 3 gates PASS.
+    Decision (banked gold is upkeep-bearing) in 06-DECISIONS-LOG.
+  - [ ] #5b — **GE order book** (hero↔hero buy/sell matching at the unlocked GE;
+    1% tax on hero-side proceeds → treasury, `SHOP_TAX` untouched). Latent hooks:
+    `Social.trade_modifier` (relationship price tilt), the locked "ge" map
+    location. Refund/expiry/unfilled → the #5a bank (R9). DESIGN Qs: matching
+    model (price-time priority?), offline statistical fill (#5d). Re-baseline.
+  - [ ] #5c — **City BUY orders + City Inventory** (the funded GATHER incentive,
+    R5): player posts buy orders, ESCROW treasury at posting (R1), cancel/expiry
+    refunds remainder; filled goods land in a city inventory; untaxed (R8).
+    The brain reads city demand as a funded gather pull. Re-baseline.
+  - [ ] #5d — **Offline statistical fill model** for GE + city orders (orders
+    fill while away, bounded like the offline catch-up; the #5a bank is the
+    landing target). Offline-gate criterion holds.
+  - [ ] #5e — **Incentive migration + GE unlock** (R5 end state): retire the
+    pure-utility gather incentives; the Incentives UI presents bounties (combat)
+    + buy orders/price-bias (gather) as one funded system. GE unlock mechanism
+    (per-run; #16 Legendary arrivals gate on "GE unlocked this run"). Closing
+    band re-baseline + the tax-migration report (R8).
+  - **OPEN DESIGN QUESTIONS (resolve as reached, sweep-backed):** (1) banked-gold
+    vs upkeep — #5a defaults to upkeep-on-total (attractor-safe); revisit only
+    with evidence. (2) GE matching/price-discovery model. (3) offline fill rate.
 - [ ] #6 — Unit 5: C4 shop sell-back (ceiling `min(saturation, 0.30 × GE
   reference)`, graceful degradation when GE illiquid — adopted as written,
   R2) + C3 item-cost upgrade ladders + C5 shop crafting queues

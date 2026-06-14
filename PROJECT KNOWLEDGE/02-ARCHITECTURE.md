@@ -34,7 +34,7 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 210-check headless gate suite
+  tests/test_sim.gd   # 217-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
   data/               # items.json (23 — THE item truth: ids/values/tiers/
                       # styles/recipes/tradeable, Unit 1) · shops.json (7-shop
@@ -63,8 +63,8 @@ Offline: 24 real h ≈ 35 sim-days, resolved statistically with live bounds
 g(T) = g* + (g0−g*)e^(−kT) — cannot overshoot live play).
 
 ## State / save shape
-`SaveLoad.save_world` → one binary Variant dict, `SAVE_VERSION = 6`:
-heroes (full FSM/paths/goals/equipment + nudge/seize, incl. C1 nudge params),
+`SaveLoad.save_world` → one binary Variant dict, `SAVE_VERSION = 7`:
+heroes (full FSM/paths/goals/equipment + nudge/seize + C1 nudge params + bank),
 monsters, shops, treasury + ledger counters + price-bias, population, social
 adjacency, incentives/buildings/kick records, chronicle, clock/counters,
 **RNG state**. Old saves are walked up an ordered upgrader chain

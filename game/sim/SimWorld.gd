@@ -1833,8 +1833,30 @@ func log_event(text: String, cls: String = "", notability: int = 1) -> void:
 func total_gold() -> int:
 	var g := 0.0
 	for h in heroes:
-		g += h.gold
+		g += h.gold + h.bank   # #5a: banked gold is still hero wealth (counts toward per-capita)
 	return int(round(g))
+
+# ----------------------------------------------------------------------- bank (Unit 4 / #5a, R9)
+## Move gold coinpurse → bank (capped at what the hero holds). Returns the amount moved.
+func bank_deposit(h: Hero, amount: float) -> float:
+	var moved: float = clampf(amount, 0.0, h.gold)
+	h.gold -= moved
+	h.bank += moved
+	return moved
+
+## Move gold bank → coinpurse (capped at the balance). Returns the amount moved.
+func bank_withdraw(h: Hero, amount: float) -> float:
+	var moved: float = clampf(amount, 0.0, h.bank)
+	h.bank -= moved
+	h.gold += moved
+	return moved
+
+## Total banked gold across the colony (telemetry; per-hero balances, not a pool).
+func bank_total() -> int:
+	var b := 0.0
+	for h in heroes:
+		b += h.bank
+	return int(round(b))
 
 static func _cap(s: String) -> String:
 	return s.substr(0, 1).to_upper() + s.substr(1)

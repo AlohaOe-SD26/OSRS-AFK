@@ -14,8 +14,8 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 
 ## Current state
 **MVP + UNIT 0–2 COMPLETE; UNIT 3 (#4) CODE-COMPLETE (F5-pending); DIRECTIVE
-BATCH #13–#15 (random character generation) COMPLETE — 2026-06-13.** suite
-**210/210** + determinism/save-load/offline gates green; save version **6**.
+BATCH #13–#15 COMPLETE; UNIT 4 (#5) STARTED — #5a bank shipped 2026-06-14.**
+suite **217/217** + determinism/save-load/offline gates green; save version **7**.
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
 founders + immigrant gold/weapon/gear — variance tightened across the batch,
 deaths down, all colonies viable, ≥1 fisher; within noise of the original
@@ -35,7 +35,14 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 **Unit 3 #4a (parameterized-nudge sim core + loot-filter) is shipped**; #4b
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
-## What was just done (this session, 2026-06-13)
+## What was just done (this session, 2026-06-13/14)
+- **#5a SHIPPED — Unit 4 BANK foundation (R9).** `Hero.bank` (per-hero,
+  coinpurse invariant) + `bank_deposit/withdraw/total`; `total_gold()` counts
+  coinpurse+bank; upkeep now on TOTAL wealth (purse-then-bank → banked gold
+  can't dodge the attractor); death-transfer leaves the bank untouched. Save
+  **v7** (`_migrate_6_to_7`). Inert until #5b (empty bank → live sim
+  byte-identical, gates pass, no re-baseline). Suite **217/217**; 3 gates PASS.
+  Unit 4 decomposed into #5a–#5e (punch list) with the open economic questions.
 - **#15 SHIPPED — immigrant gear rolls (directive batch #13–#15 COMPLETE).**
   Arrivals roll starting gear scaled by rarity tier: `ContentDB.equippable` +
   `_roll_arrival_gear` (armor head/torso/off, equip-prob `0.15+boost×0.02`,
@@ -161,25 +168,27 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
      Nudge disabled + reason shown.
   If anything looks wrong, that's the next fix; otherwise tick the F5 box and
   Unit 3 is closed.
-- **#13 + #14 + #15: DONE — directive batch complete** (not in progress — see
-  above). No code item is mid-flight.
+- **#13 + #14 + #15: DONE** (directive batch complete). **Unit 4 (#5) STARTED:
+  #5a bank DONE; #5b–#5e remain** (decomposed in the punch list). No code item
+  is mid-flight (each sub-item ships green).
 
 ## Next steps (in order)
-1. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above). If clean,
-   close Unit 3 in the punch list; if not, fix the render issue first. This is
-   the ONLY open thread from this session's work.
-2. **Unit 4 (#5) — Bank + GE order book + City BUY orders + City Inventory**
-   (the big gold-ledger unit; icebox until now). Sweep g* before/after; bank
-   ships WITH the order book (R9); city buy orders escrow treasury at posting
-   (R1); GE 1% tax treasury-routed (R8). After Unit 4, gather incentives migrate
-   to funded mechanisms and pure-utility incentives retire (R5 end state).
+1. **#5b — GE order book** (hero↔hero buy/sell matching at the unlocked GE; 1%
+   tax on hero-side proceeds → treasury, R8; refunds/expiry land in the #5a
+   bank, R9). Latent hooks: `Social.trade_modifier`, the locked "ge" map loc.
+   Resolve the matching model (price-time priority?) and add bank to sim_hash
+   (it goes non-zero here → re-baseline). See #5 OPEN DESIGN QUESTIONS in the
+   punch list before building. Then #5c (city buy orders), #5d (offline fill),
+   #5e (incentive migration + GE unlock).
+2. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above) — the one
+   non-code thread; can happen anytime, independent of Unit 4.
 3. **#16** (Legendary & Easter-Egg arrivals) — gated behind Unit 4's GE + an
-   achievement record (icebox); the immigration template-override hook is the
+   achievement record; the immigration template-override hook is the
    `_new_hero`/`spawn_immigrant` path built out by #13–#15.
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 210 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 217 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

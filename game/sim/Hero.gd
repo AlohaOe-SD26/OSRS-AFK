@@ -16,6 +16,10 @@ var skills: Dictionary = {}
 var hp: int = 10
 var gold: float = 20.0   # float so the small per-action proportional upkeep (§6) accrues instead
                          # of rounding to 0 each tick; display sites floor it
+# #5a (Unit 4) — the hero's PERSONAL bank balance (coinpurse invariant: per-hero, NEVER pooled).
+# Counts toward total wealth + the upkeep attractor (banked gold can't dodge the sink), but is SAFE
+# from the §14 death-transfer. The landing target for GE order refunds/expiry (#5b, ruling R9).
+var bank: float = 0.0
 
 var inv: Dictionary = {"iron_ore": 0, "logs": 0, "raw_trout": 0, "trout": 0}
 # Weapon type = attack style (M1c): sword=melee, bow=ranged, staff=magic. Assigned deterministically

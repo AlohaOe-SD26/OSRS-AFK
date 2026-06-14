@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 6   # v6: #4a C1 parameterized-nudge params (optional count_target/loot_policy on hero act/nudge)
+const SAVE_VERSION := 7   # v7: #5a bank — per-hero `bank` balance (Unit 4 foundation)
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,14 @@ const SAVE_VERSION := 6   # v6: #4a C1 parameterized-nudge params (optional coun
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5, 5: _migrate_5_to_6}
+	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5, 5: _migrate_5_to_6, 6: _migrate_6_to_7}
+
+## v6 → v7 (#5a, bank): pre-bank heroes have no balance. `_load_hero` already defaults `bank` to 0.0
+## via `.get`, so a v6 save loads correctly; this upgrader just stamps the version (forward-compatible).
+static func _migrate_6_to_7(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	nd["version"] = 7
+	return nd
 
 ## v5 → v6 (#4a, C1 parameterized nudge): the new per-trip params (count_target, count_range,
 ## loot_policy) are OPTIONAL keys on each hero's `act`/`nudge` dict, read everywhere with safe
@@ -248,7 +255,7 @@ static func save_world(w) -> Dictionary:
 static func _save_hero(h) -> Dictionary:
 	return {"id": h.id, "hero_name": h.hero_name, "favorite": h.favorite, "secondary": h.secondary,
 		"skin": h.skin, "hair": h.hair, "shirt": h.shirt, "skills": h.skills.duplicate(true),
-		"hp": h.hp, "gold": h.gold, "inv": h.inv.duplicate(true), "traits": h.traits.duplicate(true),
+		"hp": h.hp, "gold": h.gold, "bank": h.bank, "inv": h.inv.duplicate(true), "traits": h.traits.duplicate(true),
 		"tier": h.tier, "satisfaction": h.satisfaction, "unhappy_days": h.unhappy_days,
 		"recent_success": h.recent_success, "pos": h.pos, "move_target": h.move_target,
 		"act": h.act.duplicate(true), "thought": h.thought, "flash": h.flash, "decisions": h.decisions,
@@ -325,7 +332,7 @@ static func _load_hero(hd: Dictionary) -> Hero:
 	var h := Hero.new()
 	h.id = int(hd["id"]); h.hero_name = hd["hero_name"]; h.favorite = hd["favorite"]
 	h.secondary = hd["secondary"]; h.skin = hd["skin"]; h.hair = hd["hair"]; h.shirt = hd["shirt"]
-	h.skills = hd["skills"]; h.hp = int(hd["hp"]); h.gold = float(hd["gold"]); h.inv = hd["inv"]
+	h.skills = hd["skills"]; h.hp = int(hd["hp"]); h.gold = float(hd["gold"]); h.bank = float(hd.get("bank", 0.0)); h.inv = hd["inv"]
 	h.traits = hd["traits"]; h.tier = hd["tier"]; h.satisfaction = float(hd["satisfaction"])
 	h.unhappy_days = int(hd["unhappy_days"]); h.recent_success = float(hd["recent_success"])
 	h.pos = hd["pos"]; h.move_target = hd["move_target"]; h.act = hd["act"]; h.thought = hd["thought"]
