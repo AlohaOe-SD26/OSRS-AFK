@@ -14,8 +14,9 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 
 ## Current state
 **MVP + UNIT 0–2 COMPLETE; UNIT 3 (#4) CODE-COMPLETE (F5-pending); DIRECTIVE
-BATCH #13–#15 COMPLETE; UNIT 4 (#5) STARTED — #5a bank shipped 2026-06-14.**
-suite **217/217** + determinism/save-load/offline gates green; save version **7**.
+BATCH #13–#15 COMPLETE; UNIT 4 (#5) — #5a bank + #5b GE order book shipped
+2026-06-14.** suite **224/224** + determinism/save-load/offline gates green;
+save version **8**.
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
 founders + immigrant gold/weapon/gear — variance tightened across the batch,
 deaths down, all colonies viable, ≥1 fisher; within noise of the original
@@ -36,6 +37,14 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#5b SHIPPED — Unit 4 GE order book ENGINE.** `ge_orders` + `ge_post_order`/
+  `ge_match`/`ge_cancel_order`: price-time priority matching (fill at the resting
+  price), escrow at posting (R1; sell→goods, buy→gold/treasury), 1% `GE_TAX` on
+  seller proceeds → treasury (`treasury_in_ge_tax`, R8), refunds buy→bank (R9) /
+  sell→inv. `ge_unlocked` flag. Save **v8**. INERT in live play (no autonomous
+  posting → empty book → no re-baseline). Suite **224/224**; 3 gates PASS.
+  DEFERRED to later sub-items: relationship tilt, autonomous trading (#5c),
+  offline fill (#5d), GE unlock (#5e).
 - **#5a SHIPPED — Unit 4 BANK foundation (R9).** `Hero.bank` (per-hero,
   coinpurse invariant) + `bank_deposit/withdraw/total`; `total_gold()` counts
   coinpurse+bank; upkeep now on TOTAL wealth (purse-then-bank → banked gold
@@ -168,18 +177,20 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
      Nudge disabled + reason shown.
   If anything looks wrong, that's the next fix; otherwise tick the F5 box and
   Unit 3 is closed.
-- **#13 + #14 + #15: DONE** (directive batch complete). **Unit 4 (#5) STARTED:
-  #5a bank DONE; #5b–#5e remain** (decomposed in the punch list). No code item
-  is mid-flight (each sub-item ships green).
+- **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): #5a bank + #5b GE
+  order-book ENGINE DONE; #5c–#5e remain** (decomposed in the punch list). No
+  code item is mid-flight (each sub-item ships green & inert until wired).
 
 ## Next steps (in order)
-1. **#5b — GE order book** (hero↔hero buy/sell matching at the unlocked GE; 1%
-   tax on hero-side proceeds → treasury, R8; refunds/expiry land in the #5a
-   bank, R9). Latent hooks: `Social.trade_modifier`, the locked "ge" map loc.
-   Resolve the matching model (price-time priority?) and add bank to sim_hash
-   (it goes non-zero here → re-baseline). See #5 OPEN DESIGN QUESTIONS in the
-   punch list before building. Then #5c (city buy orders), #5d (offline fill),
-   #5e (incentive migration + GE unlock).
+1. **#5c — City BUY orders + City Inventory** (the funded GATHER incentive, R5):
+   the city posts buy orders via the #5b engine (`ge_post_order(owner=-1, "buy",
+   …)` already escrows treasury, R1); filled goods land in a new city inventory;
+   the BRAIN reads city demand as a funded gather pull (heroes SELL gathered
+   goods into city/GE buy orders — this is where autonomous GE trading first
+   wires in, so add the GE state to sim_hash and RE-BASELINE here). Then #5d
+   (offline fill), #5e (incentive migration + GE unlock + closing band/tax
+   report). When autonomous trading lands, also revisit the deferred
+   relationship-tilt (`Social.trade_modifier`) and total_gold-counts-escrow.
 2. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above) — the one
    non-code thread; can happen anytime, independent of Unit 4.
 3. **#16** (Legendary & Easter-Egg arrivals) — gated behind Unit 4's GE + an
@@ -188,7 +199,7 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 217 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 224 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

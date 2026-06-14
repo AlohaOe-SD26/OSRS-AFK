@@ -34,6 +34,7 @@ var tax_collected: float = 0.0      # cumulative SHOP_TAX skim (the §5 wealth-s
 var treasury: float = 0.0
 # Unit 2 (R1) — treasury LEDGER counters (telemetry; serialized so the ledger survives load):
 var treasury_in_tax: float = 0.0       # inflow: SHOP_TAX skim on hero sales
+var treasury_in_ge_tax: float = 0.0    # inflow: GE_TAX skim on GE-matched hero proceeds (#5b)
 var treasury_in_routing: float = 0.0   # inflow: PURCHASE_TREASURY_ROUTE share of hero purchases
 var treasury_out_bounty: float = 0.0   # outflow: funded per-kill bounty payouts
 var treasury_out_upgrade: float = 0.0  # outflow: shop level-ups

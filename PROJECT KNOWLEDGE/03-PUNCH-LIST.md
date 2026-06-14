@@ -30,11 +30,15 @@
     Save **v7** (`_migrate_6_to_7`). Inert (empty bank → live sim byte-identical,
     gates pass, **no re-baseline**). +7 suite checks → **217/217**; 3 gates PASS.
     Decision (banked gold is upkeep-bearing) in 06-DECISIONS-LOG.
-  - [ ] #5b — **GE order book** (hero↔hero buy/sell matching at the unlocked GE;
-    1% tax on hero-side proceeds → treasury, `SHOP_TAX` untouched). Latent hooks:
-    `Social.trade_modifier` (relationship price tilt), the locked "ge" map
-    location. Refund/expiry/unfilled → the #5a bank (R9). DESIGN Qs: matching
-    model (price-time priority?), offline statistical fill (#5d). Re-baseline.
+  - [x] #5b — **GE order book ENGINE SHIPPED** (2026-06-14): `ge_orders` +
+    `ge_post_order`/`ge_match`/`ge_cancel_order`. Price-time priority (highest buy
+    × lowest sell, ties by age; fill at the resting price). Escrow at posting (R1:
+    sell→goods, buy→gold/treasury). 1% `GE_TAX` on seller proceeds → treasury
+    (`treasury_in_ge_tax`, R8). Refunds: buy→bank (R9), sell→inv. `ge_unlocked`
+    flag. Save **v8**. INERT (no autonomous posting → empty book → no re-baseline).
+    +7 suite checks → **224/224**; 3 gates PASS. DEFERRED: relationship tilt
+    (`trade_modifier`), autonomous trading (→ #5c), offline fill (→ #5d), GE
+    unlock (→ #5e). Matching model + deferrals in 06-DECISIONS-LOG.
   - [ ] #5c — **City BUY orders + City Inventory** (the funded GATHER incentive,
     R5): player posts buy orders, ESCROW treasury at posting (R1), cancel/expiry
     refunds remainder; filled goods land in a city inventory; untaxed (R8).

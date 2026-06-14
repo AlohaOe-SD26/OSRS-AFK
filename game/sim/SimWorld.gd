@@ -30,6 +30,13 @@ var telemetry                      # Telemetry (set by owner after construction)
 var _next_id: int = 0              # monotonic hero id source (founders + immigrants)
 var _name_counts: Dictionary = {}  # base name -> times used, so repeats become "Bjorn II" (unique display)
 var _city_cells: Array = []        # #13: cached walkable tiles inside the city walls (rolled-founder spawn)
+# #5b — Grand Exchange order book (Unit 4). ge_unlocked gates autonomous use (#5e); the engine works
+# regardless (post/match/cancel are pure). Orders: {id, owner (hero id, or -1 = city), side
+# ("buy"/"sell"), good, qty, remaining, price}. owner id doubles as the price-TIME tiebreaker (ids
+# are monotonic). Inert until heroes/city post orders (#5c) — empty book = no economic effect.
+var ge_unlocked: bool = false
+var ge_orders: Array = []
+var _next_order_id: int = 0
 
 var heroes: Array = []             # Array[Hero]
 var monsters: Array = []           # Array[MonsterInstance] — live combat targets (§10)
@@ -1857,6 +1864,133 @@ func bank_total() -> int:
 	for h in heroes:
 		b += h.bank
 	return int(round(b))
+
+# --------------------------------------------------------------- GE order book (Unit 4 / #5b, R8/R9)
+## Post a GE order, ESCROWING up front (ruling R1 — overdraft impossible by construction): a SELL
+## escrows the goods (pulled from inv), a BUY escrows the gold (qty×price — coinpurse for a hero,
+## treasury for a city order owner=-1). Returns the order id, or -1 if the owner can't cover it.
+func ge_post_order(owner: int, side: String, good: String, qty: int, price: int) -> int:
+	if qty <= 0 or price <= 0 or (side != "buy" and side != "sell"):
+		return -1
+	if side == "sell":
+		var h := hero_by_id(owner)
+		if h == null or int(h.inv.get(good, 0)) < qty:
+			return -1
+		h.inv[good] = int(h.inv[good]) - qty
+		if int(h.inv[good]) <= 0:
+			h.inv.erase(good)
+	else:
+		var cost: int = qty * price
+		if owner == -1:
+			if economy.treasury < float(cost):
+				return -1
+			economy.treasury -= float(cost)   # city buy order escrows treasury (#5c uses this path)
+		else:
+			var hb := hero_by_id(owner)
+			if hb == null or hb.gold < float(cost):
+				return -1
+			hb.gold -= float(cost)
+	var oid := _next_order_id
+	_next_order_id += 1
+	ge_orders.append({"id": oid, "owner": owner, "side": side, "good": good, "qty": qty, "remaining": qty, "price": price})
+	return oid
+
+## Match the book: price-time priority per good — the highest buy crosses the lowest sell while
+## buy.price ≥ sell.price; the fill executes at the RESTING (older = lower-id) order's price. The
+## SELLER's gross is taxed GE_TAX → treasury (R8, hero-side proceeds); a buyer who escrowed above the
+## exec price is refunded the difference to its BANK (hero) / treasury (city) — R9.
+func ge_match() -> void:
+	var goods: Dictionary = {}
+	for o in ge_orders:
+		goods[String(o["good"])] = true
+	for good in goods:
+		_ge_match_good(String(good))
+
+func _ge_match_good(good: String) -> void:
+	while true:
+		var buy: Dictionary = _ge_best(good, "buy")
+		var sell: Dictionary = _ge_best(good, "sell")
+		if buy.is_empty() or sell.is_empty() or int(buy["price"]) < int(sell["price"]):
+			return
+		var fill: int = mini(int(buy["remaining"]), int(sell["remaining"]))
+		var exec: int = int(buy["price"]) if int(buy["id"]) < int(sell["id"]) else int(sell["price"])
+		_ge_execute(buy, sell, good, fill, exec)
+		buy["remaining"] = int(buy["remaining"]) - fill
+		sell["remaining"] = int(sell["remaining"]) - fill
+		if int(buy["remaining"]) <= 0:
+			ge_orders.erase(buy)
+		if int(sell["remaining"]) <= 0:
+			ge_orders.erase(sell)
+
+## Best resting order for a side: BUY = highest price (tie → lowest id); SELL = lowest price (tie →
+## lowest id). {} when none. (Linear scan — the book is small; price-time priority is exact.)
+func _ge_best(good: String, side: String) -> Dictionary:
+	var best: Dictionary = {}
+	for o in ge_orders:
+		if String(o["good"]) != good or String(o["side"]) != side or int(o["remaining"]) <= 0:
+			continue
+		if best.is_empty():
+			best = o
+			continue
+		if side == "buy":
+			if int(o["price"]) > int(best["price"]) or (int(o["price"]) == int(best["price"]) and int(o["id"]) < int(best["id"])):
+				best = o
+		else:
+			if int(o["price"]) < int(best["price"]) or (int(o["price"]) == int(best["price"]) and int(o["id"]) < int(best["id"])):
+				best = o
+	return best
+
+func _ge_execute(buy: Dictionary, sell: Dictionary, good: String, fill: int, exec: int) -> void:
+	var gross: int = fill * exec
+	var tax: int = int(round(float(gross) * Config.GE_TAX))
+	# buyer receives the goods (hero → inv; city → city inventory in #5c, dropped here for now)
+	if int(buy["owner"]) != -1:
+		var hbuy := hero_by_id(int(buy["owner"]))
+		if hbuy != null:
+			hbuy.inv[good] = int(hbuy.inv.get(good, 0)) + fill
+	# buyer refund if it escrowed above the exec price (escrow was at buy["price"])
+	var refund: int = (int(buy["price"]) - exec) * fill
+	if refund > 0:
+		if int(buy["owner"]) == -1:
+			economy.treasury += float(refund)
+		else:
+			var hbr := hero_by_id(int(buy["owner"]))
+			if hbr != null:
+				hbr.bank += float(refund)   # R9: refunds land in the bank
+	# seller receives gross minus the GE tax (hero-side proceeds)
+	if int(sell["owner"]) != -1:
+		var hsell := hero_by_id(int(sell["owner"]))
+		if hsell != null:
+			hsell.gold += float(gross - tax)
+	economy.treasury += float(tax)
+	economy.tax_collected += float(tax)
+	economy.treasury_in_ge_tax += float(tax)
+
+## Cancel an order, refunding the unfilled remainder: a SELL returns goods to the owner's inv, a BUY
+## returns escrowed gold to the owner's BANK (hero) / treasury (city) — R9. Returns false if absent.
+func ge_cancel_order(id: int) -> bool:
+	for i in range(ge_orders.size()):
+		var o: Dictionary = ge_orders[i]
+		if int(o["id"]) != id:
+			continue
+		var rem: int = int(o["remaining"])
+		if rem > 0:
+			if String(o["side"]) == "sell":
+				if int(o["owner"]) != -1:
+					var h := hero_by_id(int(o["owner"]))
+					if h != null:
+						h.inv[String(o["good"])] = int(h.inv.get(String(o["good"]), 0)) + rem
+			else:
+				var gold_back: int = rem * int(o["price"])
+				if int(o["owner"]) == -1:
+					economy.treasury += float(gold_back)
+				else:
+					var hb := hero_by_id(int(o["owner"]))
+					if hb != null:
+						hb.bank += float(gold_back)
+		ge_orders.remove_at(i)
+		return true
+	return false
 
 static func _cap(s: String) -> String:
 	return s.substr(0, 1).to_upper() + s.substr(1)

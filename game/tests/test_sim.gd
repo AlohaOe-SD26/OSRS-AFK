@@ -52,9 +52,10 @@ func _initialize() -> void:
 	_test_unit14_immigrants()
 	_test_unit15_immigrant_gear()
 	_test_unit5a_bank()
+	_test_unit5b_ge_orderbook()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 217
+	const EXPECTED := 224
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1263,6 +1264,68 @@ func _test_unit5a_bank() -> void:
 	var w2: SimWorld = SaveLoad.load_world(content, m)
 	_check(int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w2 != null and float(w2.heroes[0].bank) == 0.0,
 		"v6 save migrates to v%d; pre-bank heroes default bank=0" % SaveLoad.SAVE_VERSION)
+
+## #5b — the GE order book engine: escrow on post, price-time matching, 1% seller tax → treasury,
+## resting-price execution + buyer refund to bank, cancel refunds (gold→bank, goods→inv), save v8.
+func _test_unit5b_ge_orderbook() -> void:
+	print("\n[Unit 4 #5b — GE order book: escrow, price-time match, 1% tax, refunds→bank, save v8]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	# --- escrow on post ---
+	var hs: Hero = world.heroes[0]; hs.inv = {"logs": 10}; hs.gold = 0.0; hs.bank = 0.0
+	var hb: Hero = world.heroes[1]; hb.inv = {}; hb.gold = 1000.0; hb.bank = 0.0
+	var sid := world.ge_post_order(hs.id, "sell", "logs", 5, 100)
+	_check(sid >= 0 and int(hs.inv.get("logs", 0)) == 5, "sell order escrows the goods (10→5)")
+	var bid := world.ge_post_order(hb.id, "buy", "logs", 5, 100)
+	_check(bid >= 0 and hb.gold == 500.0, "buy order escrows the gold (1000→500)")
+	# --- match: both @100, sell is older → exec 100, no refund; seller gets gross−1% tax ---
+	var ge_tax0 := world.economy.treasury_in_ge_tax
+	world.ge_match()
+	var tax := int(round(500.0 * Config.GE_TAX))
+	_check(int(hb.inv.get("logs", 0)) == 5 and hs.gold == float(500 - tax) and (world.economy.treasury_in_ge_tax - ge_tax0) == float(tax) and world.ge_orders.is_empty(),
+		"match: goods→buyer, gold−1%% tax→seller (%dg), tax→treasury, book clears" % int(hs.gold))
+	# --- resting-price execution + buyer overpay refunds to the bank ---
+	var w2 := SimWorld.new(); w2.setup(content, 6, Config.DEFAULT_SEED)
+	var s2: Hero = w2.heroes[0]; s2.inv = {"iron_ore": 4}; s2.gold = 0.0
+	var b2: Hero = w2.heroes[1]; b2.inv = {}; b2.gold = 1000.0; b2.bank = 0.0
+	w2.ge_post_order(s2.id, "sell", "iron_ore", 4, 10)   # resting (older)
+	w2.ge_post_order(b2.id, "buy", "iron_ore", 4, 12)    # aggressor escrows 48
+	w2.ge_match()
+	_check(int(b2.inv.get("iron_ore", 0)) == 4 and b2.bank == 8.0,
+		"fill executes at the resting price; the buyer's overpay refunds to the bank (8g)")
+	# --- price priority: the cheaper sell fills first; the dearer remains resting ---
+	var w3 := SimWorld.new(); w3.setup(content, 6, Config.DEFAULT_SEED)
+	var sh: Hero = w3.heroes[0]; sh.inv = {"cowhide": 3}; sh.gold = 0.0   # dearer, posted first
+	var sl: Hero = w3.heroes[1]; sl.inv = {"cowhide": 3}; sl.gold = 0.0   # cheaper, posted second
+	w3.ge_post_order(sh.id, "sell", "cowhide", 3, 50)
+	w3.ge_post_order(sl.id, "sell", "cowhide", 3, 30)
+	var bq: Hero = w3.heroes[2]; bq.inv = {}; bq.gold = 1000.0; bq.bank = 0.0
+	w3.ge_post_order(bq.id, "buy", "cowhide", 3, 60)
+	w3.ge_match()
+	_check(sl.gold > 0.0 and sh.gold == 0.0 and int(bq.inv.get("cowhide", 0)) == 3,
+		"price priority: the cheaper sell fills first; the dearer stays resting")
+	# --- cancel refunds: buy→bank (R9), sell→inv ---
+	var w4 := SimWorld.new(); w4.setup(content, 6, Config.DEFAULT_SEED)
+	var cb: Hero = w4.heroes[0]; cb.inv = {}; cb.gold = 600.0; cb.bank = 0.0
+	var cs: Hero = w4.heroes[1]; cs.inv = {"trout": 8}
+	var cbid := w4.ge_post_order(cb.id, "buy", "trout", 5, 100)    # escrows 500
+	var csid := w4.ge_post_order(cs.id, "sell", "trout", 5, 100)   # escrows 5 trout (8→3)
+	w4.ge_cancel_order(cbid)
+	w4.ge_cancel_order(csid)
+	_check(cb.bank == 500.0 and cb.gold == 100.0 and int(cs.inv.get("trout", 0)) == 8,
+		"cancel: buy escrow refunds to the bank (500g), sell escrow returns goods to inv")
+	# --- save v7 → v8 migration (GE state round-trips / defaults) ---
+	var w5 := SimWorld.new(); w5.setup(content, 6, Config.DEFAULT_SEED)
+	w5.ge_unlocked = true
+	w5.heroes[0].inv["logs"] = 5
+	var posted := w5.ge_post_order(w5.heroes[0].id, "sell", "logs", 2, 40)
+	var s: Dictionary = SaveLoad.save_world(w5)
+	var m: Dictionary = SaveLoad.migrate(s)
+	var w5b: SimWorld = SaveLoad.load_world(content, m)
+	_check(posted >= 0 and int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w5b != null and w5b.ge_unlocked and w5b.ge_orders.size() == 1,
+		"save v%d round-trips the GE order book (unlocked + 1 resting order)" % SaveLoad.SAVE_VERSION)
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

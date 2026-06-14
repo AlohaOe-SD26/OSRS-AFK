@@ -429,3 +429,27 @@
   economy byte-identical — NO re-baseline. The bank becomes load-bearing when #5b's GE refunds
   land in it (sim_hash will gain the bank field then, with its own re-baseline).
 - **Save v6 → v7** (`_migrate_6_to_7`, forward-compatible: `_load_hero` defaults bank=0).
+
+## 2026-06-14 — #5b GE order book engine: price-time priority; tilt + autonomous trade deferred
+- **Matching model = PRICE-TIME PRIORITY** (the canonical limit-order book): per good, the highest
+  buy crosses the lowest sell while buy.price ≥ sell.price; ties break by age (lower order id).
+  The fill executes at the RESTING (older) order's price — the aggressor takes the standing price,
+  OSRS-GE-like. A buyer who escrowed above the exec price is refunded the difference.
+- **Escrow at posting (R1, overdraft impossible):** a SELL escrows the goods (pulled from inv); a
+  BUY escrows the gold (qty×price — coinpurse for a hero, treasury for a city order owner=-1).
+- **Tax (R8):** 1% (`GE_TAX`, tunable 1–3%) on the SELLER's gross proceeds → treasury, tracked in a
+  new `treasury_in_ge_tax` counter (so the shop→GE volume-migration is measurable, R8). City orders
+  pay no tax as buyers; a hero filling a city buy order still pays 1% on its proceeds (uniform).
+- **Refunds → the bank (R9):** cancel/expiry returns a buy order's escrowed gold to the owner's
+  BANK (city → treasury); a sell order's escrowed goods return to inv. The #5a bank is the gold
+  landing target exactly as R9 requires.
+- **DEFERRED (scoped out of #5b, recorded so it's not lost):** (1) relationship-tilted pricing via
+  the latent `Social.trade_modifier` — it's a price garnish that layers on the executed price once
+  the core book is proven; deferred to avoid the price-attribution complexity in the first cut.
+  (2) AUTONOMOUS hero posting/filling — heroes don't trade on the GE yet; that wires in with #5c
+  (city buy orders = the funded gather pull) where the brain reads city demand. (3) Offline fill
+  (#5d). (4) The GE UNLOCK mechanism (#5e) — `ge_unlocked` exists (serialized, default false) but
+  nothing flips it yet; the engine works regardless (the methods are pure).
+- **Inert in live play** (no autonomous posting → empty book): `total_gold`/state unchanged, gates
+  pass byte-identical, NO re-baseline. The book goes live (and sim_hash gains its state, with a
+  re-baseline) when #5c makes the city post orders heroes fill. Save v7 → v8 (`_migrate_7_to_8`).

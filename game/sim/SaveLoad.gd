@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 7   # v7: #5a bank — per-hero `bank` balance (Unit 4 foundation)
+const SAVE_VERSION := 8   # v8: #5b GE order book — ge_orders/ge_unlocked + treasury_in_ge_tax
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,15 @@ const SAVE_VERSION := 7   # v7: #5a bank — per-hero `bank` balance (Unit 4 fou
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5, 5: _migrate_5_to_6, 6: _migrate_6_to_7}
+	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5, 5: _migrate_5_to_6, 6: _migrate_6_to_7, 7: _migrate_7_to_8}
+
+## v7 → v8 (#5b, GE order book): pre-GE worlds have no orders and a locked GE. The load path already
+## defaults ge_orders/ge_unlocked/next_order_id/treasury_in_ge_tax via `.get`, so a v7 save loads
+## correctly; this upgrader just stamps the version (forward-compatible).
+static func _migrate_7_to_8(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	nd["version"] = 8
+	return nd
 
 ## v6 → v7 (#5a, bank): pre-bank heroes have no balance. `_load_hero` already defaults `bank` to 0.0
 ## via `.get`, so a v6 save loads correctly; this upgrader just stamps the version (forward-compatible).
@@ -236,6 +244,8 @@ static func save_world(w) -> Dictionary:
 		"treasury_out_bounty": w.economy.treasury_out_bounty, "treasury_out_upgrade": w.economy.treasury_out_upgrade,
 		"treasury_out_building": w.economy.treasury_out_building,
 		"treasury_out_bias": w.economy.treasury_out_bias, "price_bias": w.economy.price_bias.duplicate(true),
+		"treasury_in_ge_tax": w.economy.treasury_in_ge_tax, "ge_unlocked": w.ge_unlocked,
+		"ge_orders": w.ge_orders.duplicate(true), "next_order_id": w._next_order_id,
 		# population
 		"pop": {"enabled": p.enabled, "reputation": p.reputation, "recent_deaths": p.recent_deaths,
 			"recent_kicks": p.recent_kicks, "immig_accum": p._immig_accum, "arrivals": p.arrivals,
@@ -302,7 +312,11 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 	w.economy.treasury_out_upgrade = float(d.get("treasury_out_upgrade", 0.0))
 	w.economy.treasury_out_building = float(d.get("treasury_out_building", 0.0))
 	w.economy.treasury_out_bias = float(d.get("treasury_out_bias", 0.0))
+	w.economy.treasury_in_ge_tax = float(d.get("treasury_in_ge_tax", 0.0))
 	w.economy.price_bias = d.get("price_bias", {})
+	w.ge_unlocked = bool(d.get("ge_unlocked", false))
+	w.ge_orders = d.get("ge_orders", [])
+	w._next_order_id = int(d.get("next_order_id", 0))
 	for sd in d["shops"]:
 		for s in w.economy.shops:
 			if s.npc_id == sd["npc_id"]:

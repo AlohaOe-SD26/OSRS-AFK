@@ -106,6 +106,10 @@ static var COMBAT_TRIP_ROUNDS: int = 9999
 # Renamed GE_TAX→SHOP_TAX (Unit 1, ruling R8): this is the SHOP-sale skim, locked at 3%; the real
 # GE arrives in Unit 4 with its own 1% treasury-routed trade tax.
 const SHOP_TAX: float = 0.03          # sales skim on every shop sale (§5 wealth-scaling sink)
+# #5b — GE trade tax (ruling R8): 1% at open on the HERO-side proceeds of a GE-matched fill,
+# routed to the treasury (partially replaces shop-tax inflow as volume migrates GE-ward). Tunable
+# 1–3% within gates if the treasury starves under real volume; the shop 3% stays untouched.
+const GE_TAX: float = 0.01
 # Re-centered 2026-06-10: exact BFS pathing ≈doubled effective income (no wasted walking) → the band
 # drifted to ~1955..2144 vs the validated ~600-900. Doubling the proportional rate halves g* back into
 # range; the offline attractor-projection reads this same constant, so live/offline stay coherent.

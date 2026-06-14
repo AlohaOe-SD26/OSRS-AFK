@@ -411,3 +411,16 @@
 - **Save v6 → v7** (`_migrate_6_to_7`, forward-compatible — `.get("bank", 0.0)`).
 - **Inert in live play** (empty bank until #5b GE refunds): economy byte-identical, gates pass
   with no re-baseline. +7 suite checks → **217/217**; determinism / save-load / offline PASS.
+
+## 2026-06-14 — #5b GE order book engine (Unit 4)
+- **`SimWorld.ge_orders` + `ge_post_order` / `ge_match` / `ge_cancel_order`** — the GE order-book
+  engine. Price-time priority matching (highest buy × lowest sell, ties by age; fill at the resting
+  order's price). Escrow at posting (R1): sell escrows goods, buy escrows gold (coinpurse, or
+  treasury for city owner=-1). 1% `GE_TAX` on seller proceeds → treasury (new `treasury_in_ge_tax`
+  counter, R8). Cancel/expiry refunds: buy gold → owner BANK (R9), sell goods → inv.
+- `ge_unlocked` flag (serialized, default false; unlock mechanism is #5e). Save **v7 → v8**
+  (`_migrate_7_to_8`, forward-compatible).
+- **Inert in live play** (no autonomous posting yet → empty book): economy byte-identical, gates
+  pass with no re-baseline. Deferred to later sub-items: relationship-tilted pricing
+  (`Social.trade_modifier`), autonomous hero trading (#5c), offline fill (#5d), GE unlock (#5e).
+- **Verified:** suite **224/224** (+7 #5b checks); determinism / save-load / offline gates PASS.
