@@ -37,6 +37,10 @@ var _city_cells: Array = []        # #13: cached walkable tiles inside the city 
 var ge_unlocked: bool = false
 var ge_orders: Array = []
 var _next_order_id: int = 0
+# #5c — City Inventory: goods the city has BOUGHT (filled city buy orders land here, owner=-1). The
+# funded gather incentive (R5): the player posts city buy orders (treasury-escrowed, R1); heroes
+# fill them during their sell trip for a better price than the NPC shop. good -> qty.
+var city_inventory: Dictionary = {}
 
 var heroes: Array = []             # Array[Hero]
 var monsters: Array = []           # Array[MonsterInstance] — live combat targets (§10)
@@ -1570,6 +1574,7 @@ func _work_action(h: Hero) -> void:
 					h.act = {}
 					return
 				"sell":
+					ge_sell_into_orders(h)   # #5c: fill standing GE/city buy orders first (inert if the book is empty)
 					var g := economy.sell_goods(h)
 					if g > 0:
 						log_event("%s sold goods for %dg." % [h.hero_name, g], "gold", 0)
@@ -1943,11 +1948,13 @@ func _ge_best(good: String, side: String) -> Dictionary:
 func _ge_execute(buy: Dictionary, sell: Dictionary, good: String, fill: int, exec: int) -> void:
 	var gross: int = fill * exec
 	var tax: int = int(round(float(gross) * Config.GE_TAX))
-	# buyer receives the goods (hero → inv; city → city inventory in #5c, dropped here for now)
+	# buyer receives the goods (hero → inv; city order owner=-1 → city inventory, #5c)
 	if int(buy["owner"]) != -1:
 		var hbuy := hero_by_id(int(buy["owner"]))
 		if hbuy != null:
 			hbuy.inv[good] = int(hbuy.inv.get(good, 0)) + fill
+	else:
+		city_inventory[good] = int(city_inventory.get(good, 0)) + fill
 	# buyer refund if it escrowed above the exec price (escrow was at buy["price"])
 	var refund: int = (int(buy["price"]) - exec) * fill
 	if refund > 0:
@@ -1991,6 +1998,36 @@ func ge_cancel_order(id: int) -> bool:
 		ge_orders.remove_at(i)
 		return true
 	return false
+
+## #5c — the player posts a CITY buy order (owner=-1): the order-book engine escrows the cost from
+## the TREASURY (R1) at posting; filled goods land in `city_inventory`; cancel/expiry refunds the
+## remainder to the treasury. This is the funded GATHER incentive (R5) — pay-per-delivery.
+func city_post_buy_order(good: String, qty: int, price: int) -> int:
+	return ge_post_order(-1, "buy", good, qty, price)
+
+## #5c — when a hero reaches its sell step, FILL any standing GE/city BUY orders first (a better deal
+## than the NPC shop), then the normal NPC sell handles the rest. The hero posts a sell at the NPC
+## price as a FLOOR (it never sells below the shop) and crosses any buy ≥ that price (taking the
+## resting buy's price — usually the player's generous city price). Fully inert when the book is
+## empty (the common case) → live play unchanged. Food keeps its own channel (sell_food).
+func ge_sell_into_orders(h: Hero) -> void:
+	if ge_orders.is_empty():
+		return
+	for item in h.inv.keys():
+		var good := String(item)
+		if good == "trout" or good == "raw_trout":
+			continue
+		if content != null:
+			var it: ItemType = content.item(good)
+			if it != null and not it.tradeable:
+				continue
+		if int(h.inv.get(good, 0)) <= 0 or _ge_best(good, "buy").is_empty():
+			continue
+		var sid := ge_post_order(h.id, "sell", good, int(h.inv[good]), economy.sell_price(good))
+		if sid < 0:
+			continue
+		ge_match()
+		ge_cancel_order(sid)   # return any unfilled remainder to the hero's inv
 
 static func _cap(s: String) -> String:
 	return s.substr(0, 1).to_upper() + s.substr(1)

@@ -14,9 +14,9 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 
 ## Current state
 **MVP + UNIT 0–2 COMPLETE; UNIT 3 (#4) CODE-COMPLETE (F5-pending); DIRECTIVE
-BATCH #13–#15 COMPLETE; UNIT 4 (#5) — #5a bank + #5b GE order book shipped
-2026-06-14.** suite **224/224** + determinism/save-load/offline gates green;
-save version **8**.
+BATCH #13–#15 COMPLETE; UNIT 4 (#5) — #5a bank + #5b GE order book + #5c city
+orders shipped 2026-06-14 (#5d/#5e remain).** suite **229/229** + determinism/
+save-load/offline gates green; save version **9**.
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
 founders + immigrant gold/weapon/gear — variance tightened across the batch,
 deaths down, all colonies viable, ≥1 fisher; within noise of the original
@@ -37,6 +37,13 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#5c SHIPPED — Unit 4 city buy orders + city inventory.** `city_post_buy_order`
+  (treasury escrow via the #5b engine, owner=-1) + `city_inventory`;
+  `ge_sell_into_orders` wired before the FSM's NPC sell (a selling hero fills
+  standing buy orders at the NPC-price floor, takes the resting buy's price −1%
+  tax). Save **v9**. INERT (empty book → sell path byte-identical → no
+  re-baseline). Suite **229/229**; 3 gates PASS. The R5 end-state (autonomous
+  gather-for-orders + retiring utility incentives + GE unlock) is #5e.
 - **#5b SHIPPED — Unit 4 GE order book ENGINE.** `ge_orders` + `ge_post_order`/
   `ge_match`/`ge_cancel_order`: price-time priority matching (fill at the resting
   price), escrow at posting (R1; sell→goods, buy→gold/treasury), 1% `GE_TAX` on
@@ -178,19 +185,24 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
   If anything looks wrong, that's the next fix; otherwise tick the F5 box and
   Unit 3 is closed.
 - **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): #5a bank + #5b GE
-  order-book ENGINE DONE; #5c–#5e remain** (decomposed in the punch list). No
-  code item is mid-flight (each sub-item ships green & inert until wired).
+  engine + #5c city orders DONE; #5d/#5e remain** (decomposed in the punch list).
+  No code item is mid-flight (each sub-item ships green & inert until wired).
 
 ## Next steps (in order)
-1. **#5c — City BUY orders + City Inventory** (the funded GATHER incentive, R5):
-   the city posts buy orders via the #5b engine (`ge_post_order(owner=-1, "buy",
-   …)` already escrows treasury, R1); filled goods land in a new city inventory;
-   the BRAIN reads city demand as a funded gather pull (heroes SELL gathered
-   goods into city/GE buy orders — this is where autonomous GE trading first
-   wires in, so add the GE state to sim_hash and RE-BASELINE here). Then #5d
-   (offline fill), #5e (incentive migration + GE unlock + closing band/tax
-   report). When autonomous trading lands, also revisit the deferred
-   relationship-tilt (`Social.trade_modifier`) and total_gold-counts-escrow.
+1. **#5d — Offline statistical fill** for GE + city orders (orders fill while
+   away, bounded like `offline_catchup`; the #5a bank is the gold landing target).
+   The offline-gate criterion must hold. Likely still inert-ish (no live orders
+   yet) — testable in isolation.
+2. **#5e — Incentive migration + GE unlock (the economically-LIVE step, R5 end
+   state):** make the city autonomously post buy orders (or the player UI), add
+   the brain pull toward gathering-for-orders, retire the pure-utility gather
+   incentives, and add the GE-unlock mechanism (recommended: Gate-1
+   combat-40/reputation gates availability + a treasury-funded GE-annex building
+   flips `ge_unlocked`; per-run, see the 2026-06-14 GE-unlock answer). THIS is
+   where the book goes non-inert → add GE state to sim_hash + the closing band
+   RE-BASELINE + the shop→GE tax-migration report (R8). Also revisit the deferred
+   relationship-tilt (`Social.trade_modifier`) and whether total_gold counts
+   escrowed/city gold.
 2. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above) — the one
    non-code thread; can happen anytime, independent of Unit 4.
 3. **#16** (Legendary & Easter-Egg arrivals) — gated behind Unit 4's GE + an
@@ -199,7 +211,7 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 224 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 229 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

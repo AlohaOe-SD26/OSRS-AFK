@@ -39,10 +39,13 @@
     +7 suite checks → **224/224**; 3 gates PASS. DEFERRED: relationship tilt
     (`trade_modifier`), autonomous trading (→ #5c), offline fill (→ #5d), GE
     unlock (→ #5e). Matching model + deferrals in 06-DECISIONS-LOG.
-  - [ ] #5c — **City BUY orders + City Inventory** (the funded GATHER incentive,
-    R5): player posts buy orders, ESCROW treasury at posting (R1), cancel/expiry
-    refunds remainder; filled goods land in a city inventory; untaxed (R8).
-    The brain reads city demand as a funded gather pull. Re-baseline.
+  - [x] #5c — **City BUY orders + City Inventory SHIPPED** (2026-06-14):
+    `city_post_buy_order` (treasury escrow via the #5b engine, owner=-1) +
+    `city_inventory`; `ge_sell_into_orders` hero hook wired into the FSM sell step
+    (fills standing buys at the NPC-price floor, takes the resting buy's price −1%
+    tax). Save **v9**. INERT (empty book → sell path byte-identical → no
+    re-baseline). +5 suite checks → **229/229**; 3 gates PASS. The autonomous
+    brain pull toward gathering FOR posted orders is the R5 end-state (#5e).
   - [ ] #5d — **Offline statistical fill model** for GE + city orders (orders
     fill while away, bounded like the offline catch-up; the #5a bank is the
     landing target). Offline-gate criterion holds.

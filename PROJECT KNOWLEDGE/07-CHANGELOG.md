@@ -424,3 +424,14 @@
   pass with no re-baseline. Deferred to later sub-items: relationship-tilted pricing
   (`Social.trade_modifier`), autonomous hero trading (#5c), offline fill (#5d), GE unlock (#5e).
 - **Verified:** suite **224/224** (+7 #5b checks); determinism / save-load / offline gates PASS.
+
+## 2026-06-14 — #5c city buy orders + city inventory (Unit 4)
+- **`city_post_buy_order(good, qty, price)`** — the funded gather incentive (R5): posts a city buy
+  order via the #5b engine (owner=-1), escrowing the treasury at posting (R1); filled goods land in
+  the new `city_inventory`.
+- **`ge_sell_into_orders(hero)`** wired before the FSM's NPC sell: a selling hero first fills standing
+  GE/city buy orders, posting at the NPC `sell_price` as a floor (never sells cheaper than the shop)
+  and taking the resting buy's price − 1% tax; the shop takes the rest. Fast-returns on an empty book.
+- **Save v8 → v9** (`_migrate_8_to_9`; `city_inventory` defaults {}).
+- **Inert in live play** (no orders posted yet → empty book → sell path byte-identical): gates pass,
+  no re-baseline. +5 suite checks → **229/229**; determinism / save-load / offline gates PASS.

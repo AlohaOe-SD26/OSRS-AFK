@@ -453,3 +453,20 @@
 - **Inert in live play** (no autonomous posting → empty book): `total_gold`/state unchanged, gates
   pass byte-identical, NO re-baseline. The book goes live (and sim_hash gains its state, with a
   re-baseline) when #5c makes the city post orders heroes fill. Save v7 → v8 (`_migrate_7_to_8`).
+
+## 2026-06-14 — #5c city buy orders + city inventory: the funded gather incentive (R5)
+- **City BUY orders = the funded gather incentive** (R5): `city_post_buy_order(good, qty, price)`
+  posts via the #5b engine with owner=-1, ESCROWING the cost from the TREASURY at posting (R1).
+  Filled goods land in a new `city_inventory` (good→qty). Pay-per-delivery: the player overpays vs
+  the NPC shop to pull labor toward a good, funded by the treasury.
+- **Hero fill via the sell step** (`ge_sell_into_orders`, called before `economy.sell_goods`): when a
+  hero reaches its sell trip, it first crosses any standing buy order, posting its sell at the NPC
+  `sell_price` as a FLOOR (never sells below the shop) and taking the resting buy's price (usually
+  the player's generous city price) − the 1% GE tax. The NPC shop then takes whatever's left. No new
+  brain DECISION — the hero already chose to sell; this just routes to the better venue when one
+  exists. (Autonomous brain pull toward gathering FOR a posted order is the R5 end-state, #5e.)
+- **Inert by construction:** `ge_sell_into_orders` fast-returns when the book is empty (the live-play
+  case until the player/UI posts orders), so the sell path is byte-identical and gates pass with NO
+  re-baseline. The economy goes live when orders actually flow (player UI / autonomous, #5e) — that's
+  where the GE state joins sim_hash and the closing band re-baseline happens.
+- **Save v8 → v9** (`_migrate_8_to_9`, forward-compatible — city_inventory defaults {}).

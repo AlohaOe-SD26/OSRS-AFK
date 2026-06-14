@@ -53,9 +53,10 @@ func _initialize() -> void:
 	_test_unit15_immigrant_gear()
 	_test_unit5a_bank()
 	_test_unit5b_ge_orderbook()
+	_test_unit5c_city_orders()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 224
+	const EXPECTED := 229
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1326,6 +1327,48 @@ func _test_unit5b_ge_orderbook() -> void:
 	var w5b: SimWorld = SaveLoad.load_world(content, m)
 	_check(posted >= 0 and int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w5b != null and w5b.ge_unlocked and w5b.ge_orders.size() == 1,
 		"save v%d round-trips the GE order book (unlocked + 1 resting order)" % SaveLoad.SAVE_VERSION)
+
+## #5c — city BUY orders (funded gather incentive): the city posts a treasury-escrowed buy order;
+## a hero fills it during its sell trip for the city's (generous) price; goods land in city inventory.
+func _test_unit5c_city_orders() -> void:
+	print("\n[Unit 4 #5c — city buy orders + city inventory: escrow, hero fill, NPC floor, save v9]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	# escrow at posting
+	var world := SimWorld.new(); world.setup(content, 6, Config.DEFAULT_SEED)
+	world.economy.treasury = 10000.0
+	var npc := world.economy.sell_price("logs")
+	var price := npc + 40   # the city overpays vs the shop (the incentive)
+	var oid := world.city_post_buy_order("logs", 10, price)
+	_check(oid >= 0 and world.economy.treasury == 10000.0 - float(10 * price),
+		"city buy order escrows the treasury (10×%dg)" % price)
+	# a hero fills it during sell: goods → city inventory, paid the city price − 1% tax
+	var hs: Hero = world.heroes[0]; hs.inv = {"logs": 10}; hs.gold = 0.0
+	var tax0 := world.economy.treasury_in_ge_tax
+	world.ge_sell_into_orders(hs)
+	var tax := int(round(float(10 * price) * Config.GE_TAX))
+	_check(int(world.city_inventory.get("logs", 0)) == 10 and hs.gold == float(10 * price - tax) and int(hs.inv.get("logs", 0)) == 0 and (world.economy.treasury_in_ge_tax - tax0) == float(tax),
+		"hero fills the city order: goods→city inv, paid city price−1%% tax (%dg)" % int(hs.gold))
+	# inert when the book is empty
+	var w3 := SimWorld.new(); w3.setup(content, 6, Config.DEFAULT_SEED)
+	var h3: Hero = w3.heroes[0]; h3.inv = {"logs": 7}
+	w3.ge_sell_into_orders(h3)
+	_check(int(h3.inv.get("logs", 0)) == 7 and w3.ge_orders.is_empty(), "empty book: ge_sell_into_orders is a no-op")
+	# the NPC price is the floor — a lowball city order doesn't pull the hero's goods
+	var w4 := SimWorld.new(); w4.setup(content, 6, Config.DEFAULT_SEED); w4.economy.treasury = 10000.0
+	var npc4 := w4.economy.sell_price("iron_ore")
+	w4.city_post_buy_order("iron_ore", 5, npc4 - 1)
+	var h4: Hero = w4.heroes[0]; h4.inv = {"iron_ore": 5}
+	w4.ge_sell_into_orders(h4)
+	_check(int(h4.inv.get("iron_ore", 0)) == 5 and int(w4.city_inventory.get("iron_ore", 0)) == 0,
+		"NPC price is the floor: a below-shop city order doesn't fill")
+	# save v8 → v9 round-trips the city inventory
+	var w5 := SimWorld.new(); w5.setup(content, 6, Config.DEFAULT_SEED)
+	w5.city_inventory = {"logs": 25}
+	var m: Dictionary = SaveLoad.migrate(SaveLoad.save_world(w5))
+	var w5b: SimWorld = SaveLoad.load_world(content, m)
+	_check(int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w5b != null and int(w5b.city_inventory.get("logs", 0)) == 25,
+		"save v%d round-trips the city inventory" % SaveLoad.SAVE_VERSION)
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:
