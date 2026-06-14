@@ -49,11 +49,17 @@
   - [ ] #5d — **Offline statistical fill model** for GE + city orders (orders
     fill while away, bounded like the offline catch-up; the #5a bank is the
     landing target). Offline-gate criterion holds.
-  - [ ] #5e — **Incentive migration + GE unlock** (R5 end state): retire the
-    pure-utility gather incentives; the Incentives UI presents bounties (combat)
-    + buy orders/price-bias (gather) as one funded system. GE unlock mechanism
-    (per-run; #16 Legendary arrivals gate on "GE unlocked this run"). Closing
-    band re-baseline + the tax-migration report (R8).
+  - [~] #5e — **Incentive migration + GE unlock** (R5 end state). **#5e-1 GE
+    UNLOCK DONE** (2026-06-14): `ge_annex` building (1500g) flips `ge_unlocked`,
+    gated on Gate-1 (`gate1_reached()` = any hero Combat 40); one-shot, per-run;
+    no save bump; render button gated; +3 checks (**232/232**); 3 gates PASS;
+    inert in autonomous play. **#5e-2 REMAINS (the live-economy step):**
+    autonomous city buy orders (town auto-posts, treasury-budgeted) + the BRAIN
+    pull toward gathering-for-orders (gather reward reads max(shop, best buy
+    order) so funded demand pulls labor) + RETIRE the pure-utility gather
+    incentives + add GE state to sim_hash + the LIVE re-baseline + the shop→GE
+    tax-migration report (R8). Also #5d offline fill + the deferred relationship
+    tilt. **This is where the economy goes live — do it with fresh focus.**
   - **OPEN DESIGN QUESTIONS (resolve as reached, sweep-backed):** (1) banked-gold
     vs upkeep — #5a defaults to upkeep-on-total (attractor-safe); revisit only
     with evidence. (2) GE matching/price-discovery model. (3) offline fill rate.

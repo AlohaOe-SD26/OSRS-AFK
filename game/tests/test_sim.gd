@@ -54,9 +54,10 @@ func _initialize() -> void:
 	_test_unit5a_bank()
 	_test_unit5b_ge_orderbook()
 	_test_unit5c_city_orders()
+	_test_unit5e_ge_unlock()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 229
+	const EXPECTED := 232
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1369,6 +1370,23 @@ func _test_unit5c_city_orders() -> void:
 	var w5b: SimWorld = SaveLoad.load_world(content, m)
 	_check(int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w5b != null and int(w5b.city_inventory.get("logs", 0)) == 25,
 		"save v%d round-trips the city inventory" % SaveLoad.SAVE_VERSION)
+
+## #5e — GE unlock: a Gate-1-gated, treasury-funded GE-annex building opens the GE (per-run).
+func _test_unit5e_ge_unlock() -> void:
+	print("\n[Unit 4 #5e — GE unlock: Gate-1-gated GE-annex building flips ge_unlocked]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new()
+	world.setup(content, 6, Config.DEFAULT_SEED)
+	world.economy.treasury = 5000.0
+	_check(not world.gate1_reached() and not world.build("ge_annex") and not world.ge_unlocked,
+		"GE annex refused before Gate-1 (no hero at Combat 40)")
+	var h: Hero = world.heroes[0]
+	for s in ["attack", "strength", "defence", "hitpoints"]:
+		h.skills[s] = {"level": 45, "xp": 0}
+	_check(world.gate1_reached() and world.build("ge_annex") and world.ge_unlocked,
+		"after Gate-1 + treasury, building the GE annex opens the GE")
+	_check(not world.build("ge_annex"), "the GE annex can't be re-built once the GE is open")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

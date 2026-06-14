@@ -1169,7 +1169,11 @@ func _draw_town(pad: float, y: float) -> float:
 	bx = pad
 	for kind in Config.BUILDINGS:
 		var spec: Dictionary = Config.BUILDINGS[kind]
-		bx = _button("+%s %d" % [String(kind).capitalize(), int(spec["cost"])], bx, y, "build", kind, false)
+		# #5e: the GE annex appears only once Gate-1 is reached and the GE isn't already open.
+		if kind == "ge_annex" and (world.ge_unlocked or not world.gate1_reached()):
+			continue
+		var lbl := "+GE Annex %d" % int(spec["cost"]) if kind == "ge_annex" else "+%s %d" % [String(kind).capitalize(), int(spec["cost"])]
+		bx = _button(lbl, bx, y, "build", kind, false)
 	y += 19
 	_hud_line("Gather incentives (cycle off/+%d/+%d):" % [int(Config.INCENTIVE_STEP), int(Config.INCENTIVE_MAX)], pad, y, Color("#857a67"), 10); y += 14
 	bx = pad

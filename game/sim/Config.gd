@@ -338,6 +338,10 @@ const BUILDINGS: Dictionary = {
 	"lodge":    {"name": "Hero Lodge",  "cost": 600.0,  "upkeep": 8.0,  "rep": 4.0,  "sat": 6.0},
 	"monument": {"name": "Monument",    "cost": 900.0,  "upkeep": 5.0,  "rep": 14.0, "sat": 2.0},
 	"tavern":   {"name": "Inn / Tavern","cost": 500.0,  "upkeep": 7.0,  "rep": 3.0,  "sat": 5.0},
+	# #5e — the GE annex: a major treasury investment that OPENS the Grand Exchange (sets
+	# ge_unlocked). Gated on Gate-1 (a hero at Combat 40, the canon "road north" milestone, GDD §6) —
+	# `build("ge_annex")` refuses until then. Per-run by construction (buildings reset with the world).
+	"ge_annex": {"name": "Grand Exchange Annex", "cost": 1500.0, "upkeep": 10.0, "rep": 12.0, "sat": 4.0},
 }
 
 # ---- offline catch-up (§4 / EQUATIONS §3) ----

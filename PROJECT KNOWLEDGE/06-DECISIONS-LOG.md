@@ -470,3 +470,18 @@
   re-baseline. The economy goes live when orders actually flow (player UI / autonomous, #5e) — that's
   where the GE state joins sim_hash and the closing band re-baseline happens.
 - **Save v8 → v9** (`_migrate_8_to_9`, forward-compatible — city_inventory defaults {}).
+
+## 2026-06-14 — #5e-1 GE unlock: Gate-1 + a treasury-funded GE-annex building (per-run)
+- **GE unlock = the approved default** (see the 2026-06-14 GE-unlock answer): a new `ge_annex`
+  BUILDING (treasury 1500g) OPENS the Grand Exchange (`build("ge_annex")` flips `ge_unlocked`).
+  It is GATED on **Gate 1** — `gate1_reached()` = any hero at Combat 40 (the canon "road north"
+  milestone, GDD §6; the same threshold that opens Slayer). One-shot (can't re-build once open) and
+  **per-run by construction** (buildings reset with the world / on prestige).
+- Reuses two existing systems (buildings + the combat-40 gate); no new save field (`ge_unlocked` is
+  already serialized, `buildings` already serialized) → **no SAVE_VERSION bump**. Render shows the
+  annex build button only once Gate-1 is reached and the GE isn't already open.
+- **Inert in autonomous play:** the flag only flips when the player builds the annex; nothing in the
+  autonomous tick reads `ge_unlocked` yet (orders don't flow until #5e-2), so the gates pass and the
+  economy is unchanged — no re-baseline here. The economy goes LIVE in **#5e-2** (autonomous city
+  buy orders + the brain pull toward gathering-for-orders + retiring the utility gather incentives),
+  which is where the real re-baseline + the shop→GE tax-migration report land.

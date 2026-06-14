@@ -435,3 +435,14 @@
 - **Save v8 → v9** (`_migrate_8_to_9`; `city_inventory` defaults {}).
 - **Inert in live play** (no orders posted yet → empty book → sell path byte-identical): gates pass,
   no re-baseline. +5 suite checks → **229/229**; determinism / save-load / offline gates PASS.
+
+## 2026-06-14 — #5e-1 GE unlock (Gate-1 + GE-annex building)
+- **`ge_annex` building** (Config.BUILDINGS, 1500g) opens the Grand Exchange: `build("ge_annex")`
+  flips `ge_unlocked`. Gated on `gate1_reached()` (any hero at Combat 40 — the canon road-north
+  milestone); one-shot; per-run (buildings reset with the world). Render shows the button only when
+  Gate-1 is reached and the GE isn't already open.
+- No SAVE_VERSION bump (`ge_unlocked`/`buildings` already serialized). Inert in autonomous play
+  (flag only flips on a player build; nothing reads it until #5e-2) → gates pass, no re-baseline.
+- **Verified:** suite **232/232** (+3 #5e checks); determinism / save-load / offline gates PASS;
+  Main.gd parses. **Remaining Unit-4 (#5e-2):** autonomous city orders + brain gather-for-orders
+  pull + retire utility incentives + the live re-baseline + tax-migration report (R8).

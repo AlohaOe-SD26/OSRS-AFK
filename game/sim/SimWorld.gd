@@ -704,6 +704,9 @@ func build(kind: String) -> bool:
 	var spec: Dictionary = Config.BUILDINGS.get(kind, {})
 	if spec.is_empty():
 		return false
+	# #5e: the GE annex is Gate-1-gated and one-shot (it opens the GE; can't re-build once unlocked).
+	if kind == "ge_annex" and (ge_unlocked or not gate1_reached()):
+		return false
 	var cost: float = float(spec["cost"])
 	if economy.treasury < cost:
 		return false
@@ -711,10 +714,22 @@ func build(kind: String) -> bool:
 	economy.treasury_out_building += cost
 	buildings.append({"kind": kind, "name": spec["name"], "rep": float(spec["rep"]),
 		"sat": float(spec["sat"]), "upkeep": float(spec["upkeep"])})
-	log_event("Built a %s (−%dg). Varrock grows." % [spec["name"], int(cost)], "lv")
+	if kind == "ge_annex":
+		ge_unlocked = true   # #5e: the Grand Exchange opens (per-run)
+		log_event("The Grand Exchange opens in Varrock! Heroes and the player can now post offers.", "boss", 3)
+	else:
+		log_event("Built a %s (−%dg). Varrock grows." % [spec["name"], int(cost)], "lv")
 	if population != null:
 		population.update_reputation(self)   # reflect the new draw immediately
 	return true
+
+## #5e — has the colony reached Gate 1 (the canon "road north" milestone, GDD §6)? Any hero at the
+## Combat-40 gate (the same threshold that opens Slayer) qualifies — it gates the GE annex's build.
+func gate1_reached() -> bool:
+	for h in heroes:
+		if combat_level_of(h) >= Config.SLAYER_COMBAT_GATE:
+			return true
+	return false
 
 ## Total reputation contributed by player buildings (§19.4) — read by Population.update_reputation.
 func town_reputation_bonus() -> float:
