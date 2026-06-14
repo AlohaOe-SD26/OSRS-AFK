@@ -17,10 +17,12 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 BATCH #13–#15 COMPLETE; UNIT 4 (#5) FUNCTIONALLY COMPLETE 2026-06-14 — bank +
 GE order book + city orders + GE unlock + funded gather incentive LIVE + #5d
 offline order-fill (only the R5 utility-incentive retirement remains as an
-optional cleanup). UNIT 5 (#6) UNDERWAY — #6a C3 item-cost upgrade ladders
-SHIPPED 2026-06-14 (the C2→C3 drain).**
-suite **252/252** + determinism/save-load/offline gates green; save version
-**9**. GE-active band 1,378 ± 331 (≈ the GE-locked band 1,384 ± 174 — attractor
+optional cleanup). UNIT 5 (#6) UNDERWAY — #6a C3 item-cost upgrade ladders +
+#6b C5 shop crafting queues SHIPPED 2026-06-14 (both C2→C3/C5 drains; the
+closed loop is wired). Remaining: #6c C4 sell-back (mint-touching, needs a
+sweep) + #6d UI.**
+suite **260/260** + determinism/save-load/offline gates green; save version
+**10**. GE-active band 1,378 ± 331 (≈ the GE-locked band 1,384 ± 174 — attractor
 holds with the GE live).
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
 founders + immigrant gold/weapon/gear — variance tightened across the batch,
@@ -42,6 +44,17 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#6b SHIPPED — C5 shop crafting queues (the second C2→C5 drain).** A
+  single-server FIFO `craft_queue` on SimWorld: `queue_craft(shop, output, qty)`
+  RESERVES the recipe inputs from `city_inventory` at enqueue, the FRONT job
+  accrues sim-time (`_craft_advance`, `CRAFT_DAYS_PER_UNIT` 0.5) and produces
+  output into that shop's `stock` (room-gated backpressure; output must be a good
+  the shop vends → guaranteed buyer = the gold-sink); `cancel_craft` refunds the
+  unmade inputs. Recipes-as-data (`ItemType.recipe`); `Economy.shop_by_id` added.
+  Runs live (per work-action) and offline (`offline_catchup` replays the window in
+  sim-days). **Save v9→v10** (`_migrate_9_to_10`). INERT on an empty queue →
+  live/gates byte-identical. Suite **260/260** (+8); 3 gates PASS. The C2→C3/C5
+  closed loop now has BOTH drains (C3 upgrades + C5 crafting).
 - **#6a SHIPPED — Unit 5 opens: C3 item-cost upgrade ladders.** Shop level-ups
   now cost city-inventory ITEMS as well as treasury gold — the existing
   `SimWorld.upgrade_shop` gained `shop_upgrade_item_cost` (Config ladder
@@ -232,18 +245,12 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
   funded gather incentive live + #5d offline order-fill, all shipped/green.
 - **Unit 5 (#6): UNDERWAY.** Decomposed #6a–#6d in the punch list (build order:
   greenfield drains first, the mint-touching C4 last with a sweep). **#6a (C3
-  item-cost upgrade ladders) ✅ SHIPPED.** Next: #6b (C5 crafting queues), then
-  #6c (C4 sell-back, the mint-touching re-baseline), then #6d (UI). No code item
-  mid-flight.
+  item-cost upgrade ladders) ✅ · #6b (C5 crafting queues) ✅ SHIPPED.** Next:
+  #6c (C4 sell-back, the mint-touching re-baseline sweep), then #6d (UI). No code
+  item mid-flight.
 
 ## Next steps (in order)
-1. **Unit 5 (#6) — continue (the next big unit, #6a done):**
-   - **#6b — C5 shop crafting queues** (reservation-on-start FIFO): a craft job
-     reserves input items from `city_inventory` at start, runs on a sim-time
-     timer, completes → that shop's `stock` (a hero gold-sink at the buy step).
-     Offline-resolvable (advance timers by the elapsed window); recipes-as-data
-     (`ContentDB.craft_output`). INERT with an empty queue → gates byte-identical.
-     Save bump (queue state serialized). The second C2→C5 drain.
+1. **Unit 5 (#6) — continue (the next big unit, #6a + #6b done):**
    - **#6c — C4 shop sell-back ceiling + GE reference price** (the mint-touching
      one): shop pay = `min(saturation sell_price, 0.30 × GE reference)`; graceful
      degradation when the GE is illiquid (no reference → current behavior). Inert
@@ -264,7 +271,7 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 252 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 260 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

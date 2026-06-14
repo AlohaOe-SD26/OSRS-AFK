@@ -41,6 +41,12 @@ var _next_order_id: int = 0
 # funded gather incentive (R5): the player posts city buy orders (treasury-escrowed, R1); heroes
 # fill them during their sell trip for a better price than the NPC shop. good -> qty.
 var city_inventory: Dictionary = {}
+# #6b (C5) — shop CRAFTING QUEUE: a single-server FIFO of town craft jobs. Each job reserves its input
+# items from city_inventory at ENQUEUE (reservation-on-start), then the FRONT job accrues sim-time and
+# produces output units into its shop's stock (a hero gold-sink at the buy step). Drains what C2
+# accumulates → completes the C2→C3/C5 closed loop. Empty queue = no economic effect (inert).
+# Each job: {shop: npc_id, output: item_id, qty: int, made: int, elapsed: float(sim-days)}.
+var craft_queue: Array = []
 
 var heroes: Array = []             # Array[Hero]
 var monsters: Array = []           # Array[MonsterInstance] — live combat targets (§10)
@@ -881,6 +887,7 @@ func tick(dt: float) -> void:
 			_work_action(h)
 		_check_boss_unlock()   # Scurrius kill-count gate (#1d); no-op once unlocked
 		economy.economy_tick(_DD_PER_ACTION, heroes)
+		_craft_advance(_DD_PER_ACTION)   # #6b: town crafting progresses (no-op on an empty queue)
 		if social != null:
 			social.tick(self, _DD_PER_ACTION)
 		if population != null:
@@ -1830,6 +1837,9 @@ func offline_catchup(elapsed_hours: float) -> Dictionary:
 	# same per-good throughput as the gold loop above). Inert when the book is empty (GE-locked / no
 	# orders) → offline play byte-identical there, so the offline gate is unperturbed.
 	_offline_fill_orders(dt_hours, gatherers, simdays_per_hour, pop_scale, summary)
+	# #6b — town crafting progresses while away too: advance the queue by the whole window in sim-days
+	# (offline-resolvable — units are room-gated, so this can't overshoot what live play would stock).
+	_craft_advance(dt_hours * simdays_per_hour)
 	log_event("While you were away (%.1fh): the colony earned %dg." % [dt_hours, summary["gold"]], "gold")
 	return summary
 
@@ -2188,6 +2198,82 @@ func can_upgrade_shop(s: Shop) -> bool:
 	if economy.treasury < float(economy.shop_upgrade_cost(s)):
 		return false
 	return _city_inv_has(shop_upgrade_item_cost(s))
+
+# --------------------------------------------------------------- C5 shop crafting queues (Unit 5 / #6b)
+## The input items (good -> qty) to craft `qty` units of `output_id` via its catalog recipe (recipes-as-
+## data). {} when the item has no recipe. The recipe array is a multiset of input ids per unit; this
+## tallies it and scales by qty (e.g. iron_sword = 3× iron_ore → {"iron_ore": 3*qty}).
+func craft_input_cost(output_id: String, qty: int) -> Dictionary:
+	var out: Dictionary = {}
+	if content == null or qty <= 0:
+		return out
+	var it: ItemType = content.item(output_id)
+	if it == null:
+		return out
+	for input_id in it.recipe():
+		out[String(input_id)] = int(out.get(String(input_id), 0)) + qty
+	return out
+
+## #6b — the player queues a town craft job at shop `shop_id`: produce `qty` units of `output_id` from
+## the CITY INVENTORY (the recipe inputs, reserved up front — reservation-on-start), output landing in
+## that shop's stock for heroes to buy. Refused unless the shop vends the output, the item has a recipe,
+## and the city inventory holds the full input cost. Returns true on success (FIFO — appended to the
+## back of the single-server queue).
+func queue_craft(shop_id: String, output_id: String, qty: int) -> bool:
+	if qty <= 0:
+		return false
+	var shop: Shop = economy.shop_by_id(shop_id)
+	if shop == null or not shop.stock.has(output_id):
+		return false   # the shop must vend the output (so heroes can buy it)
+	var cost: Dictionary = craft_input_cost(output_id, qty)
+	if cost.is_empty() or not _city_inv_has(cost):
+		return false   # no recipe, or the town lacks the materials
+	for good: String in cost:
+		var left: int = int(city_inventory.get(good, 0)) - int(cost[good])
+		if left <= 0:
+			city_inventory.erase(good)
+		else:
+			city_inventory[good] = left
+	craft_queue.append({"shop": shop_id, "output": output_id, "qty": qty, "made": 0, "elapsed": 0.0})
+	log_event("Town crafting queued: %d× %s at %s." % [qty, item_name(output_id), shop.shop_name], "lv")
+	return true
+
+## #6b — cancel the queued craft job at `idx`, REFUNDING its unmade inputs to the city inventory (made
+## units already shipped to stock stay). Returns false if the index is out of range.
+func cancel_craft(idx: int) -> bool:
+	if idx < 0 or idx >= craft_queue.size():
+		return false
+	var job: Dictionary = craft_queue[idx]
+	var unmade: int = int(job["qty"]) - int(job["made"])
+	if unmade > 0:
+		var refund: Dictionary = craft_input_cost(String(job["output"]), unmade)
+		for good: String in refund:
+			city_inventory[good] = int(city_inventory.get(good, 0)) + int(refund[good])
+	craft_queue.remove_at(idx)
+	return true
+
+## #6b — advance the craft queue by `days` sim-days (called per work-action live, and once over the whole
+## window offline → offline-resolvable). Single-server FIFO: only the FRONT job accrues time. Units are
+## produced as elapsed crosses CRAFT_DAYS_PER_UNIT thresholds, ROOM-GATED by the shop's stock capacity
+## (backpressure — a room-blocked job holds the queue until heroes buy stock down). No-op on an empty
+## queue → live tick + offline byte-identical (gates unperturbed).
+func _craft_advance(days: float) -> void:
+	if craft_queue.is_empty() or days <= 0.0:
+		return
+	var job: Dictionary = craft_queue[0]
+	job["elapsed"] = float(job["elapsed"]) + days
+	var producible: int = mini(int(job["qty"]), int(floor(float(job["elapsed"]) / Config.CRAFT_DAYS_PER_UNIT)))
+	var want: int = producible - int(job["made"])
+	if want > 0:
+		var shop: Shop = economy.shop_by_id(String(job["shop"]))
+		if shop != null and shop.stock.has(String(job["output"])):
+			var add: int = mini(want, shop.room_for(String(job["output"])))
+			if add > 0:
+				shop.stock[String(job["output"])] += float(add)
+				job["made"] = int(job["made"]) + add
+	if int(job["made"]) >= int(job["qty"]):
+		log_event("Town crafting finished: %d× %s now stocked." % [int(job["qty"]), item_name(String(job["output"]))], "lv")
+		craft_queue.pop_front()
 
 static func _cap(s: String) -> String:
 	return s.substr(0, 1).to_upper() + s.substr(1)

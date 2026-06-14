@@ -548,3 +548,21 @@
   item before anything is deducted; a broke treasury or a missing material leaves the city inventory
   untouched. Avoids the bug-class where a half-paid upgrade silently eats materials. (Bounty/bias
   affordability use the same check-then-spend discipline.)
+
+## 2026-06-14 — #6b C5 crafting: single-server FIFO, reserve-on-enqueue, room-gated, offline by replay
+- **DECISION: single-server FIFO (only the front job progresses).** Models one town craft station;
+  simple, deterministic, and the natural reading of "reservation-on-start FIFO". Multiple stations /
+  parallel jobs were rejected as premature — the queue is a player-paced valve, not a throughput race.
+- **DECISION: reserve inputs at ENQUEUE, not at job-start.** The materials leave `city_inventory` the
+  moment the job is queued, so a later C3 upgrade (or another craft) can't double-spend the same goods.
+  `cancel_craft` refunds only the unmade remainder (made units already shipped to stock). Same
+  check-then-spend, no-partial discipline as #6a.
+- **DECISION: production is ROOM-GATED by shop capacity (backpressure), and the output good must be one
+  the shop VENDS.** Reuses the existing `room_for`/stock-capacity backpressure (the same principle as
+  gather/vendor sales) so a glut can't form — a room-blocked job simply holds the queue until heroes buy
+  the stock down. Requiring the shop to vend the output guarantees the crafted goods have a buyer (the
+  gold-sink), which is the whole point (C5 completes City Inventory's consumer story).
+- **DECISION: offline = replay the same `_craft_advance` over the elapsed sim-days (one big step).**
+  Because production is room-gated and a pure function of accrued time, advancing by the whole offline
+  window yields exactly what incremental live ticks would (capped by room), so it's offline-resolvable
+  with no separate model and can't overshoot. Empty queue → no-op → the offline gate is unperturbed.

@@ -58,9 +58,10 @@ func _initialize() -> void:
 	_test_unit5e2_funded_gather()
 	_test_unit5d_offline_fill()
 	_test_unit6a_item_upgrade()
+	_test_unit6b_crafting()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 252
+	const EXPECTED := 260
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1520,6 +1521,54 @@ func _test_unit6a_item_upgrade() -> void:
 	var before: Dictionary = world.city_inventory.duplicate()
 	_check(not world.upgrade_shop(s2) and world.city_inventory == before,
 		"no partial spend: a broke treasury blocks the upgrade and leaves the materials untouched")
+
+## #6b — C5 shop crafting queue: reservation-on-start FIFO, room-gated production into shop stock,
+## cancel refunds unmade inputs, offline-resolvable, save v10 round-trips the queue.
+func _test_unit6b_crafting() -> void:
+	print("\n[Unit 5 #6b — C5 shop crafting queue: reserve-on-start FIFO, room-gated, offline-resolvable]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new(); world.setup(content, 6, Config.DEFAULT_SEED)
+	var fm: Shop = world.economy.shop_by_id("fishmonger")
+	# refused without the materials
+	_check(not world.queue_craft("fishmonger", "trout", 4) and world.craft_queue.is_empty(),
+		"craft refused when the city inventory lacks the recipe inputs")
+	# reservation-on-start: enqueue deducts the inputs immediately (trout = 1× raw_trout)
+	world.city_inventory = {"raw_trout": 10}
+	var stock0 := int(fm.stock.get("trout", 0))
+	_check(world.queue_craft("fishmonger", "trout", 4) and world.craft_queue.size() == 1 and int(world.city_inventory.get("raw_trout", 0)) == 6,
+		"queue reserves the inputs up front (10→6 raw_trout) and appends a FIFO job")
+	# the front job produces into the shop stock at the per-unit pace
+	world._craft_advance(Config.CRAFT_DAYS_PER_UNIT)
+	_check(int(world.craft_queue[0]["made"]) == 1 and int(fm.stock.get("trout", 0)) == stock0 + 1,
+		"front job produces one unit per CRAFT_DAYS_PER_UNIT into the shop stock")
+	world._craft_advance(Config.CRAFT_DAYS_PER_UNIT * 4.0)   # more than enough to finish the rest
+	_check(world.craft_queue.is_empty() and int(fm.stock.get("trout", 0)) == stock0 + 4,
+		"the job completes (4 stocked) and pops off the FIFO queue")
+	# cancel refunds ONLY the unmade inputs (already-made units stay shipped)
+	world.city_inventory = {"raw_trout": 10}
+	world.queue_craft("fishmonger", "trout", 6)   # reserves 6 → raw_trout 4
+	world._craft_advance(Config.CRAFT_DAYS_PER_UNIT)   # makes 1, leaves 5 unmade
+	_check(world.cancel_craft(0) and int(world.city_inventory.get("raw_trout", 0)) == 4 + 5 and world.craft_queue.is_empty(),
+		"cancel refunds only the UNMADE inputs (the made unit stays in stock)")
+	# inert: an empty queue advances to nothing
+	var w2 := SimWorld.new(); w2.setup(content, 6, Config.DEFAULT_SEED)
+	var fm2: Shop = w2.economy.shop_by_id("fishmonger"); var s2 := int(fm2.stock.get("trout", 0))
+	w2._craft_advance(5.0)
+	_check(w2.craft_queue.is_empty() and int(fm2.stock.get("trout", 0)) == s2, "empty queue: _craft_advance is a no-op")
+	# offline-resolvable: a queued job progresses through offline_catchup
+	var w3 := SimWorld.new(); w3.setup(content, 6, Config.DEFAULT_SEED)
+	w3.city_inventory = {"raw_trout": 10}; w3.queue_craft("fishmonger", "trout", 3)
+	var fm3: Shop = w3.economy.shop_by_id("fishmonger"); var s3 := int(fm3.stock.get("trout", 0))
+	w3.offline_catchup(24.0)
+	_check(int(fm3.stock.get("trout", 0)) > s3, "offline: the craft queue progresses while away (+%d trout)" % (int(fm3.stock.get("trout", 0)) - s3))
+	# save v10 round-trips the queue
+	var w4 := SimWorld.new(); w4.setup(content, 6, Config.DEFAULT_SEED)
+	w4.city_inventory = {"raw_trout": 10}; w4.queue_craft("fishmonger", "trout", 5)
+	var m: Dictionary = SaveLoad.migrate(SaveLoad.save_world(w4))
+	var w4b: SimWorld = SaveLoad.load_world(content, m)
+	_check(int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w4b != null and w4b.craft_queue.size() == 1 and int(w4b.craft_queue[0]["qty"]) == 5,
+		"save v%d round-trips the craft queue" % SaveLoad.SAVE_VERSION)
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

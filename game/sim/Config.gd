@@ -348,6 +348,10 @@ const SHOP_CAP_PER_LEVEL: float = 0.15         # +15% stock capacity (and town d
 # the ladder. Empty {} = no item cost (the pre-#6a gold-only behavior — Economy.try_upgrade_shop is the
 # untouched gold primitive; the item layer is the new SimWorld.upgrade_shop path).
 const SHOP_UPGRADE_ITEM_COST: Dictionary = {"logs": 15, "iron_ore": 10}
+# #6b (C5) — shop crafting: sim-days of work per crafted unit (single-server FIFO queue). 0.5 = two
+# units per in-game day at the front of the queue; production is also room-gated by the shop's stock
+# capacity (backpressure — the town won't craft what no one buys), so this only sets the PACE.
+const CRAFT_DAYS_PER_UNIT: float = 0.5
 # Building catalog (§19.3 subset for Step 4). Each: one-time treasury cost + daily treasury upkeep
 # (the continuous §6 sink) + its reputation / per-hero-satisfaction contribution.
 const BUILDINGS: Dictionary = {

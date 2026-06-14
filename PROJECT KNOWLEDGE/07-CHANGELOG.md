@@ -487,3 +487,20 @@
   (`city_inventory` already serialized; the ladder is Config). Empty ladder = the old gold-only upgrade.
 - **Verified:** suite **252/252** (+7 #6a checks); determinism / save-load / offline gates PASS
   (byte-identical — upgrades are a player action, never exercised autonomously, so the gates are inert).
+
+## 2026-06-14 — #6b C5 shop crafting queues (the second C2→C5 drain)
+- **Town crafting: a single-server FIFO queue on SimWorld (`craft_queue`).** `queue_craft(shop_id,
+  output_id, qty)` RESERVES the recipe inputs from `city_inventory` at enqueue (reservation-on-start),
+  appends a job, and (FIFO) the FRONT job accrues sim-time and produces output units into that shop's
+  `stock` for heroes to buy (a gold-sink at the buy step). Production is ROOM-GATED by the shop's stock
+  capacity (backpressure — the town won't craft what no one buys, so the queue holds). `cancel_craft`
+  refunds only the UNMADE inputs. Recipes-as-data (`ContentDB`/`ItemType.recipe`); `craft_input_cost`
+  tallies the per-unit multiset × qty. `Economy.shop_by_id` added for the shop lookup.
+- **Live + offline:** `_craft_advance(days)` runs per work-action (`_DD_PER_ACTION`) live and once over
+  the whole window in sim-days inside `offline_catchup` (offline-resolvable; room-gated so it can't
+  overshoot live). Config `CRAFT_DAYS_PER_UNIT = 0.5`. **INERT on an empty queue** → live tick + offline
+  byte-identical, gates unperturbed.
+- **Save v9 → v10** (`_migrate_9_to_10`, forward-compatible: `craft_queue` defaults to [] via `.get`).
+- **Verified:** suite **260/260** (+8 #6b checks); determinism / save-load / offline gates PASS
+  (byte-identical; v10 round-trips). The C2→C3/C5 closed loop now has both drains (C3 upgrades + C5
+  crafting). Remaining Unit 5: #6c (C4 sell-back, mint-touching, needs a sweep) + #6d (UI).

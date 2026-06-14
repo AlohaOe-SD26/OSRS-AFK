@@ -94,6 +94,13 @@ static func _bv(content: ContentDB, id: String, fallback: float) -> float:
 func shop_for(good: String) -> Shop:
 	return _by_good.get(good, null)
 
+## Shop by its npc id (the C5 craft queue stores shop ids; null when none matches).
+func shop_by_id(id: String) -> Shop:
+	for s: Shop in shops:
+		if s.npc_id == id:
+			return s
+	return null
+
 ## Price the shop PAYS a hero for a good (saturation-aware), INCLUDING any active price bias
 ## (#3c) — the steering signal the brain reads must equal what the sale actually pays.
 func sell_price(item: String) -> int:

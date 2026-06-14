@@ -34,7 +34,7 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 252-check headless gate suite
+  tests/test_sim.gd   # 260-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
   data/               # items.json (23 — THE item truth: ids/values/tiers/
                       # styles/recipes/tradeable, Unit 1) · shops.json (7-shop
@@ -66,13 +66,13 @@ bounded), proceeds → gatherer banks, goods → city_inventory; inert with an e
 book (GE-locked), so the offline gate is byte-identical.
 
 ## State / save shape
-`SaveLoad.save_world` → one binary Variant dict, `SAVE_VERSION = 9`:
+`SaveLoad.save_world` → one binary Variant dict, `SAVE_VERSION = 10`:
 heroes (full FSM/paths/goals/equipment + nudge/seize + C1 nudge params + bank),
-GE order book (ge_orders/ge_unlocked) + city_inventory + treasury ledger,
-monsters, shops, treasury + ledger counters + price-bias, population, social
-adjacency, incentives/buildings/kick records, chronicle, clock/counters,
-**RNG state**. Old saves are walked up an ordered upgrader chain
-(`SaveLoad._chain()`, v1→…→v6); an unreachable/future version → load refused.
+GE order book (ge_orders/ge_unlocked) + city_inventory + craft_queue (#6b) +
+treasury ledger, monsters, shops, treasury + ledger counters + price-bias,
+population, social adjacency, incentives/buildings/kick records, chronicle,
+clock/counters, **RNG state**. Old saves are walked up an ordered upgrader chain
+(`SaveLoad._chain()`, v1→…→v10); an unreachable/future version → load refused.
 Save is a pure read (cannot perturb the run being saved).
 
 ## Determinism contract

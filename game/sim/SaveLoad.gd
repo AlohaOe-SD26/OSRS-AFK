@@ -12,7 +12,7 @@ extends RefCounted
 ##  • DELIBERATELY NO class_name (standing harness rule #2): consumers `preload("res://sim/SaveLoad.gd")`
 ##    so no --import pass is ever needed. References only long-registered sim classes.
 
-const SAVE_VERSION := 9   # v9: #5c City Inventory (filled city buy orders land here)
+const SAVE_VERSION := 10   # v10: #6b C5 shop crafting queue (town craft jobs)
 
 # --------------------------------------------------------------------- migrations (R10 scaffold)
 ## Ordered upgrader chain: key v maps to a Callable that takes a version-v save dict and returns a
@@ -21,7 +21,15 @@ const SAVE_VERSION := 9   # v9: #5c City Inventory (filled city buy orders land 
 ## must LOAD VALIDLY and CONTINUE DETERMINISTICALLY from the load point — byte-equivalence to
 ## historical runs is only guaranteed WITHIN a version, never across a migration.
 static func _chain() -> Dictionary:
-	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5, 5: _migrate_5_to_6, 6: _migrate_6_to_7, 7: _migrate_7_to_8, 8: _migrate_8_to_9}
+	return {1: _migrate_1_to_2, 2: _migrate_2_to_3, 3: _migrate_3_to_4, 4: _migrate_4_to_5, 5: _migrate_5_to_6, 6: _migrate_6_to_7, 7: _migrate_7_to_8, 8: _migrate_8_to_9, 9: _migrate_9_to_10}
+
+## v9 → v10 (#6b, C5 shop crafting queue): pre-crafting worlds have no queue. The load path defaults
+## craft_queue to [] via `.get`, so a v9 save loads correctly; this upgrader just stamps the version
+## (forward-compatible, per R10).
+static func _migrate_9_to_10(d: Dictionary) -> Dictionary:
+	var nd: Dictionary = d.duplicate(true)
+	nd["version"] = 10
+	return nd
 
 ## v8 → v9 (#5c, City Inventory): pre-city-order worlds have none; the load path defaults
 ## city_inventory to {} via `.get`, so a v8 save loads correctly. Forward-compatible version stamp.
@@ -254,6 +262,7 @@ static func save_world(w) -> Dictionary:
 		"treasury_in_ge_tax": w.economy.treasury_in_ge_tax, "ge_unlocked": w.ge_unlocked,
 		"ge_orders": w.ge_orders.duplicate(true), "next_order_id": w._next_order_id,
 		"city_inventory": w.city_inventory.duplicate(true),
+		"craft_queue": w.craft_queue.duplicate(true),
 		# population
 		"pop": {"enabled": p.enabled, "reputation": p.reputation, "recent_deaths": p.recent_deaths,
 			"recent_kicks": p.recent_kicks, "immig_accum": p._immig_accum, "arrivals": p.arrivals,
@@ -326,6 +335,7 @@ static func load_world(content, d: Dictionary) -> SimWorld:
 	w.ge_orders = d.get("ge_orders", [])
 	w._next_order_id = int(d.get("next_order_id", 0))
 	w.city_inventory = d.get("city_inventory", {})
+	w.craft_queue = d.get("craft_queue", [])
 	for sd in d["shops"]:
 		for s in w.economy.shops:
 			if s.npc_id == sd["npc_id"]:

@@ -93,12 +93,17 @@
     loop). No save bump (Config ladder; `city_inventory` already serialized).
     +7 suite checks → **252/252**; 3 gates PASS (byte-identical — player action,
     not autonomous). Empty ladder = old gold-only upgrade.
-  - [ ] #6b — **C5 shop crafting queues** (reservation-on-start FIFO). A shop
-    craft job RESERVES input items from `city_inventory` at start, runs on a
-    sim-time timer, completes → output to that shop's `stock` (a hero gold-sink
-    at the buy step). Offline-resolvable (advance timers by the elapsed
-    window). Recipes-as-data (`ContentDB.craft_output`). INERT with an empty
-    queue → live/gates byte-identical. Save bump (queue state serialized).
+  - [x] #6b — **C5 shop crafting queues SHIPPED** (2026-06-14). Single-server
+    FIFO `craft_queue` on SimWorld: `queue_craft` reserves recipe inputs from
+    `city_inventory` at enqueue (reservation-on-start), the FRONT job accrues
+    sim-time (`_craft_advance`, `CRAFT_DAYS_PER_UNIT` 0.5) and produces output
+    into that shop's `stock` (room-gated backpressure; output must be vended);
+    `cancel_craft` refunds unmade inputs. Recipes-as-data (`ItemType.recipe`);
+    `Economy.shop_by_id` added. Live (per-action) + offline (`offline_catchup`
+    replays the window in sim-days → offline-resolvable). **Save v9→v10**
+    (`_migrate_9_to_10`, forward-compatible). INERT on an empty queue →
+    live/gates byte-identical. +8 suite checks → **260/260**; 3 gates PASS. The
+    second C2→C5 drain; the closed loop now has both consumers (C3 + C5).
   - [ ] #6c — **C4 shop sell-back ceiling + GE reference price** (the
     mint-touching one). Shop pay = `min(saturation sell_price, 0.30 × GE
     reference)`; GRACEFUL DEGRADATION when the GE is illiquid (no reference →
