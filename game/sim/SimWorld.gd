@@ -690,11 +690,25 @@ func _record_kill(h: Hero, r: MonsterInstance, mon: Monster) -> void:
 # TOWN BUILDING / UPGRADES (GDD §19) — the tycoon layer. Funded by the treasury (the GE-tax skim);
 # reputation/satisfaction bonuses feed Population (§16/§19.4); upkeep is the §6 continuous sink.
 
-## Invest treasury to level a shop (§19.2). Returns true on success. See Economy.try_upgrade_shop.
+## Invest treasury to level a shop (§19.2). #6a (C3): the level-up costs BOTH treasury gold AND the
+## city-inventory item ladder (`shop_upgrade_item_cost`) — drawn from what C2 city-buying accumulates,
+## closing the loop. All-or-nothing: items are checked first (`can_upgrade_shop`) and deducted only once
+## the whole cost is affordable (no partial spend), then the gold primitive debits the treasury + levels.
+## With an empty Config ladder this is exactly the old gold-only upgrade. Returns true on success.
 func upgrade_shop(s: Shop) -> bool:
-	var cost := economy.shop_upgrade_cost(s)
-	if economy.try_upgrade_shop(s):
-		log_event("You invest %dg — %s reaches Level %d." % [cost, s.shop_name, s.level], "gold")
+	if not can_upgrade_shop(s):
+		return false
+	var gold := economy.shop_upgrade_cost(s)
+	var cost: Dictionary = shop_upgrade_item_cost(s)
+	for good: String in cost:
+		var left: int = int(city_inventory.get(good, 0)) - int(cost[good])
+		if left <= 0:
+			city_inventory.erase(good)
+		else:
+			city_inventory[good] = left
+	if economy.try_upgrade_shop(s):   # debits treasury gold + level_up (both pre-checked in can_upgrade_shop)
+		var extra := " (+ town materials)" if not cost.is_empty() else ""
+		log_event("You invest %dg%s — %s reaches Level %d." % [gold, extra, s.shop_name, s.level], "gold")
 		return true
 	return false
 
@@ -2147,6 +2161,33 @@ func ge_sell_into_orders(h: Hero) -> void:
 			continue
 		ge_match()
 		ge_cancel_order(sid)   # return any unfilled remainder to the hero's inv
+
+# ----------------------------------------------------------- C3 item-cost upgrade ladders (Unit 5 / #6a)
+## The item cost to take shop `s` from its current level to the next: the Config base ladder scaled
+## geometrically by level (same curve as the gold cost), drawn from the CITY INVENTORY (the C2→C3 loop).
+## {} when no ladder is configured (the pre-#6a gold-only behavior). Returns good -> qty.
+func shop_upgrade_item_cost(s: Shop) -> Dictionary:
+	var out: Dictionary = {}
+	var mult: float = pow(Config.SHOP_UPGRADE_COST_GROWTH, float(s.level - 1))
+	for good: String in Config.SHOP_UPGRADE_ITEM_COST:
+		out[good] = int(ceil(float(Config.SHOP_UPGRADE_ITEM_COST[good]) * mult))
+	return out
+
+## Does the CITY INVENTORY hold every item in `cost` (good -> qty)? (No deduction — a pure check.)
+func _city_inv_has(cost: Dictionary) -> bool:
+	for good: String in cost:
+		if int(city_inventory.get(good, 0)) < int(cost[good]):
+			return false
+	return true
+
+## Can the player upgrade shop `s` right now? Needs headroom (< cap), the treasury gold, AND the full
+## item ladder in the city inventory. Checked together so the upgrade is all-or-nothing (no partial spend).
+func can_upgrade_shop(s: Shop) -> bool:
+	if s == null or s.level >= Config.SHOP_LEVEL_CAP:
+		return false
+	if economy.treasury < float(economy.shop_upgrade_cost(s)):
+		return false
+	return _city_inv_has(shop_upgrade_item_cost(s))
 
 static func _cap(s: String) -> String:
 	return s.substr(0, 1).to_upper() + s.substr(1)

@@ -79,7 +79,36 @@
   reference)`, graceful degradation when GE illiquid — adopted as written,
   R2) + C3 item-cost upgrade ladders + C5 shop crafting queues
   (reservation-on-start FIFO). Never ship C4 alone; keep bug-class lens on
-  the C2→C3/C5 closed loop.
+  the C2→C3/C5 closed loop. **The closed loop:** C2 city-buying (Unit 4)
+  ACCUMULATES `city_inventory`; C3 upgrades + C5 crafting DRAIN it; C4
+  reshapes the shop economy so trade migrates GE-ward. Decomposed (build
+  order — greenfield drains first, the mint-touching C4 LAST with a sweep):
+  - [x] #6a — **C3 item-cost upgrade ladders SHIPPED** (2026-06-14). Shop
+    level-ups cost city-inventory ITEMS on top of treasury gold:
+    `shop_upgrade_item_cost` (Config ladder `SHOP_UPGRADE_ITEM_COST` {logs 15,
+    iron_ore 10}, scaled geometrically per level) + `can_upgrade_shop` (level +
+    gold + items) folded into the existing `SimWorld.upgrade_shop`;
+    ALL-OR-NOTHING (no partial spend). `Economy.try_upgrade_shop` stays the
+    gold-only primitive (suite-pinned). Drains what C2 accumulates (the C2→C3
+    loop). No save bump (Config ladder; `city_inventory` already serialized).
+    +7 suite checks → **252/252**; 3 gates PASS (byte-identical — player action,
+    not autonomous). Empty ladder = old gold-only upgrade.
+  - [ ] #6b — **C5 shop crafting queues** (reservation-on-start FIFO). A shop
+    craft job RESERVES input items from `city_inventory` at start, runs on a
+    sim-time timer, completes → output to that shop's `stock` (a hero gold-sink
+    at the buy step). Offline-resolvable (advance timers by the elapsed
+    window). Recipes-as-data (`ContentDB.craft_output`). INERT with an empty
+    queue → live/gates byte-identical. Save bump (queue state serialized).
+  - [ ] #6c — **C4 shop sell-back ceiling + GE reference price** (the
+    mint-touching one). Shop pay = `min(saturation sell_price, 0.30 × GE
+    reference)`; GRACEFUL DEGRADATION when the GE is illiquid (no reference →
+    current saturation behavior). Inert when the GE is locked/illiquid (the
+    gate state) → gates pass byte-identical; needs a multi-seed re-baseline
+    SWEEP with the GE open + orders flowing before locking. Ships LAST, with
+    the C3/C5 drains in place (never C4 alone — the analysis ruling).
+  - [ ] #6d — **Unit 5 UI** (render-only): TOWN LEDGER sections for shop
+    upgrades (item costs), the crafting queue, and the sell-back venue. F5
+    sign-off (unverifiable headless). Anytime after #6a–#6c.
 - [ ] #7 — Content wave (e): death/graves/PK → canon social negatives
   (retire interim competition-friction).
 - [ ] #8 — Content wave (f): buildings expansion / reincarnation.

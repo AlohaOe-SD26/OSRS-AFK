@@ -531,3 +531,20 @@
   offline GATE runs GE-locked (empty book) so it is unaffected. REJECTED a full goods-accounting offline
   model (track inventory, route units shop-vs-order) as disproportionate for a bounded approximation
   that the live re-convergence already corrects on reconnect.
+
+## 2026-06-14 — #6a C3 item-cost upgrades: extend the existing player path, keep the gold primitive
+- **DECISION: fold the C3 item cost into the EXISTING `SimWorld.upgrade_shop`, leave
+  `Economy.try_upgrade_shop` as a gold-only primitive.** The suite + a couple of headless rigs call the
+  Economy primitive directly for the gold mechanics; rather than thread `city_inventory` into Economy
+  (which has no reference to it), the SimWorld method (which owns `city_inventory`) composes the item
+  check/deduct around the gold primitive. Single player path, no duplicated gold accounting, existing
+  tests untouched.
+- **DECISION: the ladder consumes logs + iron_ore — the SAME goods C2 city-buying accumulates.** This
+  closes the C2→C3 loop literally: the town buys ore/logs from heroes (funded gather incentive), then
+  spends them on shop upgrades. Defined in Config (`SHOP_UPGRADE_ITEM_COST`), scaled by the same
+  geometric growth as the gold cost so the ladder steepens with level. Empty {} restores the pre-#6a
+  gold-only behavior (the lever is fully tunable / disengageable).
+- **DECISION: all-or-nothing spend (no partial deduction).** `can_upgrade_shop` checks gold AND every
+  item before anything is deducted; a broke treasury or a missing material leaves the city inventory
+  untouched. Avoids the bug-class where a half-paid upgrade silently eats materials. (Bounty/bias
+  affordability use the same check-then-spend discipline.)

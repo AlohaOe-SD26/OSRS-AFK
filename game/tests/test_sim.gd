@@ -57,9 +57,10 @@ func _initialize() -> void:
 	_test_unit5e_ge_unlock()
 	_test_unit5e2_funded_gather()
 	_test_unit5d_offline_fill()
+	_test_unit6a_item_upgrade()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 245
+	const EXPECTED := 252
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1480,6 +1481,45 @@ func _test_unit5d_offline_fill() -> void:
 	w3.heroes[0].act = {"intent": "GATHER_LOGS", "skill": "woodcutting", "res": "logs"}
 	var s3 := w3.offline_catchup(24.0)
 	_check(w3.city_inventory.is_empty() and int(s3["gold"]) >= 0, "empty book: the offline fill pass is a no-op")
+
+## #6a — C3 item-cost upgrade ladders: a shop level-up costs treasury gold AND city-inventory items
+## (drawn from what C2 accumulates); all-or-nothing (no partial spend); empty ladder = gold-only.
+func _test_unit6a_item_upgrade() -> void:
+	print("\n[Unit 5 #6a — C3 item-cost upgrade ladder: gold + city-inventory items, no partial spend]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new(); world.setup(content, 6, Config.DEFAULT_SEED)
+	var s: Shop = world.economy.shop_for("iron_ore")
+	var lvl0 := s.level
+	var gold_cost := world.economy.shop_upgrade_cost(s)
+	var item_cost := world.shop_upgrade_item_cost(s)
+	_check(item_cost == Config.SHOP_UPGRADE_ITEM_COST, "item ladder at level 1 = the Config base cost (%s)" % str(item_cost))
+	# gold present, city inventory empty → blocked (the item ladder gates it)
+	world.economy.treasury = 100000.0
+	world.city_inventory = {}
+	_check(not world.can_upgrade_shop(s) and not world.upgrade_shop(s) and s.level == lvl0,
+		"upgrade blocked when the city inventory lacks the materials (gold alone isn't enough)")
+	# stock the materials → upgrade succeeds, debiting BOTH the gold and the items
+	for good: String in item_cost:
+		world.city_inventory[good] = int(item_cost[good]) + 5   # a little surplus to prove exact deduction
+	var tre0 := world.economy.treasury
+	_check(world.can_upgrade_shop(s), "can_upgrade is true once gold + materials are both present")
+	_check(world.upgrade_shop(s) and s.level == lvl0 + 1, "upgrade raises the level (%d -> %d)" % [lvl0, s.level])
+	var items_ok := true
+	for good: String in item_cost:
+		if int(world.city_inventory.get(good, 0)) != 5:
+			items_ok = false
+	_check(items_ok, "the item ladder is debited exactly from the city inventory (surplus 5 remains)")
+	_check(abs(world.economy.treasury - (tre0 - float(gold_cost))) < 0.001, "the treasury is debited the gold cost (%dg)" % gold_cost)
+	# no partial spend: gold gone but materials present → blocked AND materials untouched
+	var s2: Shop = world.economy.shop_for("logs")   # general store: same shop, but re-fetch by another good
+	var ic2 := world.shop_upgrade_item_cost(s2)
+	world.economy.treasury = 0.0
+	for good: String in ic2:
+		world.city_inventory[good] = int(ic2[good]) + 1
+	var before: Dictionary = world.city_inventory.duplicate()
+	_check(not world.upgrade_shop(s2) and world.city_inventory == before,
+		"no partial spend: a broke treasury blocks the upgrade and leaves the materials untouched")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

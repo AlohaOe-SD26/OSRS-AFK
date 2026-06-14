@@ -474,3 +474,16 @@
 - No SAVE_VERSION bump (`ge_orders`/`city_inventory`/`bank` already serialized).
 - **Verified:** suite **245/245** (+7 #5d checks); determinism / save-load / offline gates PASS
   (offline cap clamps 22096==22096, re-convergence Δ 1–11%). Unit 4 refinement closed.
+
+## 2026-06-14 — #6a C3 item-cost upgrade ladders (Unit 5 opens)
+- **Shop level-ups now cost city-inventory ITEMS as well as treasury gold** — `SimWorld.upgrade_shop`
+  (the player path) gained the C3 layer: `shop_upgrade_item_cost(s)` = a Config ladder
+  (`SHOP_UPGRADE_ITEM_COST` = {logs 15, iron_ore 10}) scaled geometrically per level by the same growth
+  as the gold cost; `can_upgrade_shop(s)` checks level headroom + treasury gold + the full item ladder in
+  `city_inventory`; the upgrade is ALL-OR-NOTHING (items checked first, deducted only when the whole cost
+  is affordable, then `Economy.try_upgrade_shop` debits gold + levels). This DRAINS what C2 city-buying
+  accumulates (logs/iron_ore) — the first half of the C2→C3/C5 closed loop.
+- `Economy.try_upgrade_shop` is UNTOUCHED (the gold-only primitive, suite-pinned). No SAVE_VERSION bump
+  (`city_inventory` already serialized; the ladder is Config). Empty ladder = the old gold-only upgrade.
+- **Verified:** suite **252/252** (+7 #6a checks); determinism / save-load / offline gates PASS
+  (byte-identical — upgrades are a player action, never exercised autonomously, so the gates are inert).

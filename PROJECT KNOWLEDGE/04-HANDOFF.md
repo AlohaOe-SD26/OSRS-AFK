@@ -17,8 +17,9 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 BATCH #13–#15 COMPLETE; UNIT 4 (#5) FUNCTIONALLY COMPLETE 2026-06-14 — bank +
 GE order book + city orders + GE unlock + funded gather incentive LIVE + #5d
 offline order-fill (only the R5 utility-incentive retirement remains as an
-optional cleanup).**
-suite **245/245** + determinism/save-load/offline gates green; save version
+optional cleanup). UNIT 5 (#6) UNDERWAY — #6a C3 item-cost upgrade ladders
+SHIPPED 2026-06-14 (the C2→C3 drain).**
+suite **252/252** + determinism/save-load/offline gates green; save version
 **9**. GE-active band 1,378 ± 331 (≈ the GE-locked band 1,384 ± 174 — attractor
 holds with the GE live).
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
@@ -41,6 +42,15 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#6a SHIPPED — Unit 5 opens: C3 item-cost upgrade ladders.** Shop level-ups
+  now cost city-inventory ITEMS as well as treasury gold — the existing
+  `SimWorld.upgrade_shop` gained `shop_upgrade_item_cost` (Config ladder
+  `SHOP_UPGRADE_ITEM_COST` {logs 15, iron_ore 10}, geometric per level) +
+  `can_upgrade_shop` (level + gold + items); ALL-OR-NOTHING (no partial spend).
+  This DRAINS what C2 city-buying accumulates (logs/iron_ore) — the first half of
+  the C2→C3/C5 closed loop. `Economy.try_upgrade_shop` untouched (gold primitive,
+  suite-pinned). No save bump. Suite **252/252** (+7); 3 gates PASS
+  (byte-identical — upgrades are a player action, never autonomous).
 - **#5d SHIPPED — offline statistical fill (Unit 4 refinement closed).** Standing
   BUY orders now fill while the player is away: `_offline_fill_orders` (end of
   `offline_catchup`) delivers each order from the colony's offline gathering supply
@@ -219,28 +229,42 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
   Unit 3 is closed.
 - **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): FUNCTIONALLY
   COMPLETE** — #5a bank + #5b GE engine + #5c city orders + #5e GE unlock +
-  funded gather incentive live + #5d offline order-fill, all shipped/green. No
-  code item mid-flight.
+  funded gather incentive live + #5d offline order-fill, all shipped/green.
+- **Unit 5 (#6): UNDERWAY.** Decomposed #6a–#6d in the punch list (build order:
+  greenfield drains first, the mint-touching C4 last with a sweep). **#6a (C3
+  item-cost upgrade ladders) ✅ SHIPPED.** Next: #6b (C5 crafting queues), then
+  #6c (C4 sell-back, the mint-touching re-baseline), then #6d (UI). No code item
+  mid-flight.
 
 ## Next steps (in order)
-1. **Unit-4 refinements (optional, not blockers; #5d offline-fill DONE):** the R5
-   cleanup to retire the pure-utility gather incentives (note: it breaks the
-   existing incentive test, which needs rewriting; the utility lever sits unused at
-   0 in autonomous play and doesn't interfere); the deferred relationship-tilt
-   (`Social.trade_modifier`); whether `total_gold` should count escrowed/city gold.
-   Each is a small, contained follow-up.
-2. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above) — the one
-   non-code thread; anytime, independent of Unit 4.
-3. **Unit 5 (#6)** — C4 shop sell-back (`min(saturation, 0.30 × GE reference)`,
-   R2; the GE reference now exists) + C3 item-cost upgrade ladders + C5 shop
-   crafting queues. The next big unit.
+1. **Unit 5 (#6) — continue (the next big unit, #6a done):**
+   - **#6b — C5 shop crafting queues** (reservation-on-start FIFO): a craft job
+     reserves input items from `city_inventory` at start, runs on a sim-time
+     timer, completes → that shop's `stock` (a hero gold-sink at the buy step).
+     Offline-resolvable (advance timers by the elapsed window); recipes-as-data
+     (`ContentDB.craft_output`). INERT with an empty queue → gates byte-identical.
+     Save bump (queue state serialized). The second C2→C5 drain.
+   - **#6c — C4 shop sell-back ceiling + GE reference price** (the mint-touching
+     one): shop pay = `min(saturation sell_price, 0.30 × GE reference)`; graceful
+     degradation when the GE is illiquid (no reference → current behavior). Inert
+     when GE locked/illiquid (the gate state); needs a MULTI-SEED RE-BASELINE
+     SWEEP with the GE open + orders flowing before locking. Ships LAST.
+   - **#6d — Unit 5 UI** (render-only, F5 sign-off): TOWN LEDGER sections for
+     upgrade item-costs, the crafting queue, the sell-back venue.
+2. **Unit-4 refinements (optional, not blockers; #5d done):** the R5 cleanup to
+   retire the pure-utility gather incentives (breaks the existing incentive test,
+   needs rewriting; the utility lever sits unused at 0 autonomously); the deferred
+   relationship-tilt (`Social.trade_modifier`); whether `total_gold` should count
+   escrowed/city gold. Each is a small, contained follow-up.
+3. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above) — the one
+   non-code thread; anytime, independent.
 4. **#16** (Legendary & Easter-Egg arrivals) — gated behind Unit 4's GE (now
    built) + an achievement record; the immigration template-override hook is the
    `_new_hero`/`spawn_immigrant` path built out by #13–#15.
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 245 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 252 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

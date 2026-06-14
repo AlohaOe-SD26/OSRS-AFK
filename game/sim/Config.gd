@@ -341,6 +341,13 @@ const SHOP_UPGRADE_BASE_COST: float = 400.0    # treasury cost of 1→2; rises w
 const SHOP_UPGRADE_COST_GROWTH: float = 1.6    # geometric cost growth per level
 const SHOP_LEVEL_CAP: int = 99                 # §19.2 on-theme cap
 const SHOP_CAP_PER_LEVEL: float = 0.15         # +15% stock capacity (and town demand) per level above 1
+# #6a (C3) — item-cost upgrade LADDER: each shop level-up ALSO costs construction materials drawn from
+# the CITY INVENTORY (what C2 city buy orders accumulate — closing the C2→C3 loop). Base = the 1→2 cost;
+# scales geometrically per level by SHOP_UPGRADE_COST_GROWTH (same curve as the gold cost). These are the
+# goods the town buys (logs/iron_ore), so the faucet that fills the inventory is the same one that funds
+# the ladder. Empty {} = no item cost (the pre-#6a gold-only behavior — Economy.try_upgrade_shop is the
+# untouched gold primitive; the item layer is the new SimWorld.upgrade_shop path).
+const SHOP_UPGRADE_ITEM_COST: Dictionary = {"logs": 15, "iron_ore": 10}
 # Building catalog (§19.3 subset for Step 4). Each: one-time treasury cost + daily treasury upkeep
 # (the continuous §6 sink) + its reputation / per-hero-satisfaction contribution.
 const BUILDINGS: Dictionary = {
