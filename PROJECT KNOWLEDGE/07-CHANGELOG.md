@@ -458,3 +458,19 @@
 - **Verified:** suite **238/238** (+6 #5e-2 checks); determinism / save-load / offline gates PASS
   (GE-locked). Deferred (refinements): retire utility gather incentives, #5d offline fill,
   relationship tilt.
+
+## 2026-06-14 — #5d offline statistical fill (Unit 4 — bank is the landing target)
+- **`_offline_fill_orders`** (called at the end of `offline_catchup`): over the capped offline window,
+  standing BUY orders fill from the colony's offline gathering supply for that good — bounded by the
+  SAME per-good throughput (`min(actions/hr × efficiency, market_uph / n)` × n × dt) used by the gold
+  accrual, so a single order can't fill faster than live gathering would deliver. Goods land for the
+  buyer (city order → `city_inventory`, hero order → inv); seller proceeds (gross − GE_TAX) land in the
+  gatherers' **BANK** via `_bank_split_to_gatherers` (per-hero even split, no pool — coinpurse/bank
+  invariant); tax → treasury. Escrow was taken at posting, so this only MOVES escrow → banks (no gold
+  creation — identical accounting to live `_ge_execute`). A good nobody gathers offline can't fill.
+- **Pure function of the capped dt_hours** → `gain(30h) == gain(24h)` (the offline cap still clamps the
+  fill). **INERT when the book is empty** (GE-locked / no orders): offline play is byte-identical there,
+  so the offline gate is unperturbed.
+- No SAVE_VERSION bump (`ge_orders`/`city_inventory`/`bank` already serialized).
+- **Verified:** suite **245/245** (+7 #5d checks); determinism / save-load / offline gates PASS
+  (offline cap clamps 22096==22096, re-convergence Δ 1–11%). Unit 4 refinement closed.

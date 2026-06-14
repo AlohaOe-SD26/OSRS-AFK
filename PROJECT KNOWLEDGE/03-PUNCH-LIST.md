@@ -46,9 +46,21 @@
     tax). Save **v9**. INERT (empty book → sell path byte-identical → no
     re-baseline). +5 suite checks → **229/229**; 3 gates PASS. The autonomous
     brain pull toward gathering FOR posted orders is the R5 end-state (#5e).
-  - [ ] #5d — **Offline statistical fill model** for GE + city orders (orders
-    fill while away, bounded like the offline catch-up; the #5a bank is the
-    landing target). Offline-gate criterion holds.
+  - [x] #5d — **Offline statistical fill model SHIPPED** (2026-06-14): standing
+    BUY orders fill from the colony's offline gathering supply over the (capped)
+    window — `_offline_fill_orders` bounds each order by the SAME per-good
+    throughput as the gold accrual (market-consumption capped), so a single order
+    can't fill faster than live gathering would deliver. Goods land for the buyer
+    (city → `city_inventory`, hero → inv); seller proceeds (gross − GE_TAX) land in
+    the gatherers' **BANK** (R9 — `_bank_split_to_gatherers`, per-hero, no pool);
+    tax → treasury. Escrow was taken at posting, so this only MOVES escrow → banks
+    (no gold creation, like live `_ge_execute`). A good nobody gathers offline
+    can't fill (faithful). Pure function of the capped dt → `gain(30h)==gain(24h)`.
+    INERT when the book is empty (GE-locked / no orders) → offline byte-identical
+    there, **offline gate unperturbed** (PASS, cap clamps 22096==22096). No save
+    bump. +7 suite checks → **245/245**; 3 gates PASS. Simplification logged in
+    06-DECISIONS-LOG (goods are gold-abstract offline → a tiny shop-value double
+    count on filled units, bounded by CITY_ORDER_QTY, errs toward the player §4).
   - [x] #5e — **GE unlock + funded gather incentive LIVE SHIPPED** (2026-06-14).
     #5e-1: `ge_annex` building (1500g) flips `ge_unlocked`, gated on Gate-1
     (`gate1_reached()` = any hero Combat 40); one-shot, per-run. #5e-2: brain

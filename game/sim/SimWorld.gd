@@ -1812,8 +1812,78 @@ func offline_catchup(elapsed_hours: float) -> Dictionary:
 		h.add_xp(skill, xp_gain)
 		summary["gold"] = int(summary["gold"]) + gold_gain
 		summary["xp"] = int(summary["xp"]) + xp_gain
+	# #5d — standing GE/city BUY orders fill from the colony's offline gathering supply (bounded by the
+	# same per-good throughput as the gold loop above). Inert when the book is empty (GE-locked / no
+	# orders) → offline play byte-identical there, so the offline gate is unperturbed.
+	_offline_fill_orders(dt_hours, gatherers, simdays_per_hour, pop_scale, summary)
 	log_event("While you were away (%.1fh): the colony earned %dg." % [dt_hours, summary["gold"]], "gold")
 	return summary
+
+## #5d — OFFLINE statistical fill of standing BUY orders. Over the (capped) offline window each standing
+## buy order is filled from the colony's offline gathering output for that good — bounded by the SAME
+## per-good throughput used for the gold accrual (market-consumption capped), so a single order can never
+## be filled faster than live gathering would deliver. Goods land for the buyer (city → city_inventory, hero → inv); the
+## seller proceeds (gross − GE_TAX) land in the gatherers' BANK (R9 — the #5a landing target), tax →
+## treasury. Escrow was already taken at posting, so this only MOVES escrow → banks (no gold creation),
+## exactly like the live `_ge_execute`. A good nobody is gathering offline can't be filled (faithful).
+## Because the fill is a pure function of the CAPPED dt_hours, gain(30h) == gain(24h) — the offline cap.
+func _offline_fill_orders(dt_hours: float, gatherers: Dictionary, simdays_per_hour: float, pop_scale: float, summary: Dictionary) -> void:
+	if ge_orders.is_empty():
+		return
+	for o in ge_orders.duplicate():   # duplicate: the loop may erase fully-filled orders
+		if String(o["side"]) != "buy" or int(o["remaining"]) <= 0:
+			continue
+		var good := String(o["good"])
+		var n := int(gatherers.get(good, 0))
+		if n <= 0:
+			continue   # no one gathering this good offline → nothing to deliver
+		var shop: Shop = economy.shop_for(good)
+		var consume_rate: float = float(shop.consume.get(good, 0.0)) if shop != null else 0.0
+		var market_uph: float = consume_rate * pop_scale * simdays_per_hour
+		var uph: float = minf(Activities.actions_per_hour() * Activities.TRIP_EFFICIENCY, market_uph / float(n))
+		var supply: int = int(floor(uph * float(n) * dt_hours))
+		var fill: int = mini(int(o["remaining"]), supply)
+		if fill <= 0:
+			continue
+		var price: int = int(o["price"])
+		var gross: int = fill * price
+		var tax: int = int(round(float(gross) * Config.GE_TAX))
+		var net: int = gross - tax
+		# buyer receives the goods
+		if int(o["owner"]) == -1:
+			city_inventory[good] = int(city_inventory.get(good, 0)) + fill
+		else:
+			var hbuy := hero_by_id(int(o["owner"]))
+			if hbuy != null:
+				hbuy.inv[good] = int(hbuy.inv.get(good, 0)) + fill
+		# seller proceeds → gatherer BANKS (per-hero, coinpurse invariant); tax → treasury
+		_bank_split_to_gatherers(good, net)
+		economy.treasury += float(tax)
+		economy.tax_collected += float(tax)
+		economy.treasury_in_ge_tax += float(tax)
+		summary["gold"] = int(summary["gold"]) + net
+		o["remaining"] = int(o["remaining"]) - fill
+		if int(o["remaining"]) <= 0:
+			ge_orders.erase(o)
+
+## #5d helper — split `amount` gold across the heroes whose current intent gathers `good`, into their
+## BANK (the offline landing target). Even split with the integer remainder going to the first gatherer;
+## per-hero deposits only (never a pool — the coinpurse/bank invariant). No-op if nobody gathers it.
+func _bank_split_to_gatherers(good: String, amount: int) -> void:
+	if amount <= 0:
+		return
+	var recips: Array = []
+	for h in heroes:
+		var intent: String = h.act.get("intent", "")
+		if Activities.is_gather(intent) and Activities.sells_as(intent) == good:
+			recips.append(h)
+	if recips.is_empty():
+		return
+	var share: int = amount / recips.size()
+	var rem: int = amount - share * recips.size()
+	for h in recips:
+		var give: int = share + (rem if h == recips[0] else 0)
+		h.bank += float(give)
 
 # ---------------------------------------------------------------------------
 # Thoughts (legibility, §20) + chronicle (§17)

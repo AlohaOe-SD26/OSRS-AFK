@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/OSRS-AFK
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-14
 
 ## What is this project?
 A Godot 4.6.3 single-player idle/tycoon "ant farm" in canon OSRS Varrock:
@@ -15,9 +15,10 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 ## Current state
 **MVP + UNIT 0–2 COMPLETE; UNIT 3 (#4) CODE-COMPLETE (F5-pending); DIRECTIVE
 BATCH #13–#15 COMPLETE; UNIT 4 (#5) FUNCTIONALLY COMPLETE 2026-06-14 — bank +
-GE order book + city orders + GE unlock + funded gather incentive LIVE (only
-refinements #5d offline-fill + the R5 utility-incentive retirement remain).**
-suite **238/238** + determinism/save-load/offline gates green; save version
+GE order book + city orders + GE unlock + funded gather incentive LIVE + #5d
+offline order-fill (only the R5 utility-incentive retirement remains as an
+optional cleanup).**
+suite **245/245** + determinism/save-load/offline gates green; save version
 **9**. GE-active band 1,378 ± 331 (≈ the GE-locked band 1,384 ± 174 — attractor
 holds with the GE live).
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
@@ -40,6 +41,19 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#5d SHIPPED — offline statistical fill (Unit 4 refinement closed).** Standing
+  BUY orders now fill while the player is away: `_offline_fill_orders` (end of
+  `offline_catchup`) delivers each order from the colony's offline gathering supply
+  for that good, bounded by the SAME per-good throughput as the gold accrual (a
+  single order can't fill faster than live gathering would). Goods land for the
+  buyer (city → `city_inventory`, hero → inv); seller proceeds (gross − GE_TAX) →
+  the gatherers' **BANK** (`_bank_split_to_gatherers`, per-hero, no pool); tax →
+  treasury. Escrow was taken at posting → this only MOVES escrow → banks (no gold
+  creation, like live `_ge_execute`). Pure function of the capped dt →
+  `gain(30h)==gain(24h)`. **INERT with an empty book (GE-locked) → offline gate
+  byte-identical (PASS, cap clamps 22096==22096).** No save bump. Suite **245/245**
+  (+7); 3 gates PASS. Logged simplification (goods are gold-abstract offline → a
+  tiny bounded shop-value double-count on filled units; errs toward the player §4).
 - **#5e-2 SHIPPED — funded gather incentive goes LIVE (the attractor holds).**
   Brain gather reward reads `best_sell_price` = max(shop, best buy order) → a
   funded city/GE order pulls labor (1.6→15.3 on GATHER_LOGS); `_auto_city_orders`
@@ -205,15 +219,16 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
   Unit 3 is closed.
 - **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): FUNCTIONALLY
   COMPLETE** — #5a bank + #5b GE engine + #5c city orders + #5e GE unlock +
-  funded gather incentive live, all shipped/green. No code item mid-flight.
+  funded gather incentive live + #5d offline order-fill, all shipped/green. No
+  code item mid-flight.
 
 ## Next steps (in order)
-1. **Unit-4 refinements (optional, not blockers):** #5d offline order-fill
-   (orders fill while away, bounded like `offline_catchup`, bank is the landing
-   target); the R5 cleanup to retire the pure-utility gather incentives (note:
-   it breaks the existing incentive test, which needs rewriting); the deferred
-   relationship-tilt (`Social.trade_modifier`); whether `total_gold` should count
-   escrowed/city gold. Each is a small, contained follow-up.
+1. **Unit-4 refinements (optional, not blockers; #5d offline-fill DONE):** the R5
+   cleanup to retire the pure-utility gather incentives (note: it breaks the
+   existing incentive test, which needs rewriting; the utility lever sits unused at
+   0 in autonomous play and doesn't interfere); the deferred relationship-tilt
+   (`Social.trade_modifier`); whether `total_gold` should count escrowed/city gold.
+   Each is a small, contained follow-up.
 2. **F5 sign-off on Unit 3** (#4b/#4c visuals — checklist above) — the one
    non-code thread; anytime, independent of Unit 4.
 3. **Unit 5 (#6)** — C4 shop sell-back (`min(saturation, 0.30 × GE reference)`,
@@ -225,7 +240,7 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 238 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 245 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

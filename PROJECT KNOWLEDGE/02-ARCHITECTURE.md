@@ -34,7 +34,7 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 238-check headless gate suite
+  tests/test_sim.gd   # 245-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
   data/               # items.json (23 — THE item truth: ids/values/tiers/
                       # styles/recipes/tradeable, Unit 1) · shops.json (7-shop
@@ -60,7 +60,10 @@ TICK 0.6 s × 4 ticks/action = 2.4 s/action; 1.4 sim-min/action →
 **1 in-game day ≈ 1,029 actions ≈ 41 real min at 1×** (≈5 min at 8×).
 Offline: 24 real h ≈ 35 sim-days, resolved statistically with live bounds
 (market ceiling per good, shared pit throughput, attractor closed form
-g(T) = g* + (g0−g*)e^(−kT) — cannot overshoot live play).
+g(T) = g* + (g0−g*)e^(−kT) — cannot overshoot live play). #5d: standing GE/city
+BUY orders also fill offline from the colony's gathering supply (throughput-
+bounded), proceeds → gatherer banks, goods → city_inventory; inert with an empty
+book (GE-locked), so the offline gate is byte-identical.
 
 ## State / save shape
 `SaveLoad.save_world` → one binary Variant dict, `SAVE_VERSION = 9`:

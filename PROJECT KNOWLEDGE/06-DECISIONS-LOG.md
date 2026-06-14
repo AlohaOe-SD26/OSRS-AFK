@@ -509,3 +509,25 @@
   (R5 cleanup — it breaks the existing incentive test; the utility lever sits unused at 0 in
   autonomous play and doesn't interfere); #5d offline order-fill; the relationship-tilt
   (`Social.trade_modifier`); whether total_gold should count escrowed/city gold.
+
+## 2026-06-14 — #5d offline order-fill: bank landing, throughput-bounded, an honest approximation
+- **DECISION: offline-filled order proceeds land in the gatherers' BANK, not the coinpurse.** The
+  live `ge_sell_into_orders` pays the selling hero's coinpurse; offline we bank it instead (the #5a
+  bank is the spec's "landing target"). Rationale: the coinpurse value is what the upkeep attractor
+  projects in the gold loop (closed-form on shop price); injecting order proceeds into the coinpurse
+  would fight that projection. The bank is ALSO upkeep-bearing (#5a, purse-then-bank drain), so this
+  is NOT an attractor dodge — it's a clean separation of the two offline channels (attractor shop
+  income vs. bounded order delivery). Per-hero even split (`_bank_split_to_gatherers`) keeps the
+  coinpurse/bank invariant (never a pool).
+- **DECISION: bound each order's offline fill by the per-good gathering throughput**, the same cap the
+  gold loop uses (market-consumption capped, ×n gatherers ×dt). A good nobody is gathering offline
+  fills 0 (faithful — no labor to deliver it). Because the fill is a pure function of the CAPPED
+  dt_hours, the 24h cap clamps it (`gain(30h)==gain(24h)`), preserving the offline-gate criterion.
+- **ACKNOWLEDGED SIMPLIFICATION (not a bug):** offline, goods are gold-abstract (the attractor models
+  pure gold accrual, heroes hold no inventory). So a unit "sold to the shop" in the gold loop AND
+  "delivered to a city order" in the fill pass is mildly double-counted on filled units (the shop value
+  of those units). This is bounded by `CITY_ORDER_QTY` (20/good) — tiny against 24h of gathering — and
+  errs toward the player (§4: never lose gold offline). It only ever fires with the GE open offline; the
+  offline GATE runs GE-locked (empty book) so it is unaffected. REJECTED a full goods-accounting offline
+  model (track inventory, route units shop-vs-order) as disproportionate for a bounded approximation
+  that the live re-convergence already corrects on reconnect.

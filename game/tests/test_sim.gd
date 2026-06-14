@@ -56,9 +56,10 @@ func _initialize() -> void:
 	_test_unit5c_city_orders()
 	_test_unit5e_ge_unlock()
 	_test_unit5e2_funded_gather()
+	_test_unit5d_offline_fill()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 238
+	const EXPECTED := 245
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1430,6 +1431,55 @@ func _test_unit5e2_funded_gather() -> void:
 		if int(o["owner"]) == -1:
 			esc += float(int(o["remaining"]) * int(o["price"])); n3 += 1
 	_check(esc <= budget and n3 < Config.CITY_ORDER_GOODS.size(), "budget guard: tight treasury caps city escrow ≤ %dg (%dg, %d orders)" % [int(budget), int(esc), n3])
+
+## #5d — offline statistical fill: standing buy orders fill from the colony's offline gathering supply,
+## proceeds land in the gatherers' BANK, goods in city_inventory, tax to treasury; cap clamps; inert empty.
+func _test_unit5d_offline_fill() -> void:
+	print("\n[Unit 4 #5d — offline order fill: bounded delivery → bank, goods → city inv, cap clamps]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	# a standing city buy order fills from an offline logs gatherer's supply
+	var world := SimWorld.new(); world.setup(content, 6, Config.DEFAULT_SEED)
+	world.economy.treasury = 100000.0
+	var price := world.economy.sell_price("logs") + 30
+	world.city_post_buy_order("logs", 20, price)
+	var hg: Hero = world.heroes[0]
+	hg.act = {"intent": "GATHER_LOGS", "loc": "tree", "skill": "woodcutting", "res": "logs", "phase": "gather", "target": "tree", "then": ""}
+	var bank0 := hg.bank
+	var tax0 := world.economy.treasury_in_ge_tax
+	var s := world.offline_catchup(24.0)
+	var filled := int(world.city_inventory.get("logs", 0))
+	_check(filled > 0 and filled <= 20, "offline: the city logs order partially/fully fills from gatherer supply (%d/20)" % filled)
+	_check(hg.bank > bank0, "offline order proceeds land in the gatherer's BANK (+%dg)" % int(hg.bank - bank0))
+	var exp_tax := int(round(float(filled * price) * Config.GE_TAX))
+	_check(int(round(world.economy.treasury_in_ge_tax - tax0)) == exp_tax, "offline fill routes the GE tax to the treasury (%dg)" % exp_tax)
+	var rem := 0
+	for o in world.ge_orders:
+		if int(o["owner"]) == -1 and String(o["good"]) == "logs":
+			rem = int(o["remaining"])
+	_check(rem == 20 - filled, "the order's remaining drops by the filled quantity (%d left)" % rem)
+	# a good NOBODY gathers offline can't be filled (faithful — no one to deliver it)
+	var w2 := SimWorld.new(); w2.setup(content, 6, Config.DEFAULT_SEED); w2.economy.treasury = 100000.0
+	w2.city_post_buy_order("iron_ore", 20, w2.economy.sell_price("iron_ore") + 30)
+	for h in w2.heroes:
+		h.act = {"intent": "FIGHT"}   # everyone fighting → nobody mining
+	w2.offline_catchup(24.0)
+	_check(int(w2.city_inventory.get("iron_ore", 0)) == 0, "an order for an un-gathered good stays unfilled offline")
+	# the 24h cap clamps the fill too: same world, 24h vs 30h → identical order state + summary
+	var wa := SimWorld.new(); wa.setup(content, 6, Config.DEFAULT_SEED); wa.economy.treasury = 100000.0
+	var wb := SimWorld.new(); wb.setup(content, 6, Config.DEFAULT_SEED); wb.economy.treasury = 100000.0
+	var pa := wa.economy.sell_price("logs") + 30
+	wa.city_post_buy_order("logs", 20, pa); wb.city_post_buy_order("logs", 20, pa)
+	wa.heroes[0].act = {"intent": "GATHER_LOGS", "skill": "woodcutting", "res": "logs"}
+	wb.heroes[0].act = {"intent": "GATHER_LOGS", "skill": "woodcutting", "res": "logs"}
+	var ga := wa.offline_catchup(24.0); var gb := wb.offline_catchup(30.0)
+	_check(int(ga["gold"]) == int(gb["gold"]) and int(wa.city_inventory.get("logs", 0)) == int(wb.city_inventory.get("logs", 0)),
+		"the 24h cap clamps the fill: gain(24h) == gain(30h), same goods delivered")
+	# inert when the book is empty: offline summary identical with and without the fill pass running
+	var w3 := SimWorld.new(); w3.setup(content, 6, Config.DEFAULT_SEED)
+	w3.heroes[0].act = {"intent": "GATHER_LOGS", "skill": "woodcutting", "res": "logs"}
+	var s3 := w3.offline_catchup(24.0)
+	_check(w3.city_inventory.is_empty() and int(s3["gold"]) >= 0, "empty book: the offline fill pass is a no-op")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:
