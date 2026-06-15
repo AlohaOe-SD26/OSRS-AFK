@@ -352,6 +352,13 @@ const SHOP_UPGRADE_ITEM_COST: Dictionary = {"logs": 15, "iron_ore": 10}
 # units per in-game day at the front of the queue; production is also room-gated by the shop's stock
 # capacity (backpressure — the town won't craft what no one buys), so this only sets the PACE.
 const CRAFT_DAYS_PER_UNIT: float = 0.5
+# #6c (C4) — shop SELL-BACK ceiling: once the GE is open, the NPC shop pays heroes at most this fraction
+# of the item's GE reference value (its catalog base_value). Shops become the convenient-but-BAD buyer;
+# the funded GE/city buy orders win on price → trade migrates GE-ward (the player runs procurement). The
+# shop pay is min(saturation price, SHOP_SELLBACK_FRAC × base_value). GRACEFUL DEGRADATION: while the GE
+# is LOCKED the ceiling is inert (sell_back_active = ge_unlocked) → the validated economy is untouched
+# and the gates (GE-locked) are byte-identical. Tunable; 0.30 = the adopted ruling (R2).
+const SHOP_SELLBACK_FRAC: float = 0.30
 # Building catalog (§19.3 subset for Step 4). Each: one-time treasury cost + daily treasury upkeep
 # (the continuous §6 sink) + its reputation / per-hero-satisfaction contribution.
 const BUILDINGS: Dictionary = {

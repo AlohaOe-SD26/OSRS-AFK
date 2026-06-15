@@ -34,7 +34,14 @@ var _city_cells: Array = []        # #13: cached walkable tiles inside the city 
 # regardless (post/match/cancel are pure). Orders: {id, owner (hero id, or -1 = city), side
 # ("buy"/"sell"), good, qty, remaining, price}. owner id doubles as the price-TIME tiebreaker (ids
 # are monotonic). Inert until heroes/city post orders (#5c) — empty book = no economic effect.
-var ge_unlocked: bool = false
+# #6c (C4): the GE-unlock flag drives the shop sell-back ceiling. A SETTER keeps `economy.sell_back_active`
+# in lockstep with every assignment path (build/load/tests/diags) so the ceiling turns on exactly when the
+# GE opens — no separate flag to forget to flip. (The declaration's initial `false` doesn't fire the setter.)
+var ge_unlocked: bool = false:
+	set(v):
+		ge_unlocked = v
+		if economy != null:
+			economy.sell_back_active = v
 var ge_orders: Array = []
 var _next_order_id: int = 0
 # #5c — City Inventory: goods the city has BOUGHT (filled city buy orders land here, owner=-1). The
@@ -2141,7 +2148,9 @@ func _auto_city_orders() -> void:
 	for good: String in Config.CITY_ORDER_GOODS:
 		if have.has(good):
 			continue   # a standing order for this good already exists — don't stack
-		var price: int = int(round(float(economy.sell_price(good)) * Config.CITY_ORDER_PREMIUM))
+		# #6c: price off the UNCAPPED reference, not the C4-ceilinged sell_price — otherwise the sell-back
+		# ceiling would drag the funded incentive down with the shop and the procurement loop would collapse.
+		var price: int = int(round(float(economy.reference_price(good)) * Config.CITY_ORDER_PREMIUM))
 		var cost := float(Config.CITY_ORDER_QTY * price)
 		if price <= 0 or escrowed + cost > budget or economy.treasury < cost:
 			continue

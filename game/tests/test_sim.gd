@@ -59,9 +59,10 @@ func _initialize() -> void:
 	_test_unit5d_offline_fill()
 	_test_unit6a_item_upgrade()
 	_test_unit6b_crafting()
+	_test_unit6c_sellback()
 	# Guard against false greens: if a script error aborts a test function mid-way, its remaining
 	# _check() calls silently don't run. Assert the full expected count actually executed.
-	const EXPECTED := 260
+	const EXPECTED := 267
 	var incomplete := checks != EXPECTED
 	if incomplete:
 		print("  WARN  only %d/%d expected checks ran — a test aborted (script error?)" % [checks, EXPECTED])
@@ -1569,6 +1570,43 @@ func _test_unit6b_crafting() -> void:
 	var w4b: SimWorld = SaveLoad.load_world(content, m)
 	_check(int(m.get("version", -1)) == SaveLoad.SAVE_VERSION and w4b != null and w4b.craft_queue.size() == 1 and int(w4b.craft_queue[0]["qty"]) == 5,
 		"save v%d round-trips the craft queue" % SaveLoad.SAVE_VERSION)
+
+## #6c — C4 shop sell-back ceiling: once the GE opens, the shop pays at most 0.30×GE ref; uncapped
+## reference + funded orders are unaffected; graceful degradation (inert) while the GE is locked.
+func _test_unit6c_sellback() -> void:
+	print("\n[Unit 5 #6c — C4 shop sell-back ceiling: 0.30×GE ref once the GE opens, graceful when locked]")
+	var content := ContentDB.new()
+	content.load_all("res://data")
+	var world := SimWorld.new(); world.setup(content, 6, Config.DEFAULT_SEED)
+	var base_ore := content.base_value("iron_ore")
+	var full := world.economy.sell_price("iron_ore")   # GE locked → uncapped saturation price
+	_check(not world.ge_unlocked and not world.economy.sell_back_active and full == world.economy.reference_price("iron_ore"),
+		"GE locked: no ceiling — sell_price == the uncapped reference (%dg)" % full)
+	# open the GE → the setter flips sell_back_active and the ceiling binds
+	world.ge_unlocked = true
+	var ceil_p := maxi(1, int(round(float(base_ore) * Config.SHOP_SELLBACK_FRAC)))
+	_check(world.economy.sell_back_active, "the ge_unlocked setter syncs economy.sell_back_active")
+	_check(world.economy.sell_price("iron_ore") == mini(full, ceil_p) and world.economy.sell_price("iron_ore") < full,
+		"GE open: the shop pay is ceilinged at 0.30×GE ref (%dg, was %dg)" % [world.economy.sell_price("iron_ore"), full])
+	_check(world.economy.reference_price("iron_ore") == full, "the uncapped reference is unchanged by the ceiling")
+	# a funded city order beats the ceilinged shop (the procurement venue wins on price)
+	world.economy.treasury = 100000.0
+	var op := world.economy.reference_price("iron_ore") + 50
+	world.city_post_buy_order("iron_ore", 5, op)
+	_check(world.best_sell_price("iron_ore") == op, "a funded city order beats the ceilinged shop (best=%dg)" % op)
+	# auto city orders price off the UNCAPPED reference, not the ceiling (the incentive survives the cut)
+	var w2 := SimWorld.new(); w2.setup(content, 6, Config.DEFAULT_SEED); w2.economy.treasury = 100000.0; w2.ge_unlocked = true
+	w2._auto_city_orders()
+	var got := 0
+	for o in w2.ge_orders:
+		if int(o["owner"]) == -1 and String(o["good"]) == "iron_ore":
+			got = int(o["price"])
+	var want := int(round(float(w2.economy.reference_price("iron_ore")) * Config.CITY_ORDER_PREMIUM))
+	_check(got == want and got > ceil_p, "auto city orders price off the uncapped reference (%dg > ceiling %dg)" % [got, ceil_p])
+	# graceful degradation: re-locking the GE makes the ceiling inert again
+	world.ge_unlocked = false
+	_check(not world.economy.sell_back_active and world.economy.sell_price("iron_ore") == full,
+		"graceful degradation: GE locked again → ceiling inert, full saturation price restored")
 
 ## Score of the candidate matching `intent` in a scored candidate list (-inf if absent).
 func _cand_score(cands: Array, intent: String) -> float:

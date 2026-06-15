@@ -504,3 +504,23 @@
 - **Verified:** suite **260/260** (+8 #6b checks); determinism / save-load / offline gates PASS
   (byte-identical; v10 round-trips). The C2→C3/C5 closed loop now has both drains (C3 upgrades + C5
   crafting). Remaining Unit 5: #6c (C4 sell-back, mint-touching, needs a sweep) + #6d (UI).
+
+## 2026-06-14 — #6c C4 shop sell-back ceiling (the mint-touching keystone; band re-baselined)
+- **Once the GE is open, NPC shops pay heroes at most SHOP_SELLBACK_FRAC (0.30) × the item's GE
+  reference (catalog base_value)** — `Economy.sell_price` ceilings `min(saturation, 0.30×base)` when
+  `sell_back_active`. Shops become the convenient-but-BAD buyer; funded GE/city orders win on price →
+  trade migrates GE-ward (the player runs procurement, R2). Iron_ore shop pay 16g → 5g once open.
+- **Decoupling so the cut doesn't poison the incentives:** new `Economy.reference_price` = the UNCAPPED
+  saturation price; the gather GLUT term (Brain) and the autonomous city-order premium (`_auto_city_orders`)
+  read THIS, not the ceilinged `sell_price` — otherwise the ceiling would drag the funded orders down with
+  the shop and collapse the loop. `best_sell_price` keeps reading the ceilinged shop (so ungated goods
+  look bad → the procurement steering the brain follows).
+- **`sell_back_active` tracks `ge_unlocked` via a SETTER** on SimWorld.ge_unlocked (catches build / load /
+  test / diag paths). **GRACEFUL DEGRADATION:** GE locked → ceiling inert → the validated economy +
+  GE-locked gates are byte-identical (no save bump — derived from ge_unlocked).
+- **RE-BASELINE (diag_ge.gd = GE open + C4 active, 8 seeds × 23 days): g/cap 707 ± 208** (was 1,378 ± 331
+  pre-C4 GE-open). The drop is BY DESIGN — the capped mint lowers g*, the upkeep attractor re-pins at the
+  lower bounded level; **population 41 ± 1, ALL COLONIES ALIVE**, deaths/run 14 ± 9 (up — the harsher
+  economy; viable, immigration holds pop). The player lifts the band by funding bigger city orders.
+- **Verified:** suite **267/267** (+7 #6c checks); determinism / save-load / offline gates PASS
+  (byte-identical, GE-locked). Unit 5 functionally complete bar the #6d UI.

@@ -34,6 +34,20 @@
   ±332→±84 — once the combat base shape is fixed. The #3d mechanism +
   price-coupling are unit-tested (flag-gated), so a reformulation has a base.
 
+## KI-11 — Elevated deaths under C4 sell-back (opened 2026-06-14, severity: low,
+  status: WATCH — by design, viable)
+- **Symptom:** with the GE open + C4 sell-back active (#6c), the day-23
+  per-capita gold re-baselines to ~707 ± 208 (≈half the pre-C4 GE-open 1,378 ±
+  331) and deaths/run rise to ~14 ± 9 (one seed hit 29). This is the DESIGNED
+  consequence of capping the shop mint at 0.30×base — gather income falls unless
+  the player funds city orders, so heroes hold less gold (less food buffer).
+- **Why it's a watch, not a bug:** the upkeep attractor still HOLDS — the level
+  is bounded and re-pinned, population is stable at 41 ± 1, and ALL colonies
+  survive (immigration replaces the dead). The player's procurement lever (fund
+  bigger/more city buy orders) is the intended counter-force that lifts income
+  and lowers deaths. Only revisit if a colony actually collapses, or if the
+  autonomous (no-player) economy proves un-fun at this level in playtest.
+
 ## KI-6 — Ammo economy feel-tuned only (severity: low)
 - **Symptom:** with consumption on, kills 812 vs 2634 free — bounded and
   lockout-free (dry-punch fallback), but "is it fun" is unvalidated

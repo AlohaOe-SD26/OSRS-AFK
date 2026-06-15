@@ -566,3 +566,27 @@
   Because production is room-gated and a pure function of accrued time, advancing by the whole offline
   window yields exactly what incremental live ticks would (capped by room), so it's offline-resolvable
   with no separate model and can't overshoot. Empty queue → no-op → the offline gate is unperturbed.
+
+## 2026-06-14 — #6c C4 sell-back: ceiling design + the re-baseline ruling (ship at 0.30, attractor holds)
+- **DECISION: the "GE reference" = the catalog base_value, gated on ge_unlocked.** Stable, always
+  available to Economy (via `_content`), and the canonical market value. "Graceful degradation when GE
+  illiquid" = GE LOCKED → ceiling inert → current behavior. Rejected deriving the reference from live
+  buy-order liquidity (it would make the ceiling bind only when an order exists — too weak for the
+  "player must procure" intent the user chose) — base_value gives the persistent cut once the GE opens.
+- **DECISION: split the price signals — `sell_price` (ceilinged) vs `reference_price` (uncapped).** The
+  ceiling must cut what the shop PAYS without faking the saturation signals it's derived from: the gather
+  glut term and the autonomous city-order premium read `reference_price`, so funded orders stay priced at
+  ~1.5×base and remain the winning venue. `best_sell_price` reads the ceilinged shop so the brain sees the
+  bad shop and is pulled toward ordered goods. Without this split, C4 + the #5e-2 incentive form a
+  feedback that collapses gather income to ~0.45×base everywhere — the bug-class the analysis warned of.
+- **DECISION: sync `sell_back_active` via a property setter on `ge_unlocked`** (not a separately-flipped
+  flag) so every assignment path — build, load, test, diag — turns the ceiling on/off in lockstep with the
+  GE. No save field (derived state).
+- **RE-BASELINE RULING — SHIP at 0.30 (user's choice "as written").** diag_ge (GE open + C4 active, 8
+  seeds × 23 days): g/cap **707 ± 208** vs the pre-C4 GE-open 1,378 ± 331 — a ~49% drop. This is the
+  DESIGNED consequence (capped mint → lower g*), NOT an attractor break: the level is bounded, population
+  is 41 ± 1, and ALL colonies survive. The agreed criterion ("revert if the attractor breaks") is NOT
+  triggered — it held, it just re-pinned lower. Deaths rose to 14 ± 9 (the harsher economy; logged as a
+  WATCH in 05-KNOWN-ISSUES). The player's procurement lever (fund bigger city orders) is the designed
+  counter-force that lifts the band. Rejected reverting / softening to 0.50 — the user explicitly chose
+  the aggressive setting and the viability bar (all colonies alive) is met.

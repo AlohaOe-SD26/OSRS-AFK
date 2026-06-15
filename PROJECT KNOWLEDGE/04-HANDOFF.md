@@ -17,12 +17,14 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 BATCH #13–#15 COMPLETE; UNIT 4 (#5) FUNCTIONALLY COMPLETE 2026-06-14 — bank +
 GE order book + city orders + GE unlock + funded gather incentive LIVE + #5d
 offline order-fill (only the R5 utility-incentive retirement remains as an
-optional cleanup). UNIT 5 (#6) UNDERWAY — #6a C3 item-cost upgrade ladders +
-#6b C5 shop crafting queues SHIPPED 2026-06-14 (both C2→C3/C5 drains; the
-closed loop is wired). Remaining: #6c C4 sell-back (mint-touching, needs a
-sweep) + #6d UI.**
-suite **260/260** + determinism/save-load/offline gates green; save version
-**10**. GE-active band 1,378 ± 331 (≈ the GE-locked band 1,384 ± 174 — attractor
+optional cleanup). UNIT 5 (#6) FUNCTIONALLY COMPLETE — #6a C3 item-cost upgrade
+ladders + #6b C5 shop crafting queues + #6c C4 sell-back ceiling SHIPPED
+2026-06-14 (the full C2→C3/C5 loop + the mint reshape; only the #6d UI
+render polish + F5 remains).**
+suite **267/267** + determinism/save-load/offline gates green; save version
+**10**. **C4-active band re-baselined: g/cap 707 ± 208** (GE open + sell-back,
+8 seeds; was 1,378 ± 331 pre-C4 — the designed mint cut, attractor holds, all
+colonies alive, deaths 14 ± 9 / WATCH KI-11). GE-active band 1,378 ± 331 (≈ the GE-locked band 1,384 ± 174 — attractor
 holds with the GE live).
 **Day-23 per-capita band = 1,384 ± 174** (8 seeds, the full rolled stack:
 founders + immigrant gold/weapon/gear — variance tightened across the batch,
@@ -44,6 +46,19 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#6c SHIPPED — C4 shop sell-back ceiling (the mint-touching keystone).** Once
+  the GE opens, `Economy.sell_price` ceilings at `min(saturation, 0.30 × base_value)`
+  (`sell_back_active`, kept in sync with `ge_unlocked` by a SETTER). Shops become
+  the bad buyer; funded GE/city orders win → trade goes GE-ward (the player runs
+  procurement). New `Economy.reference_price` (uncapped) feeds the gather glut term
+  + the city-order premium so the cut doesn't collapse the incentive;
+  `best_sell_price` keeps the ceilinged shop (the steering). GRACEFUL DEGRADATION:
+  GE locked → inert → gates byte-identical. No save bump. **RE-BASELINE
+  (diag_ge = GE open + C4, 8 seeds × 23 days): g/cap 707 ± 208** (was 1,378 ± 331)
+  — the designed mint cut; the attractor HOLDS (bounded, re-pinned lower), pop
+  41 ± 1, ALL colonies alive, deaths 14 ± 9 (WATCH KI-11). Shipped per the user's
+  "0.30 as written" ruling (the agreed revert-if-broken criterion was not
+  triggered). Suite **267/267** (+7); 3 gates PASS (byte-identical, GE-locked).
 - **#6b SHIPPED — C5 shop crafting queues (the second C2→C5 drain).** A
   single-server FIFO `craft_queue` on SimWorld: `queue_craft(shop, output, qty)`
   RESERVES the recipe inputs from `city_inventory` at enqueue, the FRONT job
@@ -243,21 +258,16 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 - **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): FUNCTIONALLY
   COMPLETE** — #5a bank + #5b GE engine + #5c city orders + #5e GE unlock +
   funded gather incentive live + #5d offline order-fill, all shipped/green.
-- **Unit 5 (#6): UNDERWAY.** Decomposed #6a–#6d in the punch list (build order:
-  greenfield drains first, the mint-touching C4 last with a sweep). **#6a (C3
-  item-cost upgrade ladders) ✅ · #6b (C5 crafting queues) ✅ SHIPPED.** Next:
-  #6c (C4 sell-back, the mint-touching re-baseline sweep), then #6d (UI). No code
-  item mid-flight.
+- **Unit 5 (#6): FUNCTIONALLY COMPLETE (code).** **#6a (C3 upgrades) ✅ · #6b
+  (C5 crafting) ✅ · #6c (C4 sell-back) ✅ SHIPPED.** Only **#6d (UI)** remains —
+  render-only TOWN LEDGER sections (upgrade item-costs, the crafting queue, the
+  sell-back venue) + an F5 sign-off. No code item mid-flight.
 
 ## Next steps (in order)
-1. **Unit 5 (#6) — continue (the next big unit, #6a + #6b done):**
-   - **#6c — C4 shop sell-back ceiling + GE reference price** (the mint-touching
-     one): shop pay = `min(saturation sell_price, 0.30 × GE reference)`; graceful
-     degradation when the GE is illiquid (no reference → current behavior). Inert
-     when GE locked/illiquid (the gate state); needs a MULTI-SEED RE-BASELINE
-     SWEEP with the GE open + orders flowing before locking. Ships LAST.
-   - **#6d — Unit 5 UI** (render-only, F5 sign-off): TOWN LEDGER sections for
-     upgrade item-costs, the crafting queue, the sell-back venue.
+1. **Unit 5 (#6) — only #6d left (render-only):** TOWN LEDGER / shop-panel UI for
+   the shop upgrade item-costs (#6a), the crafting queue (#6b queue_craft/
+   cancel_craft), and the sell-back venue comparison (#6c). Then an F5 visual
+   sign-off (unverifiable headless). All the sim/logic is shipped & green.
 2. **Unit-4 refinements (optional, not blockers; #5d done):** the R5 cleanup to
    retire the pure-utility gather incentives (breaks the existing incentive test,
    needs rewriting; the utility lever sits unused at 0 autonomously); the deferred
@@ -271,7 +281,7 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 
 ## How to run / build / test
 ```
-godot --headless --path game --script res://tests/test_sim.gd   # 260 checks
+godot --headless --path game --script res://tests/test_sim.gd   # 267 checks
 godot --headless --path game --script res://tools/gate_determinism.gd
 godot --headless --path game --script res://tools/gate_saveload.gd
 godot --headless --path game --script res://tools/gate_offline.gd

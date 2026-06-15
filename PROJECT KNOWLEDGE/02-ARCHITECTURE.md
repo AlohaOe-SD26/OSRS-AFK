@@ -34,7 +34,7 @@ game/
     XpTables.gd   # canon XP curve + combat level
   render/Main.gd  # the ONLY render/UI file (immediate-mode _draw + rect
                   # hit-testing: top bar, roster, TOWN LEDGER, hero popup)
-  tests/test_sim.gd   # 260-check headless gate suite
+  tests/test_sim.gd   # 267-check headless gate suite
   tools/              # gates (determinism/saveload/offline) + diag_* sweeps
   data/               # items.json (23 — THE item truth: ids/values/tiers/
                       # styles/recipes/tradeable, Unit 1) · shops.json (7-shop
@@ -102,6 +102,14 @@ triad (regen/tolerance — deaths 2,096→4, flees ~0) lifted per-capita to
 ~1,485 at day 23 in the aggro diagnostic. More productive hours, same
 attractor; formally re-baseline in the #1e instrumented sweep before
 treating any number as a regression.
+**Two REGIMES now exist (the band depends on the GE/C4 state):** (1) GE
+LOCKED / no sell-back — the validated **~1,384 ± 174** (Unit-4 stack); the
+gates run here and it's the default. (2) **GE OPEN + C4 sell-back active
+(#6c) — ~707 ± 208** (8 seeds, diag_ge): shops pay ≤0.30×base, so the gather
+mint is cut ~half and the upkeep attractor re-pins at the lower bounded level
+(all colonies alive, deaths ↑ to ~14/run — KI-11). The player lifts regime (2)
+by funding bigger city buy orders. Both are bounded; neither is a regression —
+they're different economies the player moves between by opening the GE.
 
 ## External dependencies & services
 None at runtime. GitHub remote `https://github.com/AlohaOe-SD26/OSRS-AFK`

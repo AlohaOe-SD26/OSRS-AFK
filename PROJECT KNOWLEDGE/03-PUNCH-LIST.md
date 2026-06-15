@@ -104,13 +104,17 @@
     (`_migrate_9_to_10`, forward-compatible). INERT on an empty queue →
     live/gates byte-identical. +8 suite checks → **260/260**; 3 gates PASS. The
     second C2→C5 drain; the closed loop now has both consumers (C3 + C5).
-  - [ ] #6c — **C4 shop sell-back ceiling + GE reference price** (the
-    mint-touching one). Shop pay = `min(saturation sell_price, 0.30 × GE
-    reference)`; GRACEFUL DEGRADATION when the GE is illiquid (no reference →
-    current saturation behavior). Inert when the GE is locked/illiquid (the
-    gate state) → gates pass byte-identical; needs a multi-seed re-baseline
-    SWEEP with the GE open + orders flowing before locking. Ships LAST, with
-    the C3/C5 drains in place (never C4 alone — the analysis ruling).
+  - [x] #6c — **C4 shop sell-back ceiling SHIPPED** (2026-06-14). Once the GE
+    opens, `Economy.sell_price` ceilings `min(saturation, SHOP_SELLBACK_FRAC
+    0.30 × base_value)` (`sell_back_active`, synced to `ge_unlocked` via a
+    setter). New `Economy.reference_price` (uncapped) feeds the gather glut term
+    + the autonomous city-order premium so the cut doesn't collapse the funded
+    incentive; `best_sell_price` keeps the ceilinged shop (the procurement
+    steering). GRACEFUL DEGRADATION: GE locked → inert → gates byte-identical.
+    No save bump. **RE-BASELINE (diag_ge = GE open + C4, 8 seeds × 23 days):
+    g/cap 707 ± 208** (was 1,378 ± 331) — the designed mint cut; attractor HOLDS,
+    pop 41 ± 1, ALL ALIVE, deaths 14 ± 9 (WATCH KI-11). Shipped per the user's
+    "0.30 as written" ruling. +7 suite checks → **267/267**; 3 gates PASS.
   - [ ] #6d — **Unit 5 UI** (render-only): TOWN LEDGER sections for shop
     upgrades (item costs), the crafting queue, and the sell-back venue. F5
     sign-off (unverifiable headless). Anytime after #6a–#6c.

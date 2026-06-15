@@ -43,7 +43,9 @@ static func candidates_with_terms(hero: Hero, world) -> Array:
 	# SMITHING (crafting slice 1): forge carried ore into a sword at the anvil. The glut term makes
 	# smithing attractive exactly when the ore market floors — the over-supply release valve.
 	if int(hero.inv.get("iron_ore", 0)) >= 3:
-		var glut: float = maxf(0.0, 6.0 - float(world.economy.sell_price("iron_ore"))) * 2.5
+		# #6c: read the UNCAPPED saturation reference, not the C4-ceilinged sell_price — the glut signal
+		# tracks real ore over-supply, which must not be faked by the sell-back ceiling permanently capping the shop.
+		var glut: float = maxf(0.0, 6.0 - float(world.economy.reference_price("iron_ore"))) * 2.5
 		var sterms: Array = [["base", 9.0 + hero.skill_level("smithing") * 0.4], ["glut", glut],
 			["goal", Config.GOAL_BIAS if String(hero.goal.get("skill", "")) == "smithing" else 0.0],
 			["sticky", Config.STICKY_BONUS if hero.act.get("intent", "") == "SMITH" else 0.0]]

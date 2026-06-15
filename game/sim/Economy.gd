@@ -43,6 +43,10 @@ var treasury_out_bias: float = 0.0     # outflow: price-bias overpay premiums (#
 # #3c — player price-bias lever (B1): good -> multiplier on what the shop PAYS heroes (clamped).
 # Overpay premiums are treasury-funded + affordability-gated; underpay just shrinks the faucet.
 var price_bias: Dictionary = {}
+# #6c (C4) — when true (= the GE is unlocked; SimWorld keeps it in sync via the ge_unlocked setter), the
+# NPC shop sell price is CEILINGED at SHOP_SELLBACK_FRAC × the item's GE reference (base_value). Inert
+# (false) until the GE opens → the validated economy and the GE-locked gates are untouched.
+var sell_back_active: bool = false
 var _content: ContentDB = null         # catalog reference (tradeable gate in sell_goods)
 
 func _init(content: ContentDB = null) -> void:
@@ -101,13 +105,28 @@ func shop_by_id(id: String) -> Shop:
 			return s
 	return null
 
+## The UNCAPPED saturation reference price for a good (Shop.sell_price, no C4 ceiling, no bias). Steering
+## signals that must read true market saturation — the gather GLUT term (#3a) and the funded city-order
+## premium (#5e-2) — use THIS, so the C4 sell-back ceiling cuts the shop's PAY without poisoning those
+## signals. Equals sell_price() when the ceiling is inert (GE locked). 1 when the good isn't traded.
+func reference_price(item: String) -> int:
+	var s: Shop = _by_good.get(item, null)
+	return s.sell_price(item) if s != null else 1
+
 ## Price the shop PAYS a hero for a good (saturation-aware), INCLUDING any active price bias
-## (#3c) — the steering signal the brain reads must equal what the sale actually pays.
+## (#3c) — the steering signal the brain reads must equal what the sale actually pays. #6c (C4): once the
+## GE is open (`sell_back_active`), the pay is CEILINGED at SHOP_SELLBACK_FRAC × the GE reference value
+## (catalog base_value) — shops become the bad buyer so funded GE/city orders win (the ceiling is applied
+## before the bias; an overpay bias still can't lift it past the ceiling, matching the "shops are bad" intent).
 func sell_price(item: String) -> int:
 	var s: Shop = _by_good.get(item, null)
 	if s == null:
 		return 1
 	var base_p := s.sell_price(item)
+	if sell_back_active and _content != null:
+		var ref := _content.base_value(item)
+		if ref > 0:
+			base_p = mini(base_p, maxi(1, int(round(float(ref) * Config.SHOP_SELLBACK_FRAC))))
 	var b := bias_of(item)
 	if b > 1.0 and not _bias_affordable(item, base_p):
 		b = 1.0   # unfunded overpay never advertises (R1: an empty treasury means no lever, like bounties)
