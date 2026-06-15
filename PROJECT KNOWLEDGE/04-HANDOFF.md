@@ -17,10 +17,10 @@ steers (incentivize/nudge/seize) and invests a tax-fed treasury. Read
 BATCH #13–#15 COMPLETE; UNIT 4 (#5) FUNCTIONALLY COMPLETE 2026-06-14 — bank +
 GE order book + city orders + GE unlock + funded gather incentive LIVE + #5d
 offline order-fill (only the R5 utility-incentive retirement remains as an
-optional cleanup). UNIT 5 (#6) FUNCTIONALLY COMPLETE — #6a C3 item-cost upgrade
-ladders + #6b C5 shop crafting queues + #6c C4 sell-back ceiling SHIPPED
-2026-06-14 (the full C2→C3/C5 loop + the mint reshape; only the #6d UI
-render polish + F5 remains).**
+optional cleanup). UNIT 5 (#6) CODE-COMPLETE (F5-PENDING) — #6a C3 item-cost
+upgrade ladders + #6b C5 shop crafting queues + #6c C4 sell-back ceiling + #6d
+TOWN-panel UI all SHIPPED 2026-06-14 (the full C2→C3/C5 loop + the mint reshape
++ the controls); only a combined F5 visual sign-off remains.**
 suite **267/267** + determinism/save-load/offline gates green; save version
 **10**. **C4-active band re-baselined: g/cap 707 ± 208** (GE open + sell-back,
 8 seeds; was 1,378 ± 331 pre-C4 — the designed mint cut, attractor holds, all
@@ -46,6 +46,15 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
 (feasibility gating) and #4c (Control-node popups, needs F5) remain.
 
 ## What was just done (this session, 2026-06-13/14)
+- **#6d SHIPPED (code) — Unit 5 TOWN-panel UI (render-only, F5-pending).** The
+  TOWN panel now surfaces all three Unit-5 mechanics (immediate-mode HUD):
+  #6a the shop upgrade button gated on `can_upgrade_shop` + an item-cost
+  tooltip; #6b a **TOWN CRAFTING** subsection (`_draw_crafting`: city-stock
+  readout, feasibility-gated quick-craft presets, the live queue with ✕ cancel;
+  new `craft`/`cancel_craft` dispatch + `SimWorld.can_queue_craft`); #6c a
+  **sell-back venue** readout (shop pay vs best, "(GE-capped)" flagged). Main.gd
+  parses; suite **267/267**; 3 gates PASS. **The VISUAL needs an F5 pass** —
+  joins the Unit-3 #4b/#4c F5 queue. **Unit 5 is CODE-COMPLETE.**
 - **#6c SHIPPED — C4 shop sell-back ceiling (the mint-touching keystone).** Once
   the GE opens, `Economy.sell_price` ceilings at `min(saturation, 0.30 × base_value)`
   (`sell_back_active`, kept in sync with `ge_unlocked` by a SETTER). Shops become
@@ -255,19 +264,37 @@ levers stay default-OFF: M2 BRAIN_V2, the #3d gear-drop reward coupling
      Nudge disabled + reason shown.
   If anything looks wrong, that's the next fix; otherwise tick the F5 box and
   Unit 3 is closed.
+- **Unit 5 (punch #6): #6a/#6b/#6c ✅ · #6d ✅ (code) — F5 VISUAL SIGN-OFF
+  OUTSTANDING** (same combined pass). Open the menu → Colony tab → TOWN panel:
+  1. **#6a:** a shop whose upgrade you can't afford (missing city materials)
+     shows a DIM upgrade button; hovering it shows "cost: Ng + <items>".
+  2. **#6b:** the **TOWN CRAFTING** section lists city stock + "Craft 5× <item>"
+     buttons (dim with a "needs …" tip when materials are short); clicking an
+     enabled one adds a job; the queue shows "✕ made/qty <item>" — clicking ✕
+     cancels and refunds. (Easiest to exercise with the GE open + treasury, so
+     city orders fill the inventory; iron_sword from iron_ore is the reliable one.)
+  3. **#6c:** the **sell-back venue** line shows "shop pay / best" per gather
+     good; once the GE is open it's labelled "(GE-capped)" and the shop number
+     drops well below "best".
+  If it reads right, tick the box — Unit 5 is closed.
 - **#13 + #14 + #15: DONE** (directive batch). **Unit 4 (#5): FUNCTIONALLY
   COMPLETE** — #5a bank + #5b GE engine + #5c city orders + #5e GE unlock +
   funded gather incentive live + #5d offline order-fill, all shipped/green.
-- **Unit 5 (#6): FUNCTIONALLY COMPLETE (code).** **#6a (C3 upgrades) ✅ · #6b
-  (C5 crafting) ✅ · #6c (C4 sell-back) ✅ SHIPPED.** Only **#6d (UI)** remains —
-  render-only TOWN LEDGER sections (upgrade item-costs, the crafting queue, the
-  sell-back venue) + an F5 sign-off. No code item mid-flight.
+- **Unit 5 (#6): CODE-COMPLETE (F5-pending).** **#6a ✅ · #6b ✅ · #6c ✅ · #6d
+  ✅ (code).** All sim/logic/render shipped & green; the only remaining thread is
+  a combined F5 visual sign-off (Unit-5 TOWN-panel UI + Unit-3 #4b/#4c). No code
+  item mid-flight.
 
 ## Next steps (in order)
-1. **Unit 5 (#6) — only #6d left (render-only):** TOWN LEDGER / shop-panel UI for
-   the shop upgrade item-costs (#6a), the crafting queue (#6b queue_craft/
-   cancel_craft), and the sell-back venue comparison (#6c). Then an F5 visual
-   sign-off (unverifiable headless). All the sim/logic is shipped & green.
+1. **Next big unit — pick one (Units 4 & 5 are code-complete):**
+   - **#7 — Content wave (e):** death/graves/PK → canon social negatives (retire
+     the interim competition-friction). Pairs naturally with KI-11 (deaths rose
+     under C4) — graves give those deaths narrative + social weight.
+   - **#16 — Legendary & Easter-Egg arrivals** (now unblocked — the GE is built):
+     the immigration template-override hook is the `_new_hero`/`spawn_immigrant`
+     path from #13–#15; needs a per-run unlock/achievement record that resets
+     with prestige.
+   - **#8/#9** — buildings/reincarnation; Zezima endgame (later waves).
 2. **Unit-4 refinements (optional, not blockers; #5d done):** the R5 cleanup to
    retire the pure-utility gather incentives (breaks the existing incentive test,
    needs rewriting; the utility lever sits unused at 0 autonomously); the deferred

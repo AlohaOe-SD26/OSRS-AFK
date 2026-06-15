@@ -75,11 +75,12 @@
   - **OPEN DESIGN QUESTIONS (resolve as reached, sweep-backed):** (1) banked-gold
     vs upkeep — #5a defaults to upkeep-on-total (attractor-safe); revisit only
     with evidence. (2) GE matching/price-discovery model. (3) offline fill rate.
-- [ ] #6 — Unit 5: C4 shop sell-back (ceiling `min(saturation, 0.30 × GE
-  reference)`, graceful degradation when GE illiquid — adopted as written,
-  R2) + C3 item-cost upgrade ladders + C5 shop crafting queues
-  (reservation-on-start FIFO). Never ship C4 alone; keep bug-class lens on
-  the C2→C3/C5 closed loop. **The closed loop:** C2 city-buying (Unit 4)
+- [~] #6 — Unit 5 — **CODE-COMPLETE (F5-pending)**: C4 shop sell-back (ceiling
+  `min(saturation, 0.30 × GE reference)`, graceful degradation when GE illiquid
+  — adopted as written, R2) + C3 item-cost upgrade ladders + C5 shop crafting
+  queues (reservation-on-start FIFO). Never ship C4 alone; keep bug-class lens on
+  the C2→C3/C5 closed loop. **All sub-items #6a–#6d shipped/green** (suite
+  267/267, 3 gates PASS, save v10); only the #6d UI F5 visual sign-off remains. **The closed loop:** C2 city-buying (Unit 4)
   ACCUMULATES `city_inventory`; C3 upgrades + C5 crafting DRAIN it; C4
   reshapes the shop economy so trade migrates GE-ward. Decomposed (build
   order — greenfield drains first, the mint-touching C4 LAST with a sweep):
@@ -115,9 +116,13 @@
     g/cap 707 ± 208** (was 1,378 ± 331) — the designed mint cut; attractor HOLDS,
     pop 41 ± 1, ALL ALIVE, deaths 14 ± 9 (WATCH KI-11). Shipped per the user's
     "0.30 as written" ruling. +7 suite checks → **267/267**; 3 gates PASS.
-  - [ ] #6d — **Unit 5 UI** (render-only): TOWN LEDGER sections for shop
-    upgrades (item costs), the crafting queue, and the sell-back venue. F5
-    sign-off (unverifiable headless). Anytime after #6a–#6c.
+  - [~] #6d — **Unit 5 UI CODE-COMPLETE (F5-pending)** (2026-06-14). TOWN panel
+    (immediate-mode): #6a upgrade button gated on `can_upgrade_shop` + item-cost
+    tooltip; #6b `_draw_crafting` (city-stock readout, feasibility-gated
+    quick-craft presets, live queue with ✕ cancel; new `craft`/`cancel_craft`
+    dispatch + `SimWorld.can_queue_craft`); #6c sell-back venue readout (shop pay
+    vs best, "(GE-capped)" flagged). Main.gd parses; suite 267/267; 3 gates PASS.
+    **VISUAL needs an F5 pass** (render-only) — joins the Unit-3 #4b/#4c F5 queue.
 - [ ] #7 — Content wave (e): death/graves/PK → canon social negatives
   (retire interim competition-friction).
 - [ ] #8 — Content wave (f): buildings expansion / reincarnation.

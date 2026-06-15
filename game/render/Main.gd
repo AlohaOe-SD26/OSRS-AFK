@@ -334,6 +334,11 @@ func _dispatch_ui(u: Dictionary) -> void:
 				world.release_hero(selected)
 		"upgrade_shop":
 			world.upgrade_shop(u["arg"])
+		"craft":
+			var c: Dictionary = u["arg"]   # #6b: {shop, out, qty}
+			world.queue_craft(String(c["shop"]), String(c["out"]), int(c["qty"]))
+		"cancel_craft":
+			world.cancel_craft(int(u["arg"]))   # #6b: cancel by queue index, refund unmade inputs
 		"build":
 			world.build(String(u["arg"]))
 		"incentive":
@@ -1158,7 +1163,17 @@ func _draw_town(pad: float, y: float) -> float:
 	var per_row := 0
 	for s: Shop in world.economy.shops:
 		var short: String = _SHOP_SHORT.get(s.npc_id, s.npc_id.left(4))
-		bx = _button("%s Lv%d  up %dg" % [short, s.level, world.economy.shop_upgrade_cost(s)], bx, y, "upgrade_shop", s, false)
+		# #6a (C3): the upgrade costs treasury gold AND city-inventory materials — gate the button on
+		# can_upgrade_shop and spell the full cost in a hover-tooltip when it's not affordable yet.
+		var ok_up: bool = world.can_upgrade_shop(s)
+		var itip := ""
+		if not ok_up:
+			var icost: Dictionary = world.shop_upgrade_item_cost(s)
+			var iparts: PackedStringArray = []
+			for g in icost:
+				iparts.append("%d %s" % [int(icost[g]), world.item_name(String(g))])
+			itip = "cost: %dg + %s (from city inventory)" % [world.economy.shop_upgrade_cost(s), ", ".join(iparts)]
+		bx = _button("%s Lv%d  up %dg" % [short, s.level, world.economy.shop_upgrade_cost(s)], bx, y, "upgrade_shop", s, false, ok_up, itip)
 		per_row += 1
 		if per_row == 4:   # wrap after 4 buttons
 			per_row = 0
@@ -1175,6 +1190,7 @@ func _draw_town(pad: float, y: float) -> float:
 		var lbl := "+GE Annex %d" % int(spec["cost"]) if kind == "ge_annex" else "+%s %d" % [String(kind).capitalize(), int(spec["cost"])]
 		bx = _button(lbl, bx, y, "build", kind, false)
 	y += 19
+	y = _draw_crafting(pad, y)   # #6b/#6c — town crafting queue + the sell-back venue readout
 	_hud_line("Gather incentives (cycle off/+%d/+%d):" % [int(Config.INCENTIVE_STEP), int(Config.INCENTIVE_MAX)], pad, y, Color("#857a67"), 10); y += 14
 	bx = pad
 	for c in [["Mine", "GATHER_ORE"], ["Chop", "GATHER_LOGS"], ["Fish", "PROVISION"]]:
@@ -1207,6 +1223,66 @@ func _draw_town(pad: float, y: float) -> float:
 		for b in world.buildings:
 			names.append(String(b["name"]))
 		_hud_line("Built: %s" % ", ".join(names), pad, y, Color("#9b9078"), 10); y += 14
+	return y
+
+## #6b/#6c (C5 + C4) — town CRAFTING (city inventory → shop stock) and the SELL-BACK venue readout.
+## Quick-craft preset buttons (each craftable good a shop vends, batch of 5) are feasibility-gated on the
+## city materials; the live queue is shown with a cancel (✕) per job. The sell-back line shows, per gather
+## good, what the shop pays (ceilinged at 0.30×ref once the GE opens) vs the best venue — so the player
+## sees shops turn into the bad buyer and the funded orders win (the C4 procurement signal).
+func _draw_crafting(pad: float, y: float) -> float:
+	const _CRAFT_QTY := 5
+	_hud_line("TOWN CRAFTING — city inventory → shop stock:", pad, y, Color("#857a67"), 10); y += 14
+	# city-inventory summary
+	var civ: PackedStringArray = []
+	for g in world.city_inventory:
+		if int(world.city_inventory[g]) > 0:
+			civ.append("%d %s" % [int(world.city_inventory[g]), world.item_name(String(g))])
+	_hud_line("city stock: %s" % ("(empty)" if civ.is_empty() else ", ".join(civ)), pad, y, Color("#9a8f78"), 9); y += 13
+	# quick-craft presets — craftable goods a shop vends, gated on the city materials
+	var bx := pad
+	var per_row := 0
+	for iid in world.content.items:
+		var it: ItemType = world.content.item(String(iid))
+		if it == null or it.recipe().is_empty():
+			continue
+		var sh: Shop = world.economy.shop_for(String(iid))
+		if sh == null:
+			continue
+		var canq: bool = world.can_queue_craft(sh.npc_id, String(iid), _CRAFT_QTY)
+		var ctip := ""
+		if not canq:
+			var cc: Dictionary = world.craft_input_cost(String(iid), _CRAFT_QTY)
+			var cparts: PackedStringArray = []
+			for k in cc:
+				cparts.append("%d %s" % [int(cc[k]), world.item_name(String(k))])
+			ctip = "needs %s in the city inventory" % (", ".join(cparts) if not cparts.is_empty() else "a recipe")
+		bx = _button("Craft %d× %s" % [_CRAFT_QTY, world.item_name(String(iid))], bx, y,
+			"craft", {"shop": sh.npc_id, "out": String(iid), "qty": _CRAFT_QTY}, false, canq, ctip)
+		per_row += 1
+		if per_row == 2:
+			per_row = 0; bx = pad; y += 19
+	if per_row > 0:
+		y += 19
+	# the live queue, with a cancel per job
+	if not world.craft_queue.is_empty():
+		bx = pad
+		per_row = 0
+		for i in range(world.craft_queue.size()):
+			var job: Dictionary = world.craft_queue[i]
+			bx = _button("✕ %d/%d %s" % [int(job["made"]), int(job["qty"]), world.item_name(String(job["output"]))],
+				bx, y, "cancel_craft", i, false)
+			per_row += 1
+			if per_row == 3:
+				per_row = 0; bx = pad; y += 19
+		if per_row > 0:
+			y += 19
+	# #6c — the sell-back venue readout (shop pay vs the best venue, per gather good)
+	_hud_line("Sell-back venue — shop pay%s vs best:" % (" (GE-capped)" if world.economy.sell_back_active else ""), pad, y, Color("#857a67"), 10); y += 13
+	var vparts: PackedStringArray = []
+	for good: String in Config.CITY_ORDER_GOODS:
+		vparts.append("%s %d/%d" % [world.item_name(good), world.economy.sell_price(good), world.best_sell_price(good)])
+	_hud_line("  " + " · ".join(vparts), pad, y, Color("#9a8f78"), 9); y += 15
 	return y
 
 # --------------------------------------------------------------------------- Hero Panel tabs (§20)

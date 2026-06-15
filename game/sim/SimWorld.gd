@@ -2228,15 +2228,22 @@ func craft_input_cost(output_id: String, qty: int) -> Dictionary:
 ## that shop's stock for heroes to buy. Refused unless the shop vends the output, the item has a recipe,
 ## and the city inventory holds the full input cost. Returns true on success (FIFO — appended to the
 ## back of the single-server queue).
-func queue_craft(shop_id: String, output_id: String, qty: int) -> bool:
+## #6b/#6d — can the player queue this craft right now? (Pure check, for UI gating: positive qty, the
+## shop vends the output, the item has a recipe, and the city inventory holds the full input cost.)
+func can_queue_craft(shop_id: String, output_id: String, qty: int) -> bool:
 	if qty <= 0:
 		return false
 	var shop: Shop = economy.shop_by_id(shop_id)
 	if shop == null or not shop.stock.has(output_id):
-		return false   # the shop must vend the output (so heroes can buy it)
+		return false
 	var cost: Dictionary = craft_input_cost(output_id, qty)
-	if cost.is_empty() or not _city_inv_has(cost):
-		return false   # no recipe, or the town lacks the materials
+	return not cost.is_empty() and _city_inv_has(cost)
+
+func queue_craft(shop_id: String, output_id: String, qty: int) -> bool:
+	if not can_queue_craft(shop_id, output_id, qty):
+		return false
+	var shop: Shop = economy.shop_by_id(shop_id)
+	var cost: Dictionary = craft_input_cost(output_id, qty)
 	for good: String in cost:
 		var left: int = int(city_inventory.get(good, 0)) - int(cost[good])
 		if left <= 0:

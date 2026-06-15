@@ -524,3 +524,20 @@
   economy; viable, immigration holds pop). The player lifts the band by funding bigger city orders.
 - **Verified:** suite **267/267** (+7 #6c checks); determinism / save-load / offline gates PASS
   (byte-identical, GE-locked). Unit 5 functionally complete bar the #6d UI.
+
+## 2026-06-14 — #6d Unit 5 UI (render-only; F5-pending) — Unit 5 code-complete
+- **TOWN panel surfaces the Unit-5 mechanics** (immediate-mode, the HUD paradigm):
+  - **#6a:** the shop UPGRADE button is now gated on `can_upgrade_shop` (gold + city-inventory materials);
+    when not affordable it dims and a hover-tooltip spells the full cost ("cost: Ng + X logs, Y iron_ore").
+  - **#6b:** a new **TOWN CRAFTING** subsection (`_draw_crafting`) — a city-inventory stock readout,
+    quick-craft preset buttons (each craftable good a shop vends, batch of 5; feasibility-gated on the
+    materials with a reason tooltip), and the live queue with a ✕ cancel per job. New dispatch kinds
+    `craft` ({shop,out,qty}→`queue_craft`) and `cancel_craft` (index→`cancel_craft`).
+  - **#6c:** a **sell-back venue** readout — per gather good, "shop pay / best venue" (labelled
+    "(GE-capped)" when `sell_back_active`), so the player sees shops turn into the bad buyer and the funded
+    orders win.
+- New pure pre-check `SimWorld.can_queue_craft` (UI gating; `queue_craft` now routes through it — behavior
+  identical, suite-confirmed). Render-only otherwise; no sim/save change.
+- **Verified:** Main.gd PARSES; suite **267/267**; determinism / save-load / offline gates PASS. **The
+  VISUAL needs an F5 pass** (render-only, unverifiable headless) — joins the Unit-3 #4b/#4c F5 queue.
+  **Unit 5 is CODE-COMPLETE** (#6a–#6d); only the combined F5 sign-off remains.
